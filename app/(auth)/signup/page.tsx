@@ -1,0 +1,5 @@
+import { redirect } from "next/navigation";
+import { AuthForm } from "@/components/auth-form";
+import { registerAction } from "@/app/(auth)/actions";
+import { getCurrentUser } from "@/data/auth";
+export default async function SignupPage(){if(await getCurrentUser())redirect("/dashboard");return <div className="auth-card"><p className="eyebrow">Start here</p><h2>Set up your restaurant</h2><p className="muted">Create the owner account. You can invite your team later.</p><AuthForm action={registerAction} submitLabel="Create Restaurant" pendingLabel="Creating Restaurant..." alternateText="Already have an account?" alternateHref="/login" alternateLabel="Sign in" fields={[{name:"businessName",label:"Restaurant name",autoComplete:"organization",placeholder:"Olive & Ember"},{name:"fullName",label:"Your full name",autoComplete:"name",placeholder:"Owner name"},{name:"username",label:"Username",autoComplete:"username",placeholder:"restaurant.owner"},{name:"password",label:"Password",type:"password",autoComplete:"new-password",placeholder:"At least 8 characters"}]}/></div>}

@@ -1,0 +1,10 @@
+import { z } from "zod";
+const id=z.string().regex(/^[a-f\d]{24}$/i,"Select a valid record"),money=z.coerce.number().min(0).max(100000000),optional=z.string().trim().max(500).optional();
+export const categorySchema=z.object({name:z.string().trim().min(2).max(80),sortOrder:z.coerce.number().int().min(0).max(9999)});
+export const productSchema=z.object({categoryId:id,name:z.string().trim().min(2).max(120),shortName:z.string().trim().max(60).optional(),sku:z.string().trim().max(50).optional(),description:optional,salePrice:money,costPrice:money,taxRate:z.coerce.number().min(0).max(100),kitchenCategory:z.string().trim().max(80).optional()});
+export const dealSchema=z.object({name:z.string().trim().min(2).max(120),description:optional,salePrice:money,productIds:z.array(id).min(1),quantities:z.array(z.coerce.number().int().min(1).max(99))}).refine(v=>v.productIds.length===v.quantities.length,{message:"Every deal product needs a quantity"});
+export const customerSchema=z.object({name:z.string().trim().min(2).max(100),phone:z.string().trim().max(30).optional(),email:z.union([z.literal(""),z.string().email()]).optional(),address:optional,area:z.string().trim().max(100).optional(),notes:optional});
+export const staffSchema=z.object({fullName:z.string().trim().min(2).max(100),role:z.enum(["WAITER","CASHIER","KITCHEN","OTHER"]),phone:z.string().trim().max(30).optional(),code:z.string().trim().max(20).optional()});
+export const tableSchema=z.object({name:z.string().trim().min(1).max(60),number:z.union([z.literal(""),z.coerce.number().int().min(1).max(999)]).optional(),area:z.string().trim().max(80).optional(),capacity:z.union([z.literal(""),z.coerce.number().int().min(1).max(100)]).optional(),sortOrder:z.coerce.number().int().min(0).max(9999)});
+export const recordIdSchema=id;
+export const pricingSchema=z.object({salePrice:money,costPrice:money.optional()});
