@@ -17,6 +17,10 @@ import "./pos.css";
 import "./pos-updates.css";
 import "./orders.css";
 import "./receipts.css";
+import "./payments.css";
+import "./reports.css";
+import "./sidebar.css";
+import "./expenses.css";
 
 export const metadata: Metadata = {
   title: { default: "Restaurant POS", template: "%s | Restaurant POS" },
@@ -25,7 +29,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en">
+    <html lang="en-GB">
       <body>{children}</body>
     </html>
   );

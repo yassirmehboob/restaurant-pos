@@ -9,6 +9,7 @@ const businessSchema = new Schema({
   receiptHeader: String, receiptFooter: { type:String, default:"Thank you!" }, showLogoOnCustomerReceipt:{type:Boolean,default:true}, showPricesOnKitchenReceipt:{type:Boolean,default:false},
   printerMode:{type:String,enum:["BROWSER","QZ"],default:"BROWSER"}, onePrinterMode:{type:Boolean,default:true}, customerPrinterName:String, kitchenPrinterName:String,
   customerPrintingEnabled:{type:Boolean,default:true}, kitchenPrintingEnabled:{type:Boolean,default:true}, customerReceiptCopies:{type:Number,default:1,min:1,max:5}, kitchenReceiptCopies:{type:Number,default:1,min:1,max:5},
+  autoPrintCustomerOnPayment:{type:Boolean,default:false},
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;

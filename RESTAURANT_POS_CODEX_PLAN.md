@@ -2287,6 +2287,8 @@ POS navigation and density: provide a direct Dashboard return action, keep custo
 
 POS submission behavior: keep Clear and Save visible in a fixed cart footer while order lines scroll; default the existing Counter customer for Dine-In and Takeaway; and make Save atomically persist, confirm, and send the order to kitchen before resetting POS for a new order.
 
+POS handoff rules: Save & Send requires confirmation; Takeaway opens payment immediately after the order is persisted and sent to kitchen; Delivery remains unpaid as COD and supports selecting an optional rider from the waiter list.
+
 Implement:
 
 - order type selector
@@ -2376,6 +2378,7 @@ Acceptance:
 
 Implement:
 
+- Phase 6 implementation status: a full-payment modal with cash/card/bank/other methods, cash change calculation, immutable payment events, atomic order completion, idempotency protection, payment history, and optional customer-receipt auto-print are implemented. The schema remains ready for partial/split payments in a later enhancement.
 - payment modal
 - cash/card/bank/other
 - amount
@@ -2398,6 +2401,7 @@ Acceptance:
 
 Implement:
 
+- Phase 7 implementation status: completed-order sales history, multi-field search and filters, daily dashboard KPIs, sales/product/deal/waiter/order-type/payment reports, role-aware snapshot profit metrics, and business-scoped CSV export are implemented. Cancelled and unpaid orders are excluded.
 - sales history
 - order search
 - filters
@@ -2427,6 +2431,8 @@ Implement:
 - gross profit
 - expense totals
 - net profit/loss
+
+- Phase 8 implementation status: business-scoped expense categories, expense create/update/deactivate flows, date/category/search filters, and server-calculated Profit & Loss are implemented. Net sales and COGS use completed order snapshots; inactive expenses are excluded. Financial screens and mutations are restricted to Owner/Admin.
 
 Acceptance:
 
