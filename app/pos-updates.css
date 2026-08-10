@@ -1,0 +1,35 @@
+.dashboard-shell:has(.pos-page){display:block}
+.dashboard-shell:has(.pos-page)>.sidebar{display:none}
+.pos-cart{min-height:0;overflow:hidden}
+.pos-cart-head,.order-types,.order-context,.pos-totals{flex:0 0 auto}
+.cart-lines{min-height:0!important;overflow-y:auto;overscroll-behavior:contain}
+.pos-totals{position:relative;z-index:2}
+.pos-product>div>small{margin:-3px 28px 8px 0;display:block;overflow:visible;color:#7b8798;font-size:10px;line-height:1.45;white-space:normal}
+.pos-product.deal>div{min-height:104px}
+.order-context label>span em{color:#98a2b3;font-size:9px;font-style:normal;font-weight:700}
+.customer-selector{grid-column:1/-1}
+.customer-select-row{display:grid!important;grid-template-columns:minmax(0,1fr) 40px 40px;gap:6px}
+.customer-select-row>div{position:relative}
+.customer-select-row>button{height:40px;display:grid;place-items:center;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px}
+.customer-select-row>button:last-child{color:#475467;background:#f8fafc;border-color:#dce2e9}
+.customer-select-row>button:disabled{cursor:not-allowed;opacity:.4}
+.customer-select-row>button svg{position:static!important;inset:auto!important;display:block;color:currentColor;pointer-events:none}
+.pos-heading-actions{display:flex;gap:9px;align-items:center}
+.pos-dashboard-link{height:44px;padding:0 13px;display:flex;gap:8px;align-items:center;color:#344054;background:#fff;border:1px solid #dfe4eb;border-radius:11px;font-size:12px;font-weight:750;text-decoration:none}
+.pos-dashboard-link:hover{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
+.pos-customer-dialog{z-index:300;width:min(440px,calc(100% - 28px));padding:0;color:#273244;background:transparent;border:0;border-radius:16px}
+.pos-customer-dialog::backdrop{background:rgba(15,23,42,.55);backdrop-filter:blur(3px)}
+.pos-customer-dialog>form{padding:20px;display:grid;gap:13px;background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.25)}
+.pos-customer-dialog header{margin-bottom:3px;display:flex;justify-content:space-between;align-items:center}
+.pos-customer-dialog header span{color:#2563eb;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.pos-customer-dialog h2{margin:3px 0 0;font-size:22px}
+.pos-customer-dialog header button{width:37px;height:37px;display:grid;place-items:center;color:#667085;background:#f2f4f7;border:0;border-radius:9px}
+.pos-customer-dialog label>span{display:block;margin-bottom:6px;color:#475467;font-size:11px;font-weight:750}
+.pos-customer-dialog input,.pos-customer-dialog textarea{width:100%;height:44px;padding:0 12px;color:#273244;background:#fff;border:1px solid #d8dee7;border-radius:9px;outline:0}
+.pos-customer-dialog textarea{height:70px;padding-top:11px;resize:none}
+.pos-customer-dialog input:focus,.pos-customer-dialog textarea:focus{border-color:#60a5fa;box-shadow:0 0 0 3px #dbeafe}
+.pos-customer-dialog footer{margin-top:5px;display:flex;gap:8px;justify-content:flex-end}
+.pos-customer-dialog footer button{height:42px;padding:0 15px;border-radius:9px;font-size:12px;font-weight:800}
+.pos-customer-dialog footer button:first-child{color:#475467;background:#fff;border:1px solid #d8dee7}
+.pos-customer-dialog footer button:last-child{color:#fff;background:#2563eb;border:1px solid #2563eb}
+@media(max-width:520px){.pos-dashboard-link{width:44px;padding:0;justify-content:center;font-size:0}.pos-heading-actions{gap:6px}}

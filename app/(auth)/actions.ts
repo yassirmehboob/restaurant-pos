@@ -8,6 +8,7 @@ import { Business } from "@/models/Business";
 import { User } from "@/models/User";
 import { writeAuditLog } from "@/lib/audit";
 import { getCurrentUser } from "@/data/auth";
+import mongoose from "mongoose";
 export type AuthState={error?:string;fieldErrors?:Record<string,string[]>}|undefined;
 const values=(formData:FormData,fields:string[])=>Object.fromEntries(fields.map(field=>[field,formData.get(field)]));
 export async function registerAction(_state:AuthState,formData:FormData):Promise<AuthState>{
@@ -26,6 +27,11 @@ export async function registerAction(_state:AuthState,formData:FormData):Promise
     if(createdUserId)await User.deleteOne({_id:createdUserId,businessId:business._id});
     await Business.deleteOne({_id:business._id});
     if(typeof error==="object"&&error&&"code" in error&&error.code===11000)return{error:"This username is already in use."};
+    if(error instanceof mongoose.Error.ValidationError){
+      const issues=Object.values(error.errors).map(issue=>issue.message).join(" ");
+      return{error:`Account validation failed: ${issues} Restart the development server if it still expects an email address.`};
+    }
+    console.error("Owner registration failed",error);
     return{error:"We could not create your account. Please try again."};
   }
   redirect("/settings/business");

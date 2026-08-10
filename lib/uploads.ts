@@ -1,14 +1,5 @@
 import "server-only";
-import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";import { connectToDatabase } from "@/lib/db";
 const ALLOWED_TYPES=new Set(["image/jpeg","image/png","image/webp"]),MAX_BYTES=5*1024*1024;
-export async function uploadImage(file:File|undefined,folder:string){
-  if(!file||file.size===0)return undefined;
-  if(!ALLOWED_TYPES.has(file.type))throw new Error("Use a JPG, PNG, or WebP image.");
-  if(file.size>MAX_BYTES)throw new Error("Image must be 5 MB or smaller.");
-  const cloud_name=process.env.CLOUDINARY_CLOUD_NAME,api_key=process.env.CLOUDINARY_API_KEY,api_secret=process.env.CLOUDINARY_API_SECRET;
-  if(!cloud_name||!api_key||!api_secret)throw new Error("Image uploads are not configured. Add the Cloudinary variables to .env.local.");
-  cloudinary.config({cloud_name,api_key,api_secret,secure:true});
-  const data=Buffer.from(await file.arrayBuffer()).toString("base64");
-  const result=await cloudinary.uploader.upload(`data:${file.type};base64,${data}`,{folder:`restaurant-pos/${folder}`,resource_type:"image",transformation:[{width:1200,height:1200,crop:"limit"},{quality:"auto",fetch_format:"auto"}]});
-  return result.secure_url;
-}
+function uploadScope(scope:string){const match=/^business-([a-f\d]{24})\/(products|deals|branding)$/i.exec(scope);if(!match)throw new Error("Invalid image storage scope.");return{businessId:match[1],kind:match[2]}}
+export async function uploadImage(file:File|undefined,scope:string){if(!file||file.size===0)return undefined;if(!ALLOWED_TYPES.has(file.type))throw new Error("Use a JPG, PNG, or WebP image.");if(file.size>MAX_BYTES)throw new Error("Image must be 5 MB or smaller.");const{businessId,kind}=uploadScope(scope);await connectToDatabase();const db=mongoose.connection.db;if(!db)throw new Error("Database is not available.");const bucket=new mongoose.mongo.GridFSBucket(db,{bucketName:"images"}),buffer=Buffer.from(await file.arrayBuffer());const stream=bucket.openUploadStream(file.name||`${kind}-image`,{metadata:{businessId,kind,size:file.size,contentType:file.type}});await new Promise<void>((resolve,reject)=>{stream.on("finish",resolve);stream.on("error",reject);stream.end(buffer)});return`/api/images/${stream.id.toString()}`}

@@ -1,0 +1,11 @@
+.deal-card-copy > small {
+  display: block;
+  margin-top: 4px;
+  overflow: visible;
+  color: #768195;
+  font-size: 12px;
+  line-height: 1.5;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

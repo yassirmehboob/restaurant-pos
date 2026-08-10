@@ -53,7 +53,7 @@ Use the existing starter choices where compatible. Preferred stack:
 - **Zod**
 - **NextAuth/Auth.js** or a secure credentials/session implementation already present in the starter
 - **bcrypt/bcryptjs** for password hashing
-- **Cloudinary or S3-compatible object storage** for product/deal images
+- **MongoDB GridFS** for business logos and product/deal image binaries
 - **Recharts** for dashboard/report charts
 - **date-fns** for date handling
 - **Lucide icons**
@@ -349,9 +349,6 @@ Product {
   businessId
   categoryId
   name
-  shortName?
-  sku?
-  barcode?
   description?
   imageUrl?
   salePrice
@@ -360,7 +357,6 @@ Product {
   isTaxInclusive
   isAvailable
   isActive
-  kitchenCategory?
   sortOrder
   createdAt
   updatedAt
@@ -1466,10 +1462,11 @@ Store:
 
 ```ts
 imageUrl
-imagePublicId?
 ```
 
-The image provider should be abstracted so Cloudinary/S3 can be changed later.
+Use MongoDB GridFS for image binary storage. GridFS must use dedicated `images.files` and `images.chunks` collections; do not embed binary/base64 content in normal Business, Product, Deal, or Category documents. Store only an internal URL such as `/api/images/[id]` in the owning record.
+
+Every GridFS file must include `businessId` and image kind in metadata. The image-serving route must authenticate the request and verify that file metadata belongs to the session business before returning bytes. Validate MIME type and enforce a 5 MB maximum upload size.
 
 ---
 
@@ -1663,13 +1660,46 @@ Do not make customer creation mandatory for normal counter sales.
 
 All master-data pages should follow a consistent pattern.
 
+Phase 2 list and form presentation:
+
+- Use **Item / Items** in all user-facing UI copy instead of Product / Products. The internal MongoDB model and route may remain `Product` and `/products` for compatibility.
+- Keep the Items page header compact so more menu cards remain visible without scrolling.
+- Item cards show the item name on one truncated single line and the category immediately below it.
+- At desktop widths, use a dense responsive multi-column card catalog where practical.
+- Items provide live filters for item name, category, Available, Unavailable, and Deactivated status.
+- Add Item and Update Item use a full-viewport popup workspace so the desktop form fits without internal scrolling.
+- After a successful Item create/update response, reset the form and automatically close the full-screen popup.
+- Deals use the same compact-header, live-filter, responsive card-catalog pattern as Items.
+- Deal cards show a single-line deal name, price, availability state, and every included item with its quantity. The included-item summary wraps to multiple lines and must never be truncated.
+- Deals support Available, Unavailable, and Deactivated filtering and quick availability changes.
+- Add Deal and Update Deal use the full-viewport popup and automatically close after a successful server response.
+- Full-screen forms keep the Save action visible in a sticky footer on shorter displays.
+- Deal item rows use explicit Item and Quantity labels, a clearly bordered numeric quantity input, and a dedicated trash icon button with disabled and hover states.
+- Item names must be unique within a business using a unique compound index on `{ businessId: 1, name: 1 }`. Different businesses may use the same item name.
+- Barcode is not part of the current Item form or schema. Remove obsolete unique SKU/barcode indexes during migration.
+
+- Products, Deals, Customers, Staff, and Tables use the full page width for their lists.
+- Add and Update actions open a modal dialog on desktop and a viewport-safe popup/sheet on mobile.
+- Do not keep a permanently visible add form beside a list.
+- Product forms contain Category, Product Name, Sale Price, Cost Price, Tax Rate, Description, and Image.
+- Tax Rate is optional in Product add/update forms and defaults to `0` on the server when blank.
+- Product forms must not contain Short Name, SKU, or Kitchen Station fields.
+- Categories do not have a separate navigation page. Place an icon button beside the Category dropdown in Product add/update dialogs.
+- The category popup supports adding, listing, updating, activating, and deactivating categories without leaving Products.
+- Deals, Customers, Staff, and Tables follow the same list-first plus add/update popup pattern.
+- The Customers main page follows the Items catalog pattern with responsive cards and live filters for name/contact details, area, and active/deactivated status. Customer deactivation requires a SweetAlert confirmation dialog.
+- The Staff main page follows the Items catalog pattern with responsive cards and live filters for name/contact details, staff code, role, and active/deactivated status. Staff deactivation requires a SweetAlert confirmation dialog.
+- The Tables main page follows the Items catalog pattern with responsive cards and live filters for table name/number, area, capacity, and active/deactivated status. Table deactivation requires a SweetAlert confirmation dialog.
+- Keep normal desktop add/update forms compact enough to avoid internal modal scrolling; use viewport-safe scrolling only on short screens and mobile devices.
+- Use a clean neutral professional interface with restrained accent colors, high contrast, and minimal decorative gradients.
+
 Example Products page:
 
 Top:
 
 ```text
-Products                         [+ Add Product]
-[Search Products...] [Category] [Status]
+Items                            [+ Add Item]
+[Search Items...] [Category] [Status]
 ```
 
 Main:
@@ -2226,6 +2256,14 @@ Implement:
 - Staff/waiters
 - Tables
 
+Required Phase 2 UI structure:
+
+- Full-width master-data lists
+- Add/update modal forms
+- Embedded category manager opened beside the Product category dropdown
+- No separate Categories page in navigation
+- No Short Name, SKU, or Kitchen Station product fields
+
 Acceptance:
 
 - CRUD works
@@ -2240,6 +2278,14 @@ Acceptance:
 ## PHASE 3 — POS UI
 
 Build touch-first POS.
+
+Implementation status: the touch-first POS catalog, order-type flows, cart controls, line notes, table/waiter/customer selectors, delivery details, responsive mobile cart, and server-authoritative totals preview are implemented. Order persistence, kitchen submission, and payment remain intentionally reserved for Phases 4 and 5.
+
+POS refinements: POS runs full-screen without the dashboard sidebar; table and waiter selection are optional; deal cards list their included items; customer selection has no synthetic walk-in option; and customers can be added or updated inside POS with name/mobile fields plus address/area for Delivery.
+
+POS navigation and density: provide a direct Dashboard return action, keep customer add/edit icons clearly visible, accept any non-empty mobile number, and display at least five included deal items directly on a deal card without an internal scrollbar.
+
+POS submission behavior: keep Clear and Save visible in a fixed cart footer while order lines scroll; default the existing Counter customer for Dine-In and Takeaway; and make Save atomically persist, confirm, and send the order to kitchen before resetting POS for a new order.
 
 Implement:
 
@@ -2271,6 +2317,7 @@ Do not implement payment before order data model is stable.
 
 Implement:
 
+- Phase 4 implementation status: persistent business-scoped orders, atomic per-business order numbers, product/deal and cost snapshots, centralized server recalculation, order history/detail views, open-order editing, controlled kitchen status transitions, and audited cancellation with a required reason are implemented. Payment and completion remain reserved for Phase 6.
 - order number generation
 - create/save order
 - item snapshots
@@ -2451,7 +2498,6 @@ Create or adapt these:
 /sales
 
 /products
-/categories
 /deals
 
 /customers
@@ -2627,24 +2673,18 @@ but should be configurable.
 
 ---
 
-# 57. Image Storage Environment Variables
+# 57. Image Storage
 
-Example `.env.example` entries depending on selected provider:
+GridFS uses the existing MongoDB connection and requires no third-party image-service credentials:
 
 ```env
 MONGODB_URI=
 AUTH_SECRET=
 
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
 NEXT_PUBLIC_APP_NAME="Restaurant POS"
 ```
 
-Do not expose Cloudinary API secret as `NEXT_PUBLIC_*`.
-
-If another storage provider already exists in the starter, use it.
+Use a dedicated GridFS bucket named `images`. Keep binary files out of normal application documents and apply business-scoped access checks when serving them.
 
 ---
 
@@ -2959,9 +2999,7 @@ press-and-hold/admin action to mark sold out.
 
 POS product search should match:
 
-- product name
-- short name
-- SKU/barcode if used
+- item name
 
 Customer search:
 
@@ -3224,9 +3262,9 @@ Expenses must be recorded separately for net P&L.
 
 MongoDB stores image metadata/URL.
 
-Image binary files should be stored in Cloudinary/S3-compatible storage or an existing configured object store.
+Image binary files are stored in MongoDB GridFS using dedicated `images.files` and `images.chunks` collections. GridFS file metadata must include `businessId` for tenant isolation.
 
-Do not save huge image blobs directly into Product documents.
+Business, Product, and Deal documents store only the protected internal image URL. Do not save image buffers or base64 strings directly in those documents.
 
 ---
 
