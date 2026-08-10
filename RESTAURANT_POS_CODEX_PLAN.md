@@ -2341,6 +2341,8 @@ Acceptance:
 
 ## PHASE 5 — Receipts & Printing
 
+Implementation status: separate authenticated customer and kitchen receipt routes, 58mm/80mm print CSS, browser print and reprint controls, one/two-printer settings, and a shared Browser/QZ adapter boundary are implemented. Browser jobs are intentionally not marked as confirmed because the browser cannot report physical print success; the QZ adapter fails visibly until a local bridge is connected, without changing order state.
+
 Implement first:
 
 - customer printable receipt

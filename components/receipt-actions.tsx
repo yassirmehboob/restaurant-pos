@@ -1,0 +1,5 @@
+"use client";
+import { useState } from "react";
+import Swal from "sweetalert2";
+import { createPrinterAdapter } from "@/lib/printers";
+export function ReceiptActions({orderId,mode,customerEnabled,kitchenEnabled}:{orderId:string;mode:"BROWSER"|"QZ";customerEnabled:boolean;kitchenEnabled:boolean}){const[busy,setBusy]=useState(false);const run=async(kind:"customer"|"kitchen")=>{setBusy(true);const adapter=createPrinterAdapter(mode),result=kind==="customer"?await adapter.printCustomerReceipt(orderId):await adapter.printKitchenReceipt(orderId);setBusy(false);if(!result.ok)await Swal.fire({icon:"error",title:`${kind==="kitchen"?"Kitchen":"Customer"} receipt was NOT printed`,text:result.message,confirmButtonText:"OK"})};const both=async()=>{if(kitchenEnabled)await run("kitchen");if(customerEnabled)await run("customer")};return <div className="receipt-actions">{kitchenEnabled&&<button disabled={busy} onClick={()=>run("kitchen")}>Print kitchen</button>}{customerEnabled&&<button disabled={busy} onClick={()=>run("customer")}>Print customer</button>}{kitchenEnabled&&customerEnabled&&<button disabled={busy} onClick={both}>Print both</button>}</div>}
