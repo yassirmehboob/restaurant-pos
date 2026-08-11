@@ -24,6 +24,8 @@ import "./expenses.css";
 import "./receipt-updates.css";
 import "./order-status-updates.css";
 import "./orders-date.css";
+import "./image-guidance.css";
+import "./image-preview.css";
 
 export const metadata: Metadata = {
   title: { default: "Restaurant POS", template: "%s | Restaurant POS" },
