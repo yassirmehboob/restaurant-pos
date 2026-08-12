@@ -26,6 +26,10 @@ import "./order-status-updates.css";
 import "./orders-date.css";
 import "./image-guidance.css";
 import "./image-preview.css";
+import "./product-variants.css";
+import "./category-price-reference.css";
+import "./form-performance.css";
+import "./kitchen.css";
 
 export const metadata: Metadata = {
   title: { default: "Restaurant POS", template: "%s | Restaurant POS" },

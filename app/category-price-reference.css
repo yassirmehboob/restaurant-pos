@@ -1,0 +1,17 @@
+.entity-dialog.fullscreen .dialog-body>.master-form-card.has-price-reference{width:min(1380px,100%)}
+.master-form.master-form-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:stretch;overflow:hidden}
+.master-form-left,.master-form-right{min-width:0}
+.master-form-left{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px 12px;align-content:start}
+.master-form-left>.field{grid-column:span 3}.master-form-left>.field:nth-of-type(3),.master-form-left>.field:nth-of-type(4),.master-form-left>.field:nth-of-type(5){grid-column:span 2}
+.master-form-left .wide,.master-form-left>.product-variants,.master-form-left>.form-actions,.master-form-left>.success-message,.master-form-left>.form-alert{grid-column:1/-1}
+.master-form-right{display:flex}
+.category-price-reference{width:100%;min-width:0;padding:18px;background:#f8fafc;border:1px solid #dfe6ef;border-radius:13px;overflow:hidden}
+.category-price-reference-title{margin-bottom:14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.category-price-reference-title strong{color:#273244;font-size:13px}.category-price-reference-title span{max-width:150px;color:#8a94a3;font-size:9px;text-align:right}
+.category-price-reference>p{margin:0;padding:24px 10px;color:#7b8798;background:#fff;border-radius:9px;font-size:10px;text-align:center}
+.category-price-table{width:100%;max-height:520px;overflow-x:hidden;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:9px}
+.category-price-table>div{min-width:0;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) minmax(65px,.45fr) minmax(65px,.45fr);gap:7px;border-bottom:1px solid #edf0f4;font-size:10px}
+.category-price-table>div:first-child{position:sticky;z-index:1;top:0;color:#667085;background:#f1f5f9;font-size:8px;text-transform:uppercase}
+.category-price-table>div>*{min-width:0}.category-price-table>div>*:not(:first-child){text-align:right}.category-price-table span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:900px){.master-form.master-form-split{grid-template-columns:1fr;overflow:visible}.master-form-right{min-height:220px}.category-price-table{max-height:220px}}
+@media(max-width:560px){.master-form-left{grid-template-columns:1fr}.master-form-left>.field,.master-form-left>.field:nth-of-type(3),.master-form-left>.field:nth-of-type(4),.master-form-left>.field:nth-of-type(5){grid-column:1}.category-price-reference-title{flex-direction:column}.category-price-reference-title span{max-width:none;text-align:left}.category-price-table>div{grid-template-columns:minmax(0,1fr) 70px 70px}}

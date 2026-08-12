@@ -1,0 +1,6 @@
+/* Keep data-entry focus changes immediate and inexpensive. */
+.entity-dialog::backdrop{backdrop-filter:none}
+.entity-dialog input,.entity-dialog select,.entity-dialog textarea,.entity-dialog label,.entity-dialog .field{transition:none!important}
+.entity-dialog input:focus,.entity-dialog select:focus,.entity-dialog textarea:focus{outline:2px solid #60a5fa!important;outline-offset:0;box-shadow:none!important}
+.entity-dialog .master-form-left,.entity-dialog .master-form-right{contain:layout style}
+.entity-dialog .category-price-table{contain:layout paint}

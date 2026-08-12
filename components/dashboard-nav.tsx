@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BadgePercent,BarChart3,ClipboardList,LayoutDashboard,PackageOpen,Printer,ReceiptText,Settings,ShoppingCart,TableProperties,TrendingUp,UserRound,UsersRound,WalletCards } from "lucide-react";
+import { BadgePercent,BarChart3,ChefHat,ClipboardList,LayoutDashboard,PackageOpen,Printer,ReceiptText,Settings,ShoppingCart,TableProperties,TrendingUp,UserRound,UsersRound,WalletCards } from "lucide-react";
 import type { UserRole } from "@/lib/roles";
 
 const links=[
   ["/dashboard","Dashboard",LayoutDashboard],
   ["/pos","POS",ShoppingCart],
   ["/orders","Orders",ClipboardList],
+  ["/kitchen","Kitchen",ChefHat],
   ["/sales","Sales",ReceiptText],
   ["/reports","Reports",BarChart3],
   ["/expenses","Expenses",WalletCards],
