@@ -6,5 +6,7 @@ const auditLogSchema = new Schema({
   description: { type: String, required: true }, metadata: Schema.Types.Mixed, ipAddress: String, userAgent: String,
 }, { timestamps: { createdAt: true, updatedAt: false } });
 auditLogSchema.index({ businessId: 1, createdAt: -1 });
+auditLogSchema.index({ businessId: 1, userId: 1, createdAt: -1 });
+auditLogSchema.index({ businessId: 1, action: 1, createdAt: -1 });
 auditLogSchema.index({ businessId: 1, entityType: 1, entityId: 1 });
 export const AuditLog = models.AuditLog ?? model("AuditLog", auditLogSchema);

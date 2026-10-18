@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/run-app.mjs dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "node scripts/run-app.mjs start",
+    "lint": "eslint",
+    "test": "node --import ./tests/register.mjs --test tests/sale-sessions.test.mjs tests/dates.test.mjs tests/permissions.test.mjs tests/audit.test.mjs tests/tax.test.mjs",
+    "test:db": "node --env-file=.env.local --import ./tests/register.mjs --test tests/sale-sessions-db.test.mjs tests/reporting-db.test.mjs tests/kitchen-timing-db.test.mjs tests/audit-db.test.mjs",
+    "worker:kitchen": "node scripts/kitchen-worker.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

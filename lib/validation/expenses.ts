@@ -5,7 +5,7 @@ export const expenseCategorySchema=z.object({name:z.string().trim().min(2,"Categ
 export const expenseSchema=z.object({
   categoryId:z.string().regex(/^[a-f\d]{24}$/i,"Select an expense category."),
   title:z.string().trim().min(2,"Expense title is required.").max(120),
-  amount:z.coerce.number().positive("Amount must be greater than zero."),
+  amount:z.coerce.number().positive("Amount must be greater than zero.").max(999999999).refine(value=>Math.abs(value*100-Math.round(value*100))<0.0001,"Use at most two decimal places."),
   expenseDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/,"Select a valid date."),
   paymentMethod:z.enum(["CASH","CARD","BANK","OTHER"]),
   reference:optionalText,

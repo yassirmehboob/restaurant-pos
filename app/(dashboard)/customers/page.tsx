@@ -1,14 +1,14 @@
+import { requirePagePermission } from "@/data/auth";
 import { createCustomer,toggleActive,updateCustomer } from "@/app/(dashboard)/master-actions";
 import { CustomerCatalog } from "@/components/customer-catalog";
 import { EntityModal } from "@/components/entity-modal";
 import { EmptyState,MasterForm,ToggleButton } from "@/components/master-data";
 import { MasterHeader } from "@/components/master-shell";
-import { requireUser } from "@/data/auth";
 import { connectToDatabase } from "@/lib/db";
 import { Customer } from "@/models/Customer";
 
 export default async function CustomersPage(){
-  const user=await requireUser();await connectToDatabase();
+  const user=await requirePagePermission("customers");await connectToDatabase();
   const rows=await Customer.find({businessId:user.businessId}).sort({isActive:-1,name:1}).lean();
   const fields=[{name:"name",label:"Customer name",placeholder:"Customer name",required:true},{name:"phone",label:"Phone",placeholder:"0300 1234567"},{name:"email",label:"Email",type:"email" as const,placeholder:"Optional"},{name:"area",label:"Area",placeholder:"DHA Phase 5"},{name:"address",label:"Delivery address",type:"textarea" as const,placeholder:"House, street, landmark"},{name:"notes",label:"Notes",type:"textarea" as const,placeholder:"Optional preferences"}];
   const customers=rows.map(row=>{const id=String(row._id),name=String(row.name),phone=String(row.phone??""),email=String(row.email??""),area=String(row.area??"");const editFields=fields.map(field=>({...field,value:String(row[field.name as keyof typeof row]??"")}));const card=<article className={`customer-card ${!row.isActive?"inactive":""}`}><span className="customer-avatar">{name.charAt(0).toUpperCase()}</span><div className="customer-card-copy"><strong>{name}</strong><small>{[phone,email,area].filter(Boolean).join(" · ")||"No contact details"}</small><p>{String(row.address??row.notes??"No delivery address or notes")}</p></div><span className={`state ${row.isActive?"on":"off"}`}>{row.isActive?"Active":"Inactive"}</span><div className="customer-card-actions">{row.isActive&&<EntityModal title={`Update ${name}`} mode="edit"><MasterForm title="Update Customer" description="Edit customer and delivery details." action={updateCustomer.bind(null,id)} fields={editFields}/></EntityModal>}<ToggleButton action={toggleActive.bind(null,"Customer",id)} label={row.isActive?"Deactivate":"Activate"} tone={row.isActive?"danger":"normal"} confirmText={row.isActive?`Deactivate ${name}? This customer will no longer appear in active selections.`:undefined}/></div></article>;return{id,name,phone,email,area,isActive:Boolean(row.isActive),card}});

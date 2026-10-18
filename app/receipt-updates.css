@@ -1,2 +1,4 @@
 .order-barcode{margin:14px auto 8px;text-align:center}.order-barcode svg{width:100%;height:52px;display:block;fill:#000;shape-rendering:crispEdges}.order-barcode strong{display:block;margin-top:3px;font-size:10px;letter-spacing:.12em}.developer-credit{margin-top:10px!important;padding-top:8px;border-top:1px dotted #777;font-size:8px;line-height:1.45}
 .receipt-address{max-width:180px;text-align:right;white-space:normal;overflow-wrap:anywhere}
+
+.receipt-lines .receipt-item-tax{font-weight:700;overflow-wrap:anywhere}

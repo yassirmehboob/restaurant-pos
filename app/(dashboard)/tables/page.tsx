@@ -1,14 +1,14 @@
+import { requirePagePermission } from "@/data/auth";
 import { createTable,toggleActive,updateTable } from "@/app/(dashboard)/master-actions";
 import { EntityModal } from "@/components/entity-modal";
 import { EmptyState,MasterForm,ToggleButton } from "@/components/master-data";
 import { MasterHeader } from "@/components/master-shell";
 import { TableCatalog } from "@/components/table-catalog";
-import { requireUser } from "@/data/auth";
 import { connectToDatabase } from "@/lib/db";
 import { RestaurantTable } from "@/models/RestaurantTable";
 
 export default async function TablesPage(){
-  const user=await requireUser();await connectToDatabase();
+  const user=await requirePagePermission("tables");await connectToDatabase();
   const rows=await RestaurantTable.find({businessId:user.businessId}).sort({isActive:-1,sortOrder:1,name:1}).lean();
   const fields=[{name:"name",label:"Table name",placeholder:"Table 1",required:true},{name:"number",label:"Table number",type:"number" as const,min:1,placeholder:"1"},{name:"area",label:"Area",placeholder:"Main Hall"},{name:"capacity",label:"Capacity",type:"number" as const,min:1,placeholder:"4"},{name:"sortOrder",label:"Display order",type:"number" as const,min:0,required:true,value:0}];
   const tables=rows.map(row=>{const id=String(row._id),name=String(row.name),number=row.number==null?"":String(row.number),area=String(row.area??""),capacity=Number(row.capacity??0);const editFields=fields.map(field=>({...field,value:field.name==="name"?name:field.name==="number"?number:field.name==="area"?area:field.name==="capacity"?(row.capacity??""):row.sortOrder}));const card=<article className={`restaurant-table-card ${!row.isActive?"inactive":""}`}><span className="restaurant-table-number">{number||"—"}</span><div className="restaurant-table-copy"><strong>{name}</strong><small>{area||"No area"}</small><p>{capacity?`${capacity} seat${capacity===1?"":"s"}`:"Capacity not set"} · Display order {row.sortOrder}</p></div><span className={`state ${row.isActive?"on":"off"}`}>{row.isActive?"Active":"Inactive"}</span><div className="restaurant-table-actions">{row.isActive&&<EntityModal title={`Update ${name}`} mode="edit"><MasterForm title="Update Table" description="Edit table name, area, capacity, or order." action={updateTable.bind(null,id)} fields={editFields}/></EntityModal>}<ToggleButton action={toggleActive.bind(null,"RestaurantTable",id)} label={row.isActive?"Deactivate":"Activate"} tone={row.isActive?"danger":"normal"} confirmText={row.isActive?`Deactivate ${name}? This table will no longer appear in active dine-in selections.`:undefined}/></div></article>;return{id,name,number,area,capacity,isActive:Boolean(row.isActive),card}});

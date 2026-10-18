@@ -3374,3 +3374,216 @@ Do not ask Codex to build all ten phases in one uncontrolled prompt.
 ---
 
 ## End of Plan
+
+
+---
+
+## Implemented update - Sale sessions, counters and shifts (2026-10-16)
+
+This section supersedes calendar-day-only sales handling for newly recorded sale-session activity.
+
+### Start / Close Sale
+
+- Added Start / Close Sale in the sidebar and an account session banner throughout the dashboard.
+- Start Sale requires a counter name, sale date (YYYY-MM-DD), and opening cash balance (zero is allowed).
+- One open session per business/account and one open session per business/counter. Counter names are matched without case sensitivity. Shared logins on different devices share one session; use separate accounts and counter names for simultaneous independent counters.
+- Closing and reopening the same account/counter on the same sale date creates an independent shift. There is no one-shift-per-date restriction.
+- The selected sale date remains fixed after midnight until Close Sale. Physical timestamps remain available separately.
+- POS order creation/editing, payment collection, and expense recording require an active session. Kitchen status updates can continue independently.
+
+### Assignment and closing calculations
+
+- Orders store originating session, business date, and counter snapshots. Payments store the collecting account's session and business date. If an older order is collected in a later shift, its sale reporting date becomes the collecting shift's date; original session association is retained and collectedInSessionId records the collecting shift.
+- Expenses are assigned server-side to the creator's active session and sale date. The expense date cannot override the shift date. Cashiers see their own expenses; owners/admins can view business expenses and manage categories.
+- Closing uses collected payments (including payments for orders still in the kitchen), rather than uncollected order totals. Payment amounts are net of returned change.
+- Total balance = opening cash balance + collected sales from all payment methods - active expenses from all payment methods.
+- Expected physical cash = opening cash balance + CASH payments - CASH expenses. CARD/BANK/OTHER amounts do not inflate expected drawer cash.
+- Money calculations sum integer cents. Closed shifts store immutable closing totals, opening balance, selected date, account/counter snapshots, and opening/closing timestamps.
+- Only an account's active shift expenses can be edited or removed. Closed and pre-session expenses are read only; no legacy records are reassigned automatically.
+- The shift history shows the latest 100 closed shifts, with full financial summaries. Owners/admins see business history; other accounts see their own.
+
+### Reporting and consistency
+
+- Sales history, orders, dashboard, sales reports, CSV exports, and profit/loss sales calculations use persisted saleDate for session records. Pre-session records retain timestamp-based filtering.
+- Dashboard and default order/sales/report/expense views use the active session's sale date. Explicit date filters remain available.
+- Sales history and sales reports count completed, paid orders. Shift closing counts collected payments, so these figures can differ while paid orders are still being prepared.
+- Payment creation and marking an order paid are now one transaction. Existing unique idempotency keys prevent duplicate submissions; paid orders cannot be edited or cancelled through the order actions.
+- Financial transactions also update the open SaleSession document. Concurrent payment/expense activity and Close Sale therefore conflict and retry safely, avoiding a closing snapshot that misses a committed payment.
+- Unique partial indexes enforce open-account/open-counter exclusivity even across simultaneous requests.
+
+### Database requirement and verification
+
+- MongoDB Atlas or a replica set is REQUIRED for these financial operations. A standalone MongoDB instance cannot execute multi-document transactions. The UI returns a configuration message instead of recording partial financial changes.
+- The configured development database was checked read-only and is currently standalone. Server conversion/restart and production deployment were not performed by this update. Configure a replica set or point MONGODB_URI to Atlas before using Start Sale.
+- A local replica set may use mongodb://127.0.0.1:27017/restaurant-pos?replicaSet=rs0 after the MongoDB server itself is configured and initialized for rs0. Adding a URI parameter alone does not convert a standalone server. Do not reinitialize an existing server without a backup and a deployment-specific migration plan.
+- npm test validates balances, cash/noncash accounting, decimal arithmetic, start-sale validation, and business-date/legacy report filters.
+- npm run test:db creates and removes a uniquely named restaurant_pos_session_test_* database, validating account/business isolation, uniqueness, after-midnight attribution, and multiple same-date shifts. Its concurrent transaction/closing test runs only against a replica set or mongos and is explicitly skipped on standalone servers.
+- Verification also ran against a temporary, isolated local replica set on a separate port: concurrent collection/closing and frozen snapshot consistency passed. The temporary server was stopped afterward; the configured application database was not converted or restarted.
+- Follow-up verification of the user's three local MongoDB ports: 27017 still reports NoReplicationEnabled; 27018 and 27019 are configured for rs0 but report NotYetInitialized. The application still reaches standalone MongoDB. Calculation tests and standalone-safe database checks pass; transactional closing remains skipped against this configuration until the set is initialized and the application connects to it. No server configuration, replica-set initialization, or existing business data was changed by these checks.
+- Latest follow-up verification supersedes that standalone status: the configured application connection now reaches rs0 with a healthy PRIMARY at localhost:27017. Both replica-set status and configuration list only ONE member (voting/write majority = 1), not three. All five calculation/date tests and the five applicable database subtests pass, including concurrent collection/closing and frozen closing totals; the standalone-only rejection test is correctly skipped. Test data was confined to a generated test database and removed. Transaction support is now available, but secondary replication and automatic failover are not established by this one-member configuration. Add and verify two healthy data-bearing secondaries before treating it as a three-member deployment; production members should span independent hosts/failure domains.
+- Subsequent verification after adding members supersedes the one-member result: rs0 now has localhost:27017 PRIMARY and localhost:27018/27019 SECONDARY, all health=1, with voting and write majority both 2. Direct status checks on all three members showed identical applied operation timestamps after the integration tests. All five calculation/date tests and all five applicable database subtests passed, including transactional concurrent collection/closing; the standalone-only test was skipped as expected. Existing business data and server configuration were unchanged; generated test data was removed. A forced failover was not tested. All advertised addresses are local, so this verifies a local three-member setup rather than resilience to a whole-machine outage.
+
+
+## Implemented UI update - POS, sale sessions and customer search (2026-10-16)
+
+- Replaced the POS no-session link with a centered start-sale card, three quick setup cues, and a prominent touch-friendly action. The session banner has clear state, counter/date context, and a minimum 44px action.
+- Sidebar navigation scrolls independently above a separate account/logout footer. Long account names truncate instead of colliding with navigation. Start / Close Sale now immediately follows Sales. Mobile navigation remains horizontally accessible.
+- Start / Close Sale uses a compact three-column opening form on desktop, four primary closing metrics, and a compact cash breakdown. Shift history is collapsed by default and scrolls internally when expanded. Inputs and actions retain usable touch targets. Smaller phone screens can scroll naturally rather than clipping content.
+- Added a shared customer picker to POS invoicing and delivery review: search by name, mobile, address or area; formatted phone searches ignore separators; results show phone/address details. Includes walk-in selection for non-delivery orders, empty results, Add/Edit actions, native modal focus handling, keyboard navigation and centered dialogs.
+- Customer Add/Edit always includes address and area, required for delivery and optional otherwise. Saved customers are selected immediately and delivery details update immediately. Switching to a customer without an address clears the previous customer's details. Optional address fields can be cleared and persisted intentionally.
+- Delivery mode exposes the customer picker and address summary directly in the POS header; full address, area, rider and delivery charge remain in delivery review.
+- Save & send and delivery confirmation wait for verified server totals after cart or delivery-charge changes, avoiding a zero/stale total during the preview debounce.
+- Validation: production build and ESLint pass. Browser checks used an isolated temporary business/database: start-sale action sizing, sidebar separation, nav order, no desktop/tablet sale-session page scrolling (1366x768 and 1024x768), customer search with formatted phone numbers, selection, customer creation, persisted address editing, delivery review controls, clearing stale addresses, keyboard result selection, modal centering, and no horizontal overflow at 390x844. The final totals-pending guard and desktop POS start-screen fit were also checked. Temporary database and preview processes were cleaned up; real business records were not changed.
+
+
+## Implemented update - Uniform dates and shared POS invoice review (2026-10-16)
+
+This section supersedes the earlier placement of customer/order detail controls above the item catalog.
+
+- Confirmed the user's preferred date format as DD/MM/YYYY (31/01/2026). Added shared date/time formatting in lib/dates.ts using the restaurant's Asia/Karachi timezone.
+- Added a reusable, centered calendar datepicker with month/year selection, previous/next month, Today, optional Clear, selected-day indication and manual DD/MM/YYYY entry. Calendar buttons remain touch sized. Form fields submit canonical YYYY-MM-DD values; storage and database business dates are unchanged.
+- Replaced native date inputs in sales, orders, reports, profit/loss, expenses, Start Sale, and generic master-data date fields. Display dates in dashboard, session banners/history, orders, payment history, sales, receipts and CSV exports now follow DD/MM/YYYY; timestamps add a consistent 24-hour time. Report date validation rejects impossible dates and reversed custom ranges.
+- Start Sale and Close Sale now use SweetAlert confirmations. Cancelling either does not mutate a session. Start confirmation shows counter, formatted sale date and opening balance. Close confirmation supplies the existing server-side confirmation flag only after acceptance.
+- New POS orders default to a virtual Walk-in customer rather than the first saved customer. Legacy Counter selections are represented as Walk-in when opening an existing order. Customer selection is reflected immediately in both review and invoice summary, preserved across order-type changes, and reset to Walk-in for the next order.
+- Dine-in, Takeaway and Delivery use the same Review & send flow, opened by Save & send or the invoice customer summary. All include customer search/select/add/edit. Dine-in adds table/waiter controls; Delivery requires a selected recipient, address and area and includes rider/charge/notes; Takeaway continues to payment. Customer address editing remains available through Add/Edit.
+- Moved Dine-in, Takeaway, Delivery and Orders to a compact header spanning the POS. Removed duplicate setup/customer fields from the menu area and cart, making more room for items. The cart keeps a compact selected-customer summary.
+- Native review/customer dialogs retain their own focus handling. Order confirmation SweetAlerts are rendered inside the review dialog so controls remain interactive in the browser's modal layer.
+- Verification: production build and lint pass. Eight calculation/date unit tests pass. Isolated browser tests cover calendar date display/ISO submission, calendar layout, Start/Close confirmation acceptance and cancellation, shared review in all three order types, default Walk-in and preserved selection, nested customer creation/address editing, a saved Dine-in invoice retaining the selected customer and verified amount, Walk-in reset for the next order, formatted report filters and mobile overflow. Temporary preview business/database and processes were cleaned up; actual restaurant records were not modified.
+
+
+### Date-filter key fix (2026-10-16)
+
+- Datepicker keys now include both field name and date (from:YYYY-MM-DD / to:YYYY-MM-DD). Selecting the same From and To date no longer creates duplicate React keys. Applied consistently to Sales, Orders, Expenses, Reports and Profit/Loss while preserving remounting when a filter date changes.
+
+
+## Reporting fix - Paid sales independent of kitchen progress (2026-10-16)
+
+This section supersedes earlier requirements that reports count only orders with both COMPLETED and PAID status.
+
+- Root cause: Sales History and the shared report query required kitchen status COMPLETED in addition to payment status PAID. Paid takeaway/orders still SENT_TO_KITCHEN or PREPARING were omitted, which also removed their revenue and item costs from Profit/Loss.
+- Added a shared paidSalesFilter used by Sales History, Reports, dashboard, CSV reporting and Profit/Loss sales calculations. Paid non-cancelled orders now appear regardless of kitchen progress; unpaid orders remain excluded.
+- Session orders continue using their selected business saleDate, including after midnight. Legacy completed records retain completion-date filtering; legacy paid orders without a completion timestamp can be found through their payment's paidAt date.
+- Sales History displays the payment timestamp where available. Updated page labels/descriptions to say paid orders rather than completed orders.
+- Profit/Loss expenses use the same business-date filter with legacy expenseDate fallback. Payment completion now also revalidates Profit/Loss.
+- Read-only verification on the actual active business date 16/10/2026 found two paid SENT_TO_KITCHEN orders totaling Rs 2,893; the corrected report includes both, with Rs 693 estimated profit from historical item costs and no expenses on that sale date. Actual restaurant records were not changed.
+- Added isolated database regression tests for consistent sales-history/report selection, paid orders at multiple kitchen stages, exclusion of unpaid/cancelled orders, business isolation, legacy records, midnight attribution and Profit/Loss expense matching. All applicable database tests passed; generated test databases were removed.
+
+
+## Corrected item-specific tax information (2026-10-18)
+
+- Supersedes the item-label behavior below: informational item tax comes from the Items/Product collection's taxRate, not the business/payment-method rate used to calculate the invoice.
+- POS product tiles and cart lines show Item tax: X% (info only) for positive item rates. This label does not add another charge or change when switching payment methods.
+- New order lines save itemTaxRateSnapshot independently from the calculated line tax. Customer receipts use this snapshot even after payment-method or catalog-rate changes; zero item rates hide the label even when invoice tax is positive.
+- Older invoices with original per-item tax use their existing line rate. Older business-tax invoices without an item-rate snapshot fetch the product rate from the same restaurant and mark it current, info only. Kitchen slips retain their existing show-prices visibility setting.
+
+## Item tax labels in POS and receipts (2026-10-18)
+
+- POS cart lines now display each item's positive tax percentage and total tax amount, using the current server-calculated preview. Quantities and payment-method changes refresh these labels; stale preview labels are hidden during recalculation.
+- Customer receipts print the saved per-line tax percentage and amount. Inclusive tax is labelled Included tax; zero-tax lines omit the label. Kitchen slips include the same detail only when kitchen price printing is enabled.
+- These labels are informational and do not add tax again or change invoice totals. Historical receipts use stored line snapshots rather than current catalog/profile rates.
+
+## Business tax percentages by payment method (2026-10-18)
+
+- Business Profile now includes an owner-only tax form with a default invoice tax percentage and optional Cash/Card/Bank/Other overrides. Blank overrides inherit the default; explicit 0 means tax-free. Percentages are validated server-side from 0 through 100, and changes are audited.
+- New POS invoices default to Cash. Payment method can be changed during Review & Send, with server-authoritative tax/total recalculation. Business tax applies to product and deal selling prices, replaces per-item tax rather than stacking it, and excludes delivery charges.
+- Invoice creation snapshots all four method rates and the selected method/rate. Later profile changes affect new invoices, while existing invoices retain their snapshots. Businesses not yet configured retain legacy item-tax behavior; historical invoices without snapshots retain their existing tax totals.
+- Receive Payment fetches a fresh server calculation whenever the method changes, shows subtotal/tax/rate/due, resets the tendered amount and blocks payment while the quote is pending. The transaction recalculates again from saved invoice prices/rates, rejects stale totals and atomically updates line taxes, invoice total, applied method/rate and payment amount. Partial payments cannot switch to a different tax method.
+- Receipts/order details show the stored tax percentage; sales reports, shift balances and audit events use the final paid totals. Added centered, scrollable payment dialogs and touch-friendly controls.
+- Validation: production build and focused ESLint passed; 22 unit tests passed and existing database suite passed 20 checks with one standalone-only skip. Isolated browser checks covered saving percentages, Cash default, Card/Bank recalculation, rate snapshots surviving profile changes, actual payment persistence, receipts/reports, stale-total rejection, mobile layout and owner-only settings. Temporary databases were removed.
+
+## Version 1 audit log implementation (2026-10-18)
+
+- Implemented the audit viewer required by sections 8.12 and 61. Audit Log is available in the main navigation with the View audit log privilege. Owner always has access; Admin role defaults include it, and other accounts require an explicit grant. Existing explicit privilege selections remain unchanged.
+- Added restaurant-scoped, read-only activity history with text search, actual calendar date range, account/action/record-type filters, 50-entry pagination, and expandable details showing actor, timestamp, record ID, IP/client and change metadata. Dates use DD/MM/YYYY with 12-hour AM/PM time in Asia/Karachi. Audit dates intentionally follow actual activity time rather than business saleDate; sale date is retained in relevant metadata.
+- Existing authentication, payment, cancellation, settings and user events remain visible. Added missing expense edit/removal/category events, before/after base and variant price/cost snapshots on full product edits, deal-price snapshots, distinct account activation/deactivation events and sale-session start/close activity. Cancellation reasons and payment sale dates are retained in details.
+- Fixed an existing expense-edit validation issue: the form did not submit expenseDate, so edits now validate against the active sale session's date consistently with creation and still cannot edit a closed or different account's shift.
+- Metadata is sanitized before writing and again before display, including historical records. Passwords/hashes, PINs, tokens, API/private keys and related secrets are redacted; passwordChanged boolean flags remain available. Historical cost/profit fields are restricted server-side unless the viewer also has profit access.
+- Added business/account/action/time indexes. No audit edit or deletion UI/actions were introduced, and no missing historical events were fabricated.
+- Validation: production build and focused ESLint passed; 17 unit tests passed, database suite passed 20 checks with one standalone-only skip. Isolated browser checks exercised expense update/removal events, full product price/cost snapshots, sale start/close events, tenant isolation, pagination, action/text filtering, secret/cost protection, permission revocation and mobile layout. Temporary databases were removed.
+
+## Deal contents on kitchen cards (2026-10-17)
+
+- Kitchen cards now list each deal's included item names beneath the deal heading, using the saved order snapshot so later menu changes do not alter kitchen instructions.
+- Included quantities are labelled as totals and multiply each component quantity by the number of deals ordered. For example, two deals containing two burgers each show four burgers. Line notes remain visible below the included items.
+
+## Optional automatic kitchen progress (2026-10-17)
+
+- Removed the sale-session banner and Start / Close Sale link from the kitchen workspace. Kitchen operation continues without an open sale.
+- Added owner-only Setup > Kitchen Timing with an enable/disable switch, a preparing delay in seconds (default 60) and a ready delay in minutes (default 25). Manual mode remains the default. Preparing counts from the latest send-to-kitchen timestamp; Ready counts from actual preparation start, including manual starts.
+- Staff retain manual status controls when timing is enabled. Sent/edit operations reset preparation timestamps; manual status changes use atomic status comparisons so they cannot overwrite a concurrent automatic advancement with stale state.
+- Added an independent 15-second background worker, started automatically by npm run dev / npm start. Hosts running Next directly or serverless must supervise npm run worker:kitchen separately. Kitchen refreshes also catch up overdue orders. Multiple workers are safe because each transition compares the current status/timestamp before updating.
+- Automatic progress only advances SENT_TO_KITCHEN to PREPARING and PREPARING to READY, scoped by business. It leaves served/completed/cancelled orders alone, catches up after downtime, and records automatic transitions in the audit log. Legacy orders without stage timestamps use creation time.
+- Saving timing settings applies to existing waiting/preparing orders. Disabling preserves current states and restores fully manual progress. Settings and timing inputs are validated server-side and changes are audited.
+- Verified production build, focused ESLint, database timing regressions and browser flows: no kitchen Start Sale, manual controls in both modes, saving timings, automatic preparation/ready, worker updates with kitchen closed, owner-only settings and mobile sizing. Tests use isolated databases removed afterward.
+
+## Dashboard privacy, open counters and Setup navigation (2026-10-17)
+
+- Dashboard monetary values are masked as Rs ***** by default, including sales, average order, tax, delivery, profit, order-type revenue and best sellers. A keyboard/touch-friendly eye toggle reveals or hides them together; a fresh dashboard visit starts masked.
+- Start / Close Sale includes All open counters for the current restaurant, showing counter name, account holder, sale date and opening timestamp. Accounts with sale-session access can view the list; only the owner receives the administrative close action.
+- Closing a counter through this list requires the signed-in owner's current account password, checked server-side. The close transaction updates the same session revision as financial writes, computes exact final totals and saves the closing owner identity. Other businesses, non-owner callers and already closed counters are rejected. Closed-counter history identifies owner closings, and actions are audited without passwords.
+- Added a collapsible Setup subtree containing Items, Deals, Staff, User Accounts, Tables, Business Profile and Printing. Customers stays in the main navigation. Existing privilege filters apply to child links; empty Setup groups are hidden and the subtree expands automatically on an active setup page.
+- Verified production build and focused ESLint. Database regressions passed (14 passed, one standalone-only check skipped). Isolated browser checks verified masking/reveal/hide, seven Setup links, counter visibility, incorrect-password refusal, correct-password closing with exact totals and owner attribution, preservation of the owner's own open counter, automatic submenu expansion and mobile overflow. Temporary test databases were removed.
+
+## Owner self-editing (2026-10-17)
+
+- The signed-in owner now has Edit my account on their User Accounts card, with editable name, mobile number, username and optional new password. A blank password retains the current hash.
+- Owner role, active status and full access remain protected on the server and in the form. Self-editing accepts only profile fields; it cannot change another owner's account or create an owner login.
+- Profile changes are scoped to the authenticated owner, audited without passwords and reflected in the sidebar after saving. This supersedes the earlier restriction on editing the owner's own account.
+
+## Owner-managed user accounts and privileges (2026-10-17)
+
+- Added owner-only User Accounts navigation and a searchable card list, separate from Staff & Waiters, which continues to hold operational staff for assignment.
+- New/edit login forms include required name, mobile number, username, role, password for new accounts and active status. Editing supports optional password replacement; existing hashes are never sent to the browser. Usernames are normalized and globally unique. Passwords are hashed with bcrypt, with length and byte limits.
+- Roles: Admin, Cashier, Waiter and Kitchen. Each loads editable privilege presets covering POS, viewing/editing/cancelling orders, kitchen stages, receiving payments, printing, sale sessions, sales, reports, profit/cost visibility, expenses, catalog, customers, staff, tables and settings. Only the owner can create or change login accounts; owner accounts cannot be demoted or deactivated here.
+- Explicit privilege selections override role defaults, including an empty selection. Existing accounts without selections inherit the role preset. The owner always retains full access. No database migration is needed for existing logins.
+- Enforced permissions in server actions, protected pages, CSV exports and receipt routes as well as navigation and action buttons. Users without sales/report access receive a simple dashboard without financial totals. Permission changes and deactivation are read from the current account on every request rather than trusted from the session's stored role.
+- Prevented deactivation or removal of sale-session access while the user has an open sale. Account changes are scoped to the owner's business and audited without plaintext passwords or password hashes.
+- Added touch-friendly forms with visible keyboard focus, native modal focus containment, scrollable privilege selection and persistent save controls on mobile.
+- Validation: production build, 12 unit tests and existing database regressions passed (13 passed, one standalone-only check skipped on the replica set). Isolated browser tests covered creation, hashed passwords, role defaults, editing without replacing passwords, owner-only navigation, blocked direct page/CSV access, blocked account creation by replaying an owner action as a non-owner, active-session deactivation and mobile form sizing. All temporary databases were removed.
+
+## Uniform 12-hour time display (2026-10-17)
+
+- Shared date/time formatting now displays 12-hour times with uppercase AM/PM throughout orders, POS order cards, sales history, sale sessions, payment history, customer/kitchen receipts and CSV timestamps. Example: 17/10/2026 02:35 PM.
+- Dates remain DD/MM/YYYY, timestamps remain stored unchanged, and all displays continue using Asia/Karachi. Added checks for midnight, noon, afternoon, late evening and timezone rollover.
+
+## POS current orders dialog (2026-10-17)
+
+- POS Orders opens a native modal within the POS workspace, preserving the current cart. Orders are scoped to the signed-in business and active business sale date, including after midnight.
+- Added server-side search by order number, customer, phone, table or waiter, independent paid/unpaid/partial filters and kitchen-stage filters. Cards show totals, customer, item count, payment status and business date. Results refresh on demand and after payment/cancellation; up to 200 matching orders are shown with guidance to narrow larger result sets.
+- Cards provide Receive payment, Edit order and Print invoice as applicable. Cancel order is separated in a footer, requires a reason and confirmation, and is unavailable for paid/completed/cancelled orders. Editing warns before replacing a nonempty cart.
+- Reused transactional payment and printer adapters. Nested payment and SweetAlert dialogs stay accessible above the order browser. Added keyboard focus containment, visible focus states, 44px minimum action targets and a mobile layout.
+- Production build and focused ESLint passed. Isolated browser checks covered cart/route preservation, open sale date, paid filtering, search, nested payment, cancellation prompt and mobile sizing. Temporary test data was removed. Physical printer output was not tested.
+
+## Business-day consistency after midnight (2026-10-17)
+
+- Orders, Sales History, Reports and Profit/Loss now resolve Today against the open session's saleDate. A sale opened for 16/10/2026 continues reporting under that date after midnight until closing; explicit custom date ranges remain available.
+- Orders sort by saleDate and display the business sale date separately from the actual creation timestamp. Kitchen receipts also show saleDate separately.
+- Payments preserve an order's existing saleDate instead of moving it to another business day when collected later. Payment records still retain the collecting session's date for shift cash reconciliation.
+- Existing businessId/saleDate indexes and date-based report filters remain in use; timestamp fallback is retained only for historical records without saleDate. Actual timestamps remain available for audit and kitchen timing.
+- Database regression checks passed for a 01:30 AM order belonging to the previous sale date, exclusion from the following calendar date, open-date Today selection, sales/profit totals and shift isolation. Tests used isolated databases and removed them afterward.
+
+## Items page rendering performance (2026-10-18)
+
+- Reused the same category manager element across item edit forms so React can deduplicate its server-rendered content instead of generating category forms and bound actions for every item.
+- Read-only database checks measured product/category queries in single-digit milliseconds. Isolated production testing with 33 items and seven categories reduced HTML response size from 499,083 to 176,160 bytes and warm responses from 246–341 ms to 56–78 ms; cold responses remained about 750 ms. Development timings and real deployment load may differ.
+- Production build, focused lint and nested category popup browser checks passed. Temporary test data was removed.
+
+## Nested category popup close fix (2026-10-18)
+
+- Closing or dismissing a category popup affects only that popup. Parent item forms stay open and retain entered values. Modal close/cancel events are isolated so nested dialogs cannot dismiss their parent through React portal event propagation.
+
+## POS cart full item names (2026-10-18)
+
+- Cart item names, including variant names, wrap onto multiple lines instead of being shortened with an ellipsis. Long words wrap within the available space to keep quantity, price and remove controls accessible.
+
+## POS layout update - Compact order heading (2026-10-16)
+
+- Moved the item count to the right of Current order on the same line. Customer selection now sits directly beneath that line in the space previously used by the count, leaving more height for cart items.
+- Preserved the customer review action, touch-friendly customer button and mobile cart close control.
+
+## POS layout update - Full-height cart (2026-10-16)
+
+- Desktop cart now spans the entire viewport height, including the space beside the sale-session banner and order-type header. Both headers are confined to the product column.
+- The product catalog and cart items scroll independently, while the invoice totals and checkout actions remain visible at the bottom of the cart. Reduced desktop cart-heading padding adds usable item space.
+- Narrow desktop headers wrap within the product column without overlapping the cart. Mobile retains its full-screen cart drawer.
+- Verified production build and browser geometry at 1366x768, 1920x1080, 1024x768 and 900x768. Four cart items fit without item scrolling at 1366x768; mobile drawer and checkout visibility passed at 390x844. Testing used a temporary database, which was removed afterward.

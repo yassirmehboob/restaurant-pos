@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./audit.css";
+import "./user-accounts.css";
 import "./quick-edit.css";
 import "./business-settings.css";
 import "./modern.css";
@@ -30,6 +32,10 @@ import "./product-variants.css";
 import "./category-price-reference.css";
 import "./form-performance.css";
 import "./kitchen.css";
+import "./sale-sessions.css";
+import "./pos-customers.css";
+import "./date-picker.css";
+import "./pos-review.css";
 
 export const metadata: Metadata = {
   title: { default: "Restaurant POS", template: "%s | Restaurant POS" },

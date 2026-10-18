@@ -3,8 +3,9 @@ export type CalculatedLine=PricedLine&{baseAmount:number;taxAmount:number;lineTo
 
 const money=(value:number)=>Math.round((value+Number.EPSILON)*100)/100;
 
-export function calculateOrderPreview(lines:PricedLine[],deliveryCharge:number){
+export function calculateOrderPreview(lines:PricedLine[],deliveryCharge:number,invoiceTaxRate?:number){
   const calculatedLines:CalculatedLine[]=lines.map(line=>{
+    if(invoiceTaxRate!==undefined)line={...line,taxRate:invoiceTaxRate,isTaxInclusive:false};
     const baseAmount=money(line.unitPrice*line.quantity);
     const rate=line.taxRate/100;
     const taxAmount=money(!rate?0:line.isTaxInclusive?baseAmount-(baseAmount/(1+rate)):baseAmount*rate);

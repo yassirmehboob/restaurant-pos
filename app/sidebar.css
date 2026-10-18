@@ -1,68 +1,11 @@
-.sidebar {
-  min-height: 0;
-  overflow: hidden;
-}
+.sidebar{min-height:0;height:100dvh;overflow:hidden;gap:0}
+.sidebar-brand{flex-shrink:0;min-width:0}.sidebar-brand>span{flex-shrink:0}.sidebar-brand>div{min-width:0;overflow-wrap:anywhere}
+.sidebar nav{flex:1 1 0;min-height:0;margin:18px 0 12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#475569 transparent;padding-right:4px;gap:3px}
+.sidebar nav .nav-link{flex:0 0 auto;min-height:44px;max-height:none;padding:9px 12px;line-height:1.25}.sidebar nav .nav-link svg{flex-shrink:0}
+.sidebar-account{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid #273449;background:#111827;min-width:0}
+.sidebar-account .user-block{flex:1;min-width:0;margin:0;padding:0;border:0;gap:9px}.sidebar-account .avatar{flex:0 0 36px;width:36px;height:36px}.sidebar-account .user-block>div:last-child{min-width:0}.sidebar-account .user-block strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.sidebar-account .user-block small{color:#94a3b8;font-size:9px;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sidebar-account form{flex:0 0 auto}.sidebar-account .logout-button{width:44px;min-height:44px;padding:0;display:grid;place-items:center;background:#1e293b;border:1px solid #334155}.sidebar-account .logout-button span{display:none}.sidebar-account .logout-button:hover{background:#334155;color:white}
+.sidebar a:focus-visible,.sidebar button:focus-visible{outline:2px solid #93c5fd;outline-offset:-2px}
+@media(min-width:801px) and (max-height:760px){.sidebar{padding:16px 14px 12px}.sidebar nav{margin-top:12px}.sidebar nav .nav-link{font-size:12px}.sidebar-account{padding-top:10px}}
+@media(max-width:800px){.sidebar{height:auto;overflow:visible;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}.sidebar-account{padding:0;border:0;background:transparent}.sidebar-account .user-block{display:none}.sidebar nav{grid-column:1/-1;grid-row:2;display:flex;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;margin:0;padding:0 0 5px;gap:5px}.sidebar nav .nav-link{white-space:nowrap;min-height:44px}.sidebar-brand{grid-column:1;grid-row:1}.sidebar-account{grid-column:2;grid-row:1}}
 
-.sidebar-brand,
-.sidebar > form,
-.user-block {
-  flex-shrink: 0;
-}
-
-.sidebar nav {
-  min-height: 0;
-  margin-top: 18px;
-  overflow: visible;
-}
-
-.sidebar nav .nav-link {
-  min-height: 34px;
-  max-height: 46px;
-  flex: 1 1 40px;
-}
-
-@media (max-width: 800px) {
-  .sidebar {
-    overflow: visible;
-  }
-
-  .sidebar nav {
-    min-height: auto;
-    margin-top: 14px;
-    padding-bottom: 4px;
-    flex-wrap: wrap;
-    overflow: visible;
-  }
-
-  .sidebar nav .nav-link {
-    min-height: 42px;
-    max-height: none;
-    flex: 0 0 auto;
-  }
-}
-
-@media (min-width: 801px) and (max-height: 760px) {
-  .sidebar {
-    padding-top: 16px;
-    padding-bottom: 12px;
-  }
-
-  .sidebar nav {
-    margin-top: 12px;
-    gap: 2px;
-  }
-
-  .sidebar nav .nav-link {
-    padding-inline: 11px;
-    font-size: 12px;
-  }
-
-  .user-block {
-    margin-top: 7px;
-    padding-block: 9px;
-  }
-
-  .logout-button {
-    min-height: 40px;
-  }
-}
+.setup-nav{flex:0 0 auto}.setup-nav>summary{display:flex;align-items:center;gap:12px;min-height:44px;padding:9px 12px;border-radius:8px;color:#cbd5e1;font-size:13px;cursor:pointer;list-style:none}.setup-nav>summary::-webkit-details-marker{display:none}.setup-nav>summary>svg:last-child{margin-left:auto;transition:transform .15s}.setup-nav[open]>summary>svg:last-child{transform:rotate(180deg)}.setup-nav>summary:hover,.setup-nav[open]>summary{background:#1e293b;color:white}.setup-links{margin:4px 0 6px 20px;padding-left:9px;border-left:1px solid #334155;display:flex;flex-direction:column;gap:3px}.sidebar nav .setup-links .nav-link{font-size:12px;padding-left:10px}.setup-nav>summary:focus-visible{outline:2px solid #93c5fd;outline-offset:-2px}@media(max-width:800px){.setup-nav>summary{white-space:nowrap}.sidebar nav:has(.setup-nav[open]){flex-wrap:wrap;overflow:visible}.setup-nav[open]{flex-basis:100%}.setup-links{flex-direction:row;flex-wrap:wrap;margin-left:12px}}
