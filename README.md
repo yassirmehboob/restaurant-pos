@@ -12,6 +12,19 @@ continues past midnight until closing. Shared logins share a shift; separate acc
 and counters can run simultaneously. Closing permits another shift on the same date.
 The closing screen shows both the overall balance and expected physical cash.
 
+Each account can enable optional two-factor authentication under **Security / 2FA**.
+Enter the current password, scan the setup QR code in an authenticator app (or enter
+the setup key manually), verify a six-digit code, and save the eight recovery codes. Login
+then requires the password plus an authenticator code or an unused recovery code.
+Disabling 2FA requires the password and a valid second factor. Enabling/disabling
+revokes other sessions. Setup expires after ten minutes; login/security verification
+is limited to ten attempts per account per five-minute window.
+
+Authenticator keys are encrypted using a key derived from `AUTH_SECRET`; recovery
+codes are hashed and consumed once. Keep `AUTH_SECRET` stable and backed up securely:
+changing it invalidates sessions and prevents decrypting existing authenticator keys.
+The authenticator follows [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238).
+
 Run `npm test` for financial calculation/date tests. `npm run test:db` uses the URI
 from `.env.local`, creates an isolated test database, and removes it afterward.
 The concurrent closing test requires a replica set and is skipped on standalone MongoDB.
@@ -29,6 +42,11 @@ Production hosts that launch Next directly or use serverless hosting must run
 `npm run worker:kitchen` as a separate, supervised, always-on Node process with the same
 environment/database. The kitchen page also catches up overdue orders on refresh.
 Keep the app/worker running for automatic changes while kitchen browsers are closed.
+
+Kitchen Display shows waiting, preparing, and ready orders from every open counter's
+sale session. These orders remain visible for five hours after their sale closes,
+including when no counters remain open. Older sessions are hidden from the kitchen
+display; their orders remain in history.
 
 First, run the development server:
 

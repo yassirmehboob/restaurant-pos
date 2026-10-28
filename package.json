@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "node scripts/run-app.mjs start",
     "lint": "eslint",
-    "test": "node --import ./tests/register.mjs --test tests/sale-sessions.test.mjs tests/dates.test.mjs tests/permissions.test.mjs tests/audit.test.mjs tests/tax.test.mjs",
-    "test:db": "node --env-file=.env.local --import ./tests/register.mjs --test tests/sale-sessions-db.test.mjs tests/reporting-db.test.mjs tests/kitchen-timing-db.test.mjs tests/audit-db.test.mjs",
+    "test": "node --import ./tests/register.mjs --test tests/sale-sessions.test.mjs tests/dates.test.mjs tests/permissions.test.mjs tests/audit.test.mjs tests/tax.test.mjs tests/product-preparation.test.mjs tests/receipt-preparation.test.mjs tests/two-factor.test.mjs tests/elapsed-time.test.mjs",
+    "test:db": "node --env-file=.env.local --import ./tests/register.mjs --test tests/sale-sessions-db.test.mjs tests/reporting-db.test.mjs tests/kitchen-timing-db.test.mjs tests/audit-db.test.mjs tests/two-factor-db.test.mjs tests/two-factor-flow-db.test.mjs tests/kitchen-orders-db.test.mjs",
     "worker:kitchen": "node scripts/kitchen-worker.mjs"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "lucide-react": "^1.31.0",
     "mongoose": "^9.9.1",
     "next": "16.3.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sweetalert2": "^11.26.25",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

@@ -32,3 +32,7 @@
 @media(max-width:600px){.pos-orders-dialog{width:100%;height:100dvh;max-height:100dvh;border-radius:0}.pos-orders-dialog>header{padding:12px 14px}.pos-orders-tools{padding:10px 14px;gap:8px}.pos-orders-search{flex-basis:100%}.pos-orders-search input{font-size:16px}.pos-orders-tools button{padding:0 10px}.pos-orders-stages{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.pos-orders-stages button{flex-shrink:0}.pos-orders-grid{padding:0 14px 14px}.pos-orders-results{padding:6px 14px}}
 
 @media(max-width:600px){.pos-orders-dialog{max-width:100%}}
+
+.pos-order-review.dine-in-review{width:min(600px,calc(100% - 28px))}.dine-in-review .order-review-content{grid-template-columns:minmax(0,1fr)}
+
+.pos-dine-in-hint{margin:0;padding:0 22px 12px;color:#64748b;font-size:12px}.pos-dine-in-card{border-top:4px solid #2563eb}.pos-dine-in-table{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px;background:#eff6ff;border-radius:10px}.pos-dine-in-table>span{font-size:12px;color:#475569}.pos-dine-in-table>strong{font-size:24px;color:#1d4ed8;overflow-wrap:anywhere}.pos-dine-in-card h3{font-size:22px;font-weight:800;overflow-wrap:anywhere}.pos-dine-in-card>header>strong>small{display:block;margin-bottom:4px;font-weight:500}.pos-dine-in-waiter{display:flex;gap:12px;justify-content:space-between;margin-top:14px;font-size:13px}.pos-dine-in-waiter>span{color:#64748b}.pos-dine-in-waiter>strong{overflow-wrap:anywhere;text-align:right}

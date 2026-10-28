@@ -1,0 +1,9 @@
+.security-settings .security-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px;margin-top:8px}
+.security-settings .security-actions>button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:130px;max-width:100%;padding:12px 20px;border:1px solid transparent;border-radius:10px;font-size:14px;font-weight:700;line-height:1.4;text-align:center;cursor:pointer}
+.security-settings .security-actions>.security-primary{color:#fff;background:#2563eb;border-color:#2563eb}
+.security-settings .security-actions>.security-secondary{color:#344054;background:#fff;border-color:#cbd5e1}
+.security-settings .security-actions>.security-primary:hover:not(:disabled){background:#1d4ed8}
+.security-settings .security-actions>.security-secondary:hover:not(:disabled){background:#f1f5f9}
+.security-settings .security-actions>button:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
+.security-settings .security-actions>button:disabled{opacity:.55;cursor:wait}
+@media(max-width:520px){.security-settings .security-actions{flex-direction:column;align-items:stretch;gap:10px}.security-settings .security-actions>button{width:100%;min-width:0}}

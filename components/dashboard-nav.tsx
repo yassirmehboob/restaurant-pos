@@ -1,15 +1,15 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ScrollText,ChevronDown,BadgePercent,BarChart3,ChefHat,ClipboardList,LayoutDashboard,PackageOpen,Printer,ReceiptText,Settings,ShoppingCart,TableProperties,TrendingUp,UserRound,UsersRound,WalletCards } from "lucide-react";
+import { ShieldCheck,ScrollText,ChevronDown,BadgePercent,BarChart3,ChefHat,ClipboardList,LayoutDashboard,PackageOpen,Printer,ReceiptText,Settings,ShoppingCart,TableProperties,TrendingUp,UserRound,UsersRound,WalletCards } from "lucide-react";
 import type { UserRole } from "@/lib/roles";
 import { can,routePrivilege,type Privilege } from "@/lib/permissions";
 
 const links=[
   ["/dashboard","Dashboard",LayoutDashboard],
-  ["/pos","POS",ShoppingCart],
-  ["/orders","Orders",ClipboardList],
-  ["/kitchen","Kitchen",ChefHat],
+  ["/pos","Start Orders",ShoppingCart],
+  ["/orders","Placed Orders",ClipboardList],
+  ["/kitchen","Kitchen Display",ChefHat],
   ["/sales","Sales",ReceiptText],
   ["/sale-sessions","Start / Close Sale",WalletCards],
   ["/reports","Reports",BarChart3],
@@ -22,6 +22,7 @@ const links=[
   ["/staff","Staff",UsersRound],
   ["/users","User Accounts",UsersRound],
   ["/tables","Tables",TableProperties],
+  ["/security","Security / 2FA",ShieldCheck],
   ["/settings/business","Business Profile",Settings],
   ["/settings/printing","Printing",Printer],
   ["/settings/kitchen","Kitchen Timing",ChefHat],

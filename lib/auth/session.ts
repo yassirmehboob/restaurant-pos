@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { env } from "@/lib/env";
 import type { UserRole } from "@/lib/roles";
 const COOKIE_NAME="restaurant_pos_session", SESSION_DURATION_SECONDS=60*60*12;
-export type SessionPayload={userId:string;businessId:string;role:UserRole};
+export type SessionPayload={userId:string;businessId:string;role:UserRole;authVersion?:number};
 const secretKey=()=>new TextEncoder().encode(env().AUTH_SECRET);
 export async function createSession(payload:SessionPayload){
   const expiresAt=new Date(Date.now()+SESSION_DURATION_SECONDS*1000);

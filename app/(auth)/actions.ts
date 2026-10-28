@@ -1,5 +1,6 @@
 "use server";
 import bcrypt from "bcryptjs";
+import { allowAuthAttempt,consumeSecondFactor } from "@/lib/auth/two-factor";
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/db";
 import { createSession, deleteSession } from "@/lib/auth/session";
@@ -40,12 +41,19 @@ export async function loginAction(_state:AuthState,formData:FormData):Promise<Au
   const result=loginSchema.safeParse(values(formData,["username","password"]));
   if(!result.success)return{fieldErrors:result.error.flatten().fieldErrors};
   await connectToDatabase();
-  const user=await User.findOne({username:result.data.username,isActive:true}).select("+passwordHash");
+  if(!(await allowAuthAttempt("login:"+result.data.username)))return{error:"Too many sign-in attempts. Wait five minutes and try again."};
+  const user=await User.findOne({username:result.data.username,isActive:true}).select("+passwordHash +twoFactorSecret +twoFactorLastStep +twoFactorRecoveryHashes");
   if(!user||!(await bcrypt.compare(result.data.password,user.passwordHash)))return{error:"Username or password is incorrect."};
   if(!(await Business.exists({_id:user.businessId,isActive:true})))return{error:"This restaurant account is inactive."};
-  user.lastLoginAt=new Date();await user.save();
+  if(user.twoFactorEnabled){
+    const code=String(formData.get("twoFactorCode")??"").trim();
+    if(!code)return{error:"Enter your authenticator code or a recovery code to sign in."};
+    try{if(!(await consumeSecondFactor(user,code)))return{error:"Invalid or already used verification code. Try a fresh code."}}catch{return{error:"Two-factor verification is unavailable. Contact your administrator."}}
+  }
+  const authenticated=await User.findOneAndUpdate({_id:user._id,isActive:true,...((user.authVersion??0)===0?{$or:[{authVersion:0},{authVersion:{$exists:false}}]}:{authVersion:user.authVersion})},{$set:{lastLoginAt:new Date()}},{returnDocument:"after"});
+  if(!authenticated)return{error:"Your account changed. Please sign in again."};
   await writeAuditLog({businessId:String(user.businessId),userId:String(user._id),userName:user.fullName,action:"LOGIN",entityType:"User",entityId:String(user._id),description:"User logged in"});
-  await createSession({userId:String(user._id),businessId:String(user.businessId),role:user.role});
+  await createSession({userId:String(user._id),businessId:String(user.businessId),role:user.role,authVersion:user.authVersion??0});
   redirect("/dashboard");
 }
 export async function logoutAction(){
