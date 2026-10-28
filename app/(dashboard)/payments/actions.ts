@@ -10,8 +10,9 @@ import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 import { paymentTaxQuote,type PaymentMethod } from "@/lib/tax";
 import { connectToDatabase } from "@/lib/db";
+import { paymentInputSchema } from "@/lib/validation/payment";
 
-const schema=z.object({orderId:z.string().regex(/^[a-f\d]{24}$/i),idempotencyKey:z.string().uuid(),method:z.enum(["CASH","CARD","BANK","OTHER"]),expectedGrandTotal:z.number().nonnegative(),tenderedAmount:z.number().positive(),reference:z.string().trim().max(100),notes:z.string().trim().max(300)});
+const schema=paymentInputSchema.extend({orderId:z.string().regex(/^[a-f\d]{24}$/i)});
 
 export async function previewPaymentTax(orderId:string,method:PaymentMethod){
  const user=await requirePermission("payments");

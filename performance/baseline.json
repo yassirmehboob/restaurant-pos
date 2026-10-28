@@ -1,0 +1,169 @@
+{
+  "label": "baseline",
+  "measuredAt": "2026-10-28T09:05:20.325Z",
+  "environment": {
+    "node": "v24.18.0",
+    "cpu": "Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz",
+    "logicalCPUs": 8,
+    "memoryGB": 16
+  },
+  "config": {
+    "orderCount": 10000,
+    "seconds": 6,
+    "concurrencies": [
+      2,
+      10,
+      25
+    ],
+    "writes": 30
+  },
+  "scenarios": [
+    {
+      "name": "counter-operations",
+      "concurrency": 2,
+      "requests": 51,
+      "failures": 0,
+      "requestsPerSecond": 8.37,
+      "p50MS": 313,
+      "p95MS": 496,
+      "maxMS": 525,
+      "averageKB": 262.1,
+      "errors": [],
+      "approximateServerCPUPercent": 113.2,
+      "peakServerRSSMB": 1808
+    },
+    {
+      "name": "counter-operations",
+      "concurrency": 10,
+      "requests": 53,
+      "failures": 0,
+      "requestsPerSecond": 8.42,
+      "p50MS": 1196,
+      "p95MS": 1851,
+      "maxMS": 1887,
+      "averageKB": 254.5,
+      "errors": [],
+      "approximateServerCPUPercent": 107,
+      "peakServerRSSMB": 1808
+    },
+    {
+      "name": "counter-operations",
+      "concurrency": 25,
+      "requests": 60,
+      "failures": 0,
+      "requestsPerSecond": 8.54,
+      "p50MS": 2576,
+      "p95MS": 3955,
+      "maxMS": 4421,
+      "averageKB": 259.4,
+      "errors": [],
+      "approximateServerCPUPercent": 116.6,
+      "peakServerRSSMB": 1808
+    },
+    {
+      "name": "reporting",
+      "concurrency": 4,
+      "requests": 6,
+      "failures": 0,
+      "requestsPerSecond": 0.42,
+      "p50MS": 13264,
+      "p95MS": 14142,
+      "maxMS": 14142,
+      "averageKB": 470.3,
+      "errors": [],
+      "approximateServerCPUPercent": 115.9,
+      "peakServerRSSMB": 1808
+    },
+    {
+      "name": "paid-takeaway-checkout",
+      "concurrency": 2,
+      "requests": 30,
+      "failures": 0,
+      "requestsPerSecond": 17.04,
+      "p50MS": 107,
+      "p95MS": 160,
+      "maxMS": 191,
+      "averageKB": 42.1,
+      "errors": [],
+      "approximateServerCPUPercent": 118,
+      "peakServerRSSMB": 1808
+    },
+    {
+      "name": "paid-takeaway-checkout",
+      "concurrency": 10,
+      "requests": 30,
+      "failures": 0,
+      "requestsPerSecond": 10.71,
+      "p50MS": 783,
+      "p95MS": 1905,
+      "maxMS": 2319,
+      "averageKB": 42.1,
+      "errors": [],
+      "approximateServerCPUPercent": 74.8,
+      "peakServerRSSMB": 1808
+    }
+  ],
+  "endpoints": [
+    {
+      "route": "/pos",
+      "coldMS": 405,
+      "warmP50MS": 66,
+      "responseKB": 120.1
+    },
+    {
+      "route": "/orders",
+      "coldMS": 473,
+      "warmP50MS": 395,
+      "responseKB": 782.3
+    },
+    {
+      "route": "/kitchen",
+      "coldMS": 95,
+      "warmP50MS": 86,
+      "responseKB": 134.7
+    },
+    {
+      "route": "/dashboard",
+      "coldMS": 193,
+      "warmP50MS": 156,
+      "responseKB": 38.3
+    },
+    {
+      "route": "/reports?range=MONTH",
+      "coldMS": 763,
+      "warmP50MS": 896,
+      "responseKB": 108.8
+    },
+    {
+      "route": "/api/reports/sales.csv?range=MONTH",
+      "coldMS": 4381,
+      "warmP50MS": 6100,
+      "responseKB": 1263.8
+    }
+  ],
+  "integrity": {
+    "successfulCheckouts": 60,
+    "payments": 60,
+    "uniqueOrders": 60,
+    "totalCollected": 15000,
+    "correctPaidOrders": 60
+  },
+  "seed": {
+    "orders": 10000,
+    "payments": 9970,
+    "products": 120,
+    "activeKitchenOrders": 30,
+    "openCounters": 2,
+    "saleDate": "2026-10-28"
+  },
+  "query": {
+    "reportOrders": {
+      "returned": 10030,
+      "documentsExamined": 10060,
+      "keysExamined": 10060,
+      "executionMS": 46
+    }
+  },
+  "peakServerRSSMB": 1808,
+  "serverErrorSamples": []
+}

@@ -1,5 +1,17 @@
 import "server-only";
 import mongoose from "mongoose";import { connectToDatabase } from "@/lib/db";
-const ALLOWED_TYPES=new Set(["image/jpeg","image/png","image/webp"]),MAX_BYTES=5*1024*1024;
+import { MAX_IMAGE_BYTES, validateImageBytes } from "@/lib/image-upload";
 function uploadScope(scope:string){const match=/^business-([a-f\d]{24})\/(products|deals|branding)$/i.exec(scope);if(!match)throw new Error("Invalid image storage scope.");return{businessId:match[1],kind:match[2]}}
-export async function uploadImage(file:File|undefined,scope:string){if(!file||file.size===0)return undefined;if(!ALLOWED_TYPES.has(file.type))throw new Error("Use a JPG, PNG, or WebP image.");if(file.size>MAX_BYTES)throw new Error("Image must be 5 MB or smaller.");const{businessId,kind}=uploadScope(scope);await connectToDatabase();const db=mongoose.connection.db;if(!db)throw new Error("Database is not available.");const bucket=new mongoose.mongo.GridFSBucket(db,{bucketName:"images"}),buffer=Buffer.from(await file.arrayBuffer());const stream=bucket.openUploadStream(file.name||`${kind}-image`,{metadata:{businessId,kind,size:file.size,contentType:file.type}});await new Promise<void>((resolve,reject)=>{stream.on("finish",resolve);stream.on("error",reject);stream.end(buffer)});return`/api/images/${stream.id.toString()}`}
+export async function uploadImage(file:File|undefined,scope:string){
+  if(!file)return undefined;
+  if(!(file instanceof File))throw new Error("Select an image file.");
+  if(file.size===0)return undefined;
+  if(file.size>MAX_IMAGE_BYTES)throw new Error("Image must be 5 MB or smaller.");
+  const buffer=Buffer.from(await file.arrayBuffer()),contentType=validateImageBytes(buffer,file.type);
+  const{businessId,kind}=uploadScope(scope);await connectToDatabase();const db=mongoose.connection.db;
+  if(!db)throw new Error("Database is not available.");
+  const bucket=new mongoose.mongo.GridFSBucket(db,{bucketName:"images"});
+  const stream=bucket.openUploadStream((file.name||`${kind}-image`).slice(0,200),{metadata:{businessId,kind,size:buffer.length,contentType}});
+  await new Promise<void>((resolve,reject)=>{stream.on("finish",resolve);stream.on("error",reject);stream.end(buffer)});
+  return`/api/images/${stream.id.toString()}`;
+}

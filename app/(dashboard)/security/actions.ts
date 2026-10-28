@@ -11,7 +11,7 @@ import { allowAuthAttempt, consumeSecondFactor } from "@/lib/auth/two-factor";
 import { decryptTotpSecret, encryptTotpSecret, generateRecoveryCodes, generateTotpSecret, recoveryCodeHash, totpSetupUri, verifyTotp } from "@/lib/auth/totp";
 import { writeAuditLog } from "@/lib/audit";
 
-const passwordSchema = z.string().min(8).max(128);
+import { passwordSchema } from "@/lib/validation/password";
 const codeSchema = z.string().trim().min(1).max(64);
 async function accountWithPassword(password: string) {
   const current = await requireUser();

@@ -53,7 +53,7 @@ export function KitchenBoard({ orders, timing, initialNow }: { orders: KitchenOr
     if (!next) return;
     inFlight.current = true; setMovingId(order.id); setError("");
     startTransition(async () => {
-      try { await changeOrderStatus(order.id, next); router.refresh(); }
+      try { const result = await changeOrderStatus(order.id, next); if(result&&!result.ok)setError(result.message); router.refresh(); }
       catch { setError("Could not update " + order.orderNumber + ". Refresh and try again."); }
       finally { inFlight.current = false; setMovingId(""); }
     });

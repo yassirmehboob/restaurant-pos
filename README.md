@@ -30,6 +30,18 @@ from `.env.local`, creates an isolated test database, and removes it afterward.
 The concurrent closing test requires a replica set and is skipped on standalone MongoDB.
 The full feature specification is in [RESTAURANT_POS_CODEX_PLAN.md](RESTAURANT_POS_CODEX_PLAN.md).
 
+The local security review, fixes, test results, and deployment notes are documented in
+[SECURITY_REVIEW.md](SECURITY_REVIEW.md). Restart the application after installing dependency
+security updates. Logout revokes the current token; password/access changes revoke older
+sessions. Owner username/password changes require current credentials and 2FA when enabled.
+
+Production load-test results and before/after performance measurements are in
+[performance/REPORT.md](performance/REPORT.md). After `npm run build`, run
+`npm run test:load -- --label=local --orders=10000 --seconds=6 --concurrency=2,10,25 --writes=30`.
+The runner uses an isolated temporary database and a separate localhost production server,
+checks payment integrity, writes JSON metrics, and removes its test database afterward.
+Add `--soak=60` for a one-minute mixed two-counter run.
+
 Owners can configure optional automatic kitchen progress under **Setup → Kitchen Timing**.
 Manual mode is the default. Preparing starts after the configured seconds from sending
 the order to kitchen; Ready follows the configured minutes after preparation starts.

@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "node scripts/run-app.mjs start",
     "lint": "eslint",
-    "test": "node --import ./tests/register.mjs --test tests/sale-sessions.test.mjs tests/dates.test.mjs tests/permissions.test.mjs tests/audit.test.mjs tests/tax.test.mjs tests/product-preparation.test.mjs tests/receipt-preparation.test.mjs tests/two-factor.test.mjs tests/elapsed-time.test.mjs",
-    "test:db": "node --env-file=.env.local --import ./tests/register.mjs --test tests/sale-sessions-db.test.mjs tests/reporting-db.test.mjs tests/kitchen-timing-db.test.mjs tests/audit-db.test.mjs tests/two-factor-db.test.mjs tests/two-factor-flow-db.test.mjs tests/kitchen-orders-db.test.mjs",
+    "test": "node --import ./tests/register.mjs --test tests/sale-sessions.test.mjs tests/dates.test.mjs tests/permissions.test.mjs tests/audit.test.mjs tests/tax.test.mjs tests/product-preparation.test.mjs tests/receipt-preparation.test.mjs tests/two-factor.test.mjs tests/elapsed-time.test.mjs tests/security.test.mjs",
+    "test:db": "node --env-file=.env.local --import ./tests/register.mjs --test tests/sale-sessions-db.test.mjs tests/reporting-db.test.mjs tests/kitchen-timing-db.test.mjs tests/audit-db.test.mjs tests/two-factor-db.test.mjs tests/two-factor-flow-db.test.mjs tests/kitchen-orders-db.test.mjs tests/security-db.test.mjs",
+    "test:load": "node --import ./tests/register.mjs scripts/load-test.mjs",
     "worker:kitchen": "node scripts/kitchen-worker.mjs"
   },
   "dependencies": {
@@ -16,12 +17,12 @@
     "jose": "^6.2.8",
     "lucide-react": "^1.31.0",
     "mongoose": "^9.9.1",
-    "next": "16.3.0",
+    "next": "16.4.3",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sweetalert2": "^11.26.25",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -30,7 +31,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

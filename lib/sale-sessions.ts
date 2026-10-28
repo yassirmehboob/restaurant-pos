@@ -62,5 +62,5 @@ export async function closeCounterAsOwner(owner:CurrentUser,id:string){
 export function saleSessionError(error: unknown) {
   if ((error as { code?: number })?.code === 20) return "Sale sessions require MongoDB Atlas or a MongoDB replica set. Configure the database and try again.";
   if ((error as { code?: number })?.code === 11000) return "This account or counter already has an active sale, or this payment was already submitted. Refresh and try again.";
-  return error instanceof Error ? error.message : "Could not save the sale session.";
+  return error instanceof Error && error.constructor === Error ? error.message : "Could not save the sale session. Please try again.";
 }

@@ -15,6 +15,6 @@ export async function loadKitchenOrders(businessId: string, now = new Date()) {
     businessId,
     saleSessionId: { $in: sessions.map(session => session._id) },
     status: { $in: ["SENT_TO_KITCHEN", "PREPARING", "READY"] },
-  }).sort({ createdAt: 1 }).lean();
+  }).select("orderNumber status orderType customerSnapshot.name tableNameSnapshot waiterNameSnapshot createdAt kitchenSentAt preparingAt readyAt notes items.lineId items.nameSnapshot items.quantity items.notes items.dealItemsSnapshot.name items.dealItemsSnapshot.quantity").sort({ createdAt: 1 }).lean();
   return { rows, now: now.getTime() };
 }

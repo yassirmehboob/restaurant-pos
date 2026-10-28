@@ -6,11 +6,11 @@ import { env } from "@/lib/env";
 import { decryptTotpSecret, recoveryCodeHash, verifyTotp } from "@/lib/auth/totp";
 
 // Database-backed limit applies across app processes and server restarts.
-export async function allowAuthAttempt(scope: string) {
+export async function allowAuthAttempt(scope: string, maximum = 10) {
   const window = Math.floor(Date.now() / 300000);
   const id = createHash("sha256").update(`${scope}:${window}`).digest("hex");
   const row = await AuthThrottle.findOneAndUpdate({ _id: id }, { $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date((window + 2) * 300000) } }, { upsert: true, returnDocument: "after" });
-  return row.count <= 10;
+  return row.count <= maximum;
 }
 
 type FactorUser = { _id: unknown; businessId: unknown; authVersion?: number; twoFactorSecret?: string; twoFactorLastStep?: number; twoFactorRecoveryHashes?: string[] };

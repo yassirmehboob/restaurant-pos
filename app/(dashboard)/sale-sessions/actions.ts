@@ -12,6 +12,7 @@ import { requireOwner } from "@/data/auth";
 import { User } from "@/models/User";
 import { closeCounterAsOwner } from "@/lib/sale-sessions";
 import { writeAuditLog } from "@/lib/audit";
+import { allowAuthAttempt } from "@/lib/auth/two-factor";
 
 function refresh() {
   for (const path of ["/sale-sessions", "/pos", "/sales", "/expenses", "/dashboard", "/reports"]) revalidatePath(path);
@@ -20,6 +21,7 @@ function refresh() {
 export async function ownerCloseCounter(id:string,password:string){
   const owner=await requireOwner();
   if(typeof password!=="string"||!password||password.length>128)return {ok:false as const,message:"Enter your owner account password."};
+  if(!(await allowAuthAttempt("owner-close:"+owner.id)))return{ok:false as const,message:"Too many password attempts. Wait five minutes and try again."};
   const account=await User.findOne({_id:owner.id,businessId:owner.businessId,role:"OWNER",isActive:true}).select("+passwordHash");
   if(!account||!await bcrypt.compare(password,account.passwordHash))return {ok:false as const,message:"Incorrect owner password. The counter remains open."};
   try{

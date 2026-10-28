@@ -16,6 +16,7 @@ export async function registerAction(_state:AuthState,formData:FormData):Promise
   const result=registrationSchema.safeParse(values(formData,["businessName","fullName","username","password"]));
   if(!result.success)return{fieldErrors:result.error.flatten().fieldErrors};
   await connectToDatabase();
+  if(!(await allowAuthAttempt("registration")))return{error:"Too many registration attempts. Wait five minutes and try again."};
   if(await User.exists({username:result.data.username}))return{error:"This username is already in use."};
   const business=await Business.create({name:result.data.businessName});
   let createdUserId:string|undefined;
@@ -50,7 +51,7 @@ export async function loginAction(_state:AuthState,formData:FormData):Promise<Au
     if(!code)return{error:"Enter your authenticator code or a recovery code to sign in."};
     try{if(!(await consumeSecondFactor(user,code)))return{error:"Invalid or already used verification code. Try a fresh code."}}catch{return{error:"Two-factor verification is unavailable. Contact your administrator."}}
   }
-  const authenticated=await User.findOneAndUpdate({_id:user._id,isActive:true,...((user.authVersion??0)===0?{$or:[{authVersion:0},{authVersion:{$exists:false}}]}:{authVersion:user.authVersion})},{$set:{lastLoginAt:new Date()}},{returnDocument:"after"});
+  const authenticated=await User.findOneAndUpdate({_id:user._id,isActive:true,passwordHash:user.passwordHash,...((user.authVersion??0)===0?{$or:[{authVersion:0},{authVersion:{$exists:false}}]}:{authVersion:user.authVersion})},{$set:{lastLoginAt:new Date()}},{returnDocument:"after"});
   if(!authenticated)return{error:"Your account changed. Please sign in again."};
   await writeAuditLog({businessId:String(user.businessId),userId:String(user._id),userName:user.fullName,action:"LOGIN",entityType:"User",entityId:String(user._id),description:"User logged in"});
   await createSession({userId:String(user._id),businessId:String(user.businessId),role:user.role,authVersion:user.authVersion??0});

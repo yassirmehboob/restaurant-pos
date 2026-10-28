@@ -1,6 +1,10 @@
 export const DATE_PLACEHOLDER = "DD/MM/YYYY";
 export const APP_TIME_ZONE = "Asia/Karachi";
 
+// ICU formatters are expensive to construct; these options never vary by request.
+const dateFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+const timeFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: APP_TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h12" });
+
 export function isISODate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
@@ -19,7 +23,7 @@ export function dateISO(value: Date | string | number = new Date()): string {
   if (typeof value === "string" && isISODate(value)) return value;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const parts = dateFormatter.formatToParts(date);
   const get = (type: string) => parts.find(part => part.type === type)?.value;
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
@@ -31,12 +35,14 @@ export function formatDate(value: Date | string | number | null | undefined): st
 }
 
 export function formatTime(value: Date | string | number | null | undefined): string {
-  if (value === null || value === undefined || value === "" || !dateISO(value)) return "—";
-  const time = new Intl.DateTimeFormat("en-GB", { timeZone: APP_TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h12" }).format(new Date(value)).toUpperCase();
-  return time;
+  if (value === null || value === undefined || value === "") return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : timeFormatter.format(date).toUpperCase();
 }
 
 export function formatDateTime(value: Date | string | number | null | undefined): string {
-  if (value === null || value === undefined || value === "" || !dateISO(value)) return "—";
-  return `${formatDate(value)} ${formatTime(value)}`;
+  if (value === null || value === undefined || value === "") return "—";
+  const iso = dateISO(value);
+  if (!iso) return "—";
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${timeFormatter.format(new Date(value)).toUpperCase()}`;
 }
