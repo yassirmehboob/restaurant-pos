@@ -23,6 +23,11 @@
 # misc
 .DS_Store
 *.pem
+*.rpos
+*.rpos.json
+/backups/
+/restaurant-pos-backups/
+/.restaurant-pos-runtime.json
 
 # debug
 npm-debug.log*

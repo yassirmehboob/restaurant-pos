@@ -10,6 +10,7 @@ import { User } from "@/models/User";
 import { writeAuditLog } from "@/lib/audit";
 import { getCurrentUser } from "@/data/auth";
 import mongoose from "mongoose";
+import { clearLoginChallenge, createLoginChallenge, matchesLoginChallenge, readLoginChallenge } from "@/lib/auth/login-challenge";
 export type AuthState={error?:string;fieldErrors?:Record<string,string[]>}|undefined;
 const values=(formData:FormData,fields:string[])=>Object.fromEntries(fields.map(field=>[field,formData.get(field)]));
 export async function registerAction(_state:AuthState,formData:FormData):Promise<AuthState>{
@@ -39,6 +40,7 @@ export async function registerAction(_state:AuthState,formData:FormData):Promise
   redirect("/settings/business");
 }
 export async function loginAction(_state:AuthState,formData:FormData):Promise<AuthState>{
+  await clearLoginChallenge();
   const result=loginSchema.safeParse(values(formData,["username","password"]));
   if(!result.success)return{fieldErrors:result.error.flatten().fieldErrors};
   await connectToDatabase();
@@ -47,14 +49,34 @@ export async function loginAction(_state:AuthState,formData:FormData):Promise<Au
   if(!user||!(await bcrypt.compare(result.data.password,user.passwordHash)))return{error:"Username or password is incorrect."};
   if(!(await Business.exists({_id:user.businessId,isActive:true})))return{error:"This restaurant account is inactive."};
   if(user.twoFactorEnabled){
-    const code=String(formData.get("twoFactorCode")??"").trim();
-    if(!code)return{error:"Enter your authenticator code or a recovery code to sign in."};
-    try{if(!(await consumeSecondFactor(user,code)))return{error:"Invalid or already used verification code. Try a fresh code."}}catch{return{error:"Two-factor verification is unavailable. Contact your administrator."}}
+    await createLoginChallenge(user);
+    redirect("/login/verify");
   }
+  return completeLogin(user);
+}
+
+export async function verifyLoginAction(_state:AuthState,formData:FormData):Promise<AuthState>{
+  const challenge=await readLoginChallenge();
+  if(!challenge)redirect("/login");
+  await connectToDatabase();
+  if(!(await allowAuthAttempt("login-2fa:"+challenge.userId)))return{error:"Too many verification attempts. Wait five minutes and sign in again."};
+  const user=await User.findOne({_id:challenge.userId,isActive:true}).select("+passwordHash +twoFactorSecret +twoFactorLastStep +twoFactorRecoveryHashes");
+  if(!user||!user.twoFactorEnabled||!matchesLoginChallenge(challenge,user)||!(await Business.exists({_id:user.businessId,isActive:true}))){
+    await clearLoginChallenge();
+    redirect("/login");
+  }
+  const code=String(formData.get("twoFactorCode")??"").trim();
+  if(!code||code.length>64)return{fieldErrors:{twoFactorCode:["Enter your authenticator code or a recovery code."]}};
+  try{if(!(await consumeSecondFactor(user,code)))return{error:"Invalid or already used verification code. Try a fresh code."}}catch{return{error:"Two-factor verification is unavailable. Contact your administrator."}}
+  return completeLogin(user);
+}
+
+async function completeLogin(user: NonNullable<Awaited<ReturnType<typeof User.findOne>>>):Promise<AuthState>{
   const authenticated=await User.findOneAndUpdate({_id:user._id,isActive:true,passwordHash:user.passwordHash,...((user.authVersion??0)===0?{$or:[{authVersion:0},{authVersion:{$exists:false}}]}:{authVersion:user.authVersion})},{$set:{lastLoginAt:new Date()}},{returnDocument:"after"});
   if(!authenticated)return{error:"Your account changed. Please sign in again."};
   await writeAuditLog({businessId:String(user.businessId),userId:String(user._id),userName:user.fullName,action:"LOGIN",entityType:"User",entityId:String(user._id),description:"User logged in"});
   await createSession({userId:String(user._id),businessId:String(user.businessId),role:user.role,authVersion:user.authVersion??0});
+  await clearLoginChallenge();
   redirect("/dashboard");
 }
 export async function logoutAction(){

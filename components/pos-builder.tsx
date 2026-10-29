@@ -6,6 +6,7 @@ import type { OrderInput } from "@/lib/validation/order";
 import { type PaymentMethod } from "@/lib/tax";
 import Image from "next/image";
 import { PosOrdersDialog } from "@/components/pos-orders-dialog";
+import { PosWaiterApprovals } from "@/components/pos-waiter-approvals";
 import { useRouter } from "next/navigation";
 import { useEffect,useMemo,useRef,useState,useTransition } from "react";
 import { ClipboardList,Minus,NotebookPen,Plus,Search,ShoppingCart,Trash2,UserRound,X } from "lucide-react";
@@ -24,7 +25,7 @@ type InitialOrder={paymentMethod?:PaymentMethod;id:string;orderNumber:string;ord
 
 const currency=(amount:number)=>`Rs ${amount.toLocaleString("en-PK",{maximumFractionDigits:2})}`;
 
-export function PosBuilder({catalog,categories,tables,waiters,customers:initialCustomers,initialOrder}:{catalog:CatalogEntry[];categories:Option[];tables:Option[];waiters:Option[];customers:Option[];initialOrder?:InitialOrder}){
+export function PosBuilder({catalog,categories,tables,waiters,customers:initialCustomers,initialOrder,waiterApprovals=false}:{catalog:CatalogEntry[];categories:Option[];tables:Option[];waiters:Option[];customers:Option[];initialOrder?:InitialOrder;waiterApprovals?:boolean}){
   const can=useCan();
   const router=useRouter();
   const [ordersOpen,setOrdersOpen]=useState(false);
@@ -56,7 +57,7 @@ export function PosBuilder({catalog,categories,tables,waiters,customers:initialC
   const persistOrder=()=>{if(pendingPayment){setPendingPayment({...pendingPayment,attempt:Date.now()});return}setReviewOpen(true)};
   return <main className="pos-page">
     {ordersOpen&&<PosOrdersDialog onClose={()=>setOrdersOpen(false)} onEdit={editFromOrders}/>}
-    <header className="pos-main-header"><div className="pos-main-title"><h1>Point of Sale</h1>{initialOrder&&<small>Editing {initialOrder.orderNumber}</small>}</div><div className="pos-header-order-types" aria-label="Order type">{(["DINE_IN","TAKEAWAY","DELIVERY"] as OrderType[]).map(type=><button type="button" aria-pressed={orderType===type} className={orderType===type?"active":""} onClick={()=>selectOrderType(type)} key={type}>{type==="DINE_IN"?"Dine-In":type==="TAKEAWAY"?"Takeaway":"Delivery"}</button>)}</div><div className="pos-main-actions">{can("orders")&&<button type="button" className="pos-dashboard-link" onClick={()=>setOrdersOpen(true)} aria-label="Orders" aria-haspopup="dialog"><ClipboardList size={18}/>Orders</button>}<button className="mobile-cart-button" onClick={()=>setMobileCart(true)}><ShoppingCart size={20}/><span>{itemCount}</span><b>{currency(displayedTotals.grandTotal)}</b></button></div></header>
+    <header className="pos-main-header"><div className="pos-main-title"><h1>Point of Sale</h1>{initialOrder&&<small>Editing {initialOrder.orderNumber}</small>}</div><div className="pos-header-order-types" aria-label="Order type">{(["DINE_IN","TAKEAWAY","DELIVERY"] as OrderType[]).map(type=><button type="button" aria-pressed={orderType===type} className={orderType===type?"active":""} onClick={()=>selectOrderType(type)} key={type}>{type==="DINE_IN"?"Dine-In":type==="TAKEAWAY"?"Takeaway":"Delivery"}</button>)}</div><div className="pos-main-actions">{waiterApprovals&&<PosWaiterApprovals/>}{can("orders")&&<button type="button" className="pos-dashboard-link" onClick={()=>setOrdersOpen(true)} aria-label="Orders" aria-haspopup="dialog"><ClipboardList size={18}/>Orders</button>}<button className="mobile-cart-button" onClick={()=>setMobileCart(true)}><ShoppingCart size={20}/><span>{itemCount}</span><b>{currency(displayedTotals.grandTotal)}</b></button></div></header>
     <section className="pos-catalog">
       <div className="pos-search"><Search size={20}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search menu items and deals..." aria-label="Search POS catalog"/></div>
       <div className="pos-categories"><button className={category==="ALL"?"active":""} onClick={()=>setCategory("ALL")}>All</button>{categories.map(option=><button className={category===option.id?"active":""} onClick={()=>setCategory(option.id)} key={option.id}>{option.name}</button>)}<button className={category==="DEALS"?"active":""} onClick={()=>setCategory("DEALS")}>Deals</button></div>

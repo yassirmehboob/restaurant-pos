@@ -36,3 +36,11 @@ export async function deleteSession(){
   }
   jar.delete(COOKIE_NAME);
 }
+
+export async function notificationSessionIdentity(){
+ const token=(await cookies()).get(COOKIE_NAME)?.value;
+ if(!token)throw new Error("Sign in to enable notifications.");
+ const {payload}=await jwtVerify(token,secretKey(),{algorithms:["HS256"]});
+ if(typeof payload.exp!=="number")throw new Error("Invalid notification session.");
+ return{sessionHash:createHash("sha256").update(token).digest("hex"),expiresAt:new Date(payload.exp*1000),authVersion:Number(payload.authVersion??0)};
+}

@@ -1,0 +1,21 @@
+import type { Db, ObjectId } from "mongodb";
+export const DRIVE_SCOPE: string;
+export const DRIVE_UPLOAD_MODES: readonly ["EVERY", "DAILY"];
+export type DriveUploadMode = "EVERY" | "DAILY";
+export class DriveError extends Error { code: string; constructor(code: string, message: string); }
+export const DRIVE_CALLBACK_PATH: "/api/backups/google/callback";
+export type DriveOAuthConfig = { clientId: string; clientSecret: string; redirectUri: string };
+export function driveOAuthConfig(environment?: Record<string, string | undefined>): DriveOAuthConfig | null;
+export function encryptDriveToken(token: string, secret: string, businessId: string): string;
+export function decryptDriveToken(encoded: string, secret: string, businessId: string): string;
+export function createPkcePair(): { verifier: string; challenge: string };
+export function driveAuthUrl(config: DriveOAuthConfig, options: { redirectUri: string; state: string; challenge: string }): string;
+export function exchangeDriveCode(config: DriveOAuthConfig, options: { code: string; redirectUri: string; verifier: string }, fetchImpl?: typeof fetch): Promise<{ accessToken: string; refreshToken: string }>;
+export function driveAccessToken(config: DriveOAuthConfig, refreshToken: string, fetchImpl?: typeof fetch): Promise<string>;
+export function revokeDriveToken(token: string, fetchImpl?: typeof fetch): Promise<void>;
+export function driveAccountEmail(accessToken: string, fetchImpl?: typeof fetch): Promise<string>;
+export function ensureDriveFolder(accessToken: string, options: { folderId?: string | null; name: string }, fetchImpl?: typeof fetch): Promise<string>;
+export function uploadDriveBackup(accessToken: string, options: { folderId: string; backupId: string; businessId: string | ObjectId; bytes: Buffer; description: string }, fetchImpl?: typeof fetch): Promise<{ fileId: string; alreadyUploaded: boolean }>;
+export function driveUploadDue(drive: unknown, options?: { manual?: boolean; now?: Date; timezone?: string }): boolean;
+export function driveFolderName(businessName: string): string;
+export function copyBackupToDrive(db: Db, options: { businessId: ObjectId; backup: { id: string; createdAt: string | Date; reason?: string; documents?: number }; bytes: Buffer; manual?: boolean; now?: Date; fetchImpl?: typeof fetch; environment?: Record<string, string | undefined> }): Promise<{ status: "SKIPPED" | "UPLOADED" | "FAILED"; fileId?: string; message?: string }>;

@@ -36,6 +36,9 @@ import "./sale-sessions.css";
 import "./pos-customers.css";
 import "./date-picker.css";
 import "./pos-review.css";
+import "./waiter.css";
+import "./sms-settings.css";
+import "./sms-history.css";
 
 export const metadata: Metadata = {
   title: { default: "Restaurant POS", template: "%s | Restaurant POS" },

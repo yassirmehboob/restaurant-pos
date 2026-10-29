@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/settings/backups": ["./lib/backups.mjs"],
+    "/api/backups": ["./lib/backups.mjs"],
+    "/api/backups/*": ["./lib/backups.mjs"],
+  },
   experimental: { serverActions: { bodySizeLimit: "6mb" } },
   images: { unoptimized: true },
   poweredByHeader: false,

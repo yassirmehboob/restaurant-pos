@@ -1,0 +1,12 @@
+import type { Db, MongoClient } from "mongodb";
+export type BackupInfo = { id: string; createdAt: string; reason: string; bytes: number; documents: number; collections: number };
+export type RestoreInfo = { database: string; documents: number; backupCreatedAt: string };
+export function backupRoot(): string;
+export function validateBackupId(id: string): string;
+export function encodeBackup(payload: unknown): Buffer;
+export function decodeBackup(bytes: Buffer): unknown;
+export function validateBackupPayload(payload: unknown, businessId: string): unknown;
+export function createBusinessBackup(client: MongoClient, db: Db, businessId: string, reason?: string): Promise<BackupInfo>;
+export function readBackupFile(businessId: string, id: string): Promise<Buffer>;
+export function listBusinessBackups(businessId: string): Promise<BackupInfo[]>;
+export function restoreBusinessBackup(client: MongoClient, sourceDb: Db, businessId: string, id: string): Promise<RestoreInfo>;
