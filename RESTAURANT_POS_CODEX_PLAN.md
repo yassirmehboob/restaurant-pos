@@ -3587,3 +3587,44 @@ This section supersedes earlier requirements that reports count only orders with
 - The product catalog and cart items scroll independently, while the invoice totals and checkout actions remain visible at the bottom of the cart. Reduced desktop cart-heading padding adds usable item space.
 - Narrow desktop headers wrap within the product column without overlapping the cart. Mobile retains its full-screen cart drawer.
 - Verified production build and browser geometry at 1366x768, 1920x1080, 1024x768 and 900x768. Four cart items fit without item scrolling at 1366x768; mobile drawer and checkout visibility passed at 390x844. Testing used a temporary database, which was removed afterward.
+
+## Implemented update - Coupons (2026-10-29)
+
+Version 2 coupons are implemented. This supersedes the "Coupons" item in the Version 2 list.
+
+- **Offers and codes:** the owner opens **Coupons** (owner-only navigation) and creates an offer with a free-text name (for example "Azadi Offer" or "Valentine's Day Offer") and a quantity of 1 to 10,000. Each coupon gets its own cryptographically random 10-digit code with no leading zero. Codes are unique across the whole database. Coupons are never deleted, only cancelled, so a code can never be issued or used twice.
+- **Rules:** percentage (with an optional maximum cap) or fixed Rs discount, optional minimum order (items subtotal before tax), optional valid-from and expiry dates (the expiry day is still valid), and usage **Use now** or **Next visit**. Offer rules cannot be edited after creation; the owner can stop or resume an offer.
+- **Who can use it:** unassigned coupons can be used by anyone, including walk-ins. A coupon given to a customer can only be used on an invoice for that customer. Next-visit coupons must belong to a customer and only work on a later business date than the day they were given. All date checks use the restaurant business date (the open sale's date), not the calendar date.
+- **Giving coupons:** the owner gives the next unused coupon of an offer to a chosen customer, takes it back, or cancels it with a reason. An offer can also give coupons **automatically after payment**: when a selected customer pays at least the configured amount, they receive one unused coupon from each qualifying offer, inside the payment transaction. The code shows on the payment confirmation, the order detail page and the printed receipt.
+- **Applying a coupon:** the payment screen (takeaway, dine-in and delivery payment) has a coupon box and one-tap chips for the selected customer's usable coupons. The order detail page can apply one to any unpaid order, for example before printing a delivery bill. A coupon on an unpaid order is held (status "On unpaid order"). It is released if removed, if the order is cancelled, or if an edit makes the order no longer qualify. It becomes "Used" only in the payment transaction. Two counters racing with one code cannot both succeed.
+- **Calculation:** the discount comes off the item subtotal before tax and is split across lines to the paisa. Tax is calculated on the discounted amount, and delivery charges are never discounted. Changing the payment method on a discounted invoice keeps the discount and recalculates tax. Reports already show gross sales, discount and net sales, and item revenue reflects the discount. Receipts show items at full price, then a coupon line, tax and total.
+- **Records:** coupon creation, giving, taking back, cancelling, stopping, applying and removing are written to the audit log. Payment audit entries include the coupon code, discount and any coupons issued. Codes can be downloaded as CSV. Coupon collections are included in restaurant backups.
+- **Abuse protection:** coupon lookups are limited to 40 per staff account per five minutes.
+- **Validation:** typecheck, ESLint, 72 unit tests and the database suite (55 passed, 1 standalone-only skip) passed. They include coupon maths, eligibility rules, a full database lifecycle test with a concurrency race, and tenant isolation. A browser walkthrough on a temporary restaurant covered creating an offer, giving a coupon, rejecting another customer's coupon, applying a code at takeaway payment (Rs 12,000 − Rs 1,500 + 16% tax = Rs 12,180) and the printed receipt. All test data was removed.
+
+## Implemented update - Display screens / digital signage (2026-10-29)
+
+- **Setup → Display Screens** (owner only) manages up to 10 TV screens per restaurant. Each screen has its own playlist, orientation (landscape or portrait), theme (dark, light or warm), a show-prices switch and an optional scrolling footer message. A new screen starts with logo, full menu and deals slides.
+- **Slides:**
+  - Logo and message.
+  - Menu items: all categories (one page group per category), one category, or selected items.
+  - Deals: all available or selected.
+  - A featured item with a badge.
+  - An uploaded video, optionally with sound.
+  - Each slide has a duration (3 to 300 seconds, per page for menus and deals). Videos play to the end.
+  - Data is read live from the catalog. Inactive or unavailable items and deals, and deleted videos, are skipped automatically. Item sizes are shown with their prices.
+- **Pairing:** a TV browser opens `/display` and shows a 6-digit code (valid 15 minutes). The owner enters it on the screen card. The TV receives a random 256-bit display key exactly once and stores it locally; the server keeps only its SHA-256 hash. The key gives read-only access to that restaurant's screen feed and media, never to staff pages. Pairing another TV, disconnecting or removing the screen revokes the key immediately, and the TV returns to its pairing screen. Pairing records expire automatically and are excluded from backups.
+- **Player** (`/display/<key>`):
+  - Full-screen on first tap, hidden cursor, sized in viewport units for 50" screens.
+  - Card grids fit the number of items per page. Fade transitions, a progress bar and a clock.
+  - Refreshes content every 60 seconds, applying changes at the next slide. If the server can't be reached it keeps the last content with an "Offline" badge.
+  - Uses the Screen Wake Lock API where available (HTTPS or localhost), and reloads itself every 6 hours.
+  - Videos autoplay muted. Sound is attempted only when enabled and falls back to muted if the browser blocks it.
+  - The owner can preview any screen at `/display/preview/<screenId>`.
+- **Videos:** MP4 or WebM, at most 100 MB each and 30 per restaurant. Uploads stream to MongoDB GridFS (bucket `signage`) through a route handler, outside the 6 MB Server Action limit. The size is enforced while streaming, and the first bytes must match the declared MP4/WebM type. Playback supports HTTP byte ranges (206 / 416) and caches by id for a day. Deleting a video removes it from every playlist.
+- **Backups:** display videos are not included in restaurant backups, which keeps archives small; keep the original video files. Screens and playlists are included.
+- **Validation:** typecheck, ESLint, 76 unit tests and the database suite (61 passed, 1 standalone-only skip) passed. Coverage includes the pairing handshake, single-use key handover, feed contents, upload type and size checks, range playback, revocation and isolation between restaurants. A browser walkthrough paired two TVs (landscape and portrait) with different playlists, played an uploaded WebM advert and confirmed disconnection. All test data was removed.
+- **Video playback fixes (2026-10-29):**
+  - Video slides were invisible because the stage collapsed into the hidden header's row. Layout rows are now pinned, so videos fill the screen.
+  - Fragmented MP4s (from phones, screen recorders and streaming tools) and MP4s with their index at the end are rewritten on upload into fast-start MP4s by `lib/mp4-faststart.ts`. The index goes first and fragments are merged into one sample table; media bytes are copied unchanged and nothing is re-encoded. For the client's 43 MB clip, start-up over simulated 25 Mbit/s Wi-Fi went from 6.9 s (61 range requests) to 0.5 s (3 requests), with identical frames, duration and seeking. If the rewrite fails, the original is kept.
+  - The player no longer skips silently. A browser that blocks autoplay shows "Press OK on the remote or tap the screen once", and any key or tap starts the video. A file the TV cannot decode shows the reason for 8 seconds and then continues. Both are logged to the console.

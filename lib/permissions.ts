@@ -13,6 +13,8 @@ export function routePrivilege(path:string):Privilege|"owner"|undefined{
  if(path==="/settings/sms"||path.startsWith("/settings/sms/"))return "owner";
  if(path.startsWith("/settings/kitchen"))return "owner";
  if(path.startsWith("/users"))return "owner";
+ if(path.startsWith("/coupons"))return "owner";
+ if(path.startsWith("/settings/signage"))return "owner";
  if(path.startsWith("/reports/profit-loss"))return "profit";
  const prefix=path.split("/")[1];
  return ({waiter:"waiter","waiter-requests":"pos",audit:"audit",pos:"pos",orders:"orders",kitchen:"kitchen",sales:"sales","sale-sessions":"sale_sessions",reports:"reports",expenses:"expenses",products:"catalog",categories:"catalog",deals:"catalog",customers:"customers",staff:"staff",tables:"tables",settings:"settings"} as Record<string,Privilege>)[prefix];

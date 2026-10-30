@@ -28,7 +28,7 @@ const orderTypes: { value: OrderType; label: string }[] = [
 const typeLabel = (type: string) => orderTypes.find(option => option.value === type)?.label ?? type;
 
 
-export function KitchenBoard({ orders, timing, initialNow }: { orders: KitchenOrder[]; timing?: { preparingSeconds: number; readyMinutes: number }; initialNow: number }) {
+export function KitchenBoard({ orders, initialNow }: { orders: KitchenOrder[]; timing?: { preparingSeconds: number; readyMinutes: number }; initialNow: number }) {
   const can = useCan(), router = useRouter(), inFlight = useRef(false);
   const [orderType, setOrderType] = useState<OrderType>("ALL"), [query, setQuery] = useState("");
   const [now, setNow] = useState(initialNow), [movingId, setMovingId] = useState("");
@@ -66,13 +66,13 @@ export function KitchenBoard({ orders, timing, initialNow }: { orders: KitchenOr
     <header className="kitchen-board-header">
       <div className="kitchen-brand"><span className="kitchen-brand-icon"><ChefHat size={27}/></span><div><span>Kitchen workspace</span><h1>Kitchen Display</h1></div></div>
       <div className="kitchen-type-filters" aria-label="Filter by order type">{orderTypes.map(option => <button type="button" key={option.value} aria-pressed={orderType === option.value} onClick={() => setOrderType(option.value)}>{option.label}<span>{option.value === "ALL" ? orders.length : orders.filter(order => order.orderType === option.value).length}</span></button>)}</div>
+      <div className="kitchen-search"><Search size={18}/><input aria-label="Search kitchen orders" placeholder="Find order, table or item..." value={query} onChange={event => setQuery(event.target.value)}/>{query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={16}/></button>}</div>
       <div className="kitchen-header-actions"><span className="kitchen-live"><i/>{orders.length} active orders</span>
         <button type="button" onClick={() => startRefresh(() => { setNow(Date.now()); router.refresh(); })} disabled={refreshing} aria-label="Refresh kitchen orders"><RefreshCw size={17} className={refreshing ? "kitchen-spin" : ""}/><span>Refresh</span></button>
         <button type="button" onClick={() => void toggleFullscreen()} aria-label={fullscreen ? "Exit full screen" : "Enter full screen"} title={fullscreen ? "Exit full screen" : "Full screen"}>{fullscreen ? <Minimize2 size={18}/> : <Maximize2 size={18}/>}</button>
         {can("orders") && <Link href="/orders" aria-label="Placed Orders"><ClipboardList size={17}/><span>Placed Orders</span></Link>}
       </div>
     </header>
-    <div className="kitchen-board-info"><div className="kitchen-board-meta"><span><span className="kitchen-auto-dot"/>Auto refresh every 15 seconds{filtered ? " / " + visible.length + " matching orders" : " / Oldest orders first"}</span><span>{timing ? "Auto preparing: " + timing.preparingSeconds + " sec / Auto ready: " + timing.readyMinutes + " min" : "Use the button on each ticket to update its stage"}</span><span>Open sales / Orders stay visible for 5 hours after sale closes</span></div><div className="kitchen-search"><Search size={18}/><input aria-label="Search kitchen orders" placeholder="Find order, table or item..." value={query} onChange={event => setQuery(event.target.value)}/>{query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={16}/></button>}</div></div>
     {error && <div className="kitchen-error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError("")}><X size={18}/></button></div>}
     <section className="kitchen-columns" aria-label="Kitchen order stages">{stages.map(({ status, title, detail, Icon }) => {
       const rows = visible.filter(order => order.status === status);

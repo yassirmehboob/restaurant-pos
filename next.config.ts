@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     "/api/backups": ["./lib/backups.mjs"],
     "/api/backups/*": ["./lib/backups.mjs"],
   },
+  // Lets other PCs on the local network load dev scripts (clicks do nothing without them).
+  allowedDevOrigins: ["172.16.200.87", "172.16.200.120", "172.16.*.*", "192.168.*.*", "10.*.*.*"],
   experimental: { serverActions: { bodySizeLimit: "6mb" } },
   images: { unoptimized: true },
   poweredByHeader: false,

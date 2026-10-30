@@ -12,6 +12,7 @@ const businessSchema = new Schema({
   customerPrintingEnabled:{type:Boolean,default:true}, kitchenPrintingEnabled:{type:Boolean,default:true}, customerReceiptCopies:{type:Number,default:1,min:1,max:5}, kitchenReceiptCopies:{type:Number,default:1,min:1,max:5},
   autoPrintCustomerOnPayment:{type:Boolean,default:false},
   waiterShowBillSummary:{type:Boolean,default:false},
+  paymentPrefillDueAmount:{type:Boolean,default:true},
   smsEnabled:{type:Boolean,default:false},smsPaymentReceiptEnabled:{type:Boolean,default:false},smsIncludeOptOut:{type:Boolean,default:true},smsTokenEncrypted:{type:String,select:false},smsPaymentTemplate:String,smsEvidenceReference:{type:String,default:"customer-acknowledgement"},
   smsDeliveryMessages:{placed:{type:deliveryMessageSchema,default:()=>({})},outForDelivery:{type:deliveryMessageSchema,default:()=>({})},delivered:{type:deliveryMessageSchema,default:()=>({})}},
   kitchenTimingUpdatedBy:{type:Schema.Types.ObjectId,ref:"User"},
@@ -20,5 +21,5 @@ const businessSchema = new Schema({
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
-if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")))deleteModel("Business");
+if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);

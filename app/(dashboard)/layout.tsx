@@ -1,11 +1,11 @@
-import { SaleBannerVisibility } from "@/components/sale-banner-visibility";
+import { SaleBannerLink, SaleBannerVisibility } from "@/components/sale-banner-visibility";
 import { PermissionProvider } from "@/components/permission-provider";
 import { can } from "@/lib/permissions";
 import { formatDate } from "@/lib/dates";
 import { activeSaleSession } from "@/lib/sale-sessions";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CircleDot, LogOut, Play, UtensilsCrossed } from "lucide-react";
+import { CircleDot, LogOut, Play, UtensilsCrossed } from "lucide-react";
 import { requireUser } from "@/data/auth";
 import { logoutAction } from "@/app/(auth)/actions";
 import { DashboardNav } from "@/components/dashboard-nav";
@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="dashboard-main">
       <SaleBannerVisibility><div className={`session-banner ${sale ? "is-open" : "is-closed"}`}>
         <div className="session-banner-info"><span className="session-banner-icon">{sale ? <CircleDot size={19}/> : <Play size={18}/>}</span><div><strong>{sale ? sale.counterName : "Ready for your next shift?"}</strong><span>{sale ? `Sale date ${formatDate(sale.saleDate)} / ${user.fullName}` : "Set your sale date and opening cash to begin."}</span></div></div>
-        {can(user,"sale_sessions")&&<Link href="/sale-sessions">{sale ? "Manage sale" : "Start Sale"}<ArrowRight size={17}/></Link>}
+        {can(user,"sale_sessions")&&<SaleBannerLink open={Boolean(sale)}/>}
       </div>
       </SaleBannerVisibility>
       {children}

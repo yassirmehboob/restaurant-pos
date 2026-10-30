@@ -3,3 +3,4 @@
 @media print{@page{margin:0}.receipt-page{min-height:0;padding:0;background:#fff}.receipt-toolbar{display:none!important}.receipt{width:100%!important;max-width:none!important;margin:0;padding:3mm;box-shadow:none}.paper-58{width:58mm}.paper-80{width:80mm}}
 
 .receipt footer .receipt-ready-time{margin-top:12px;padding-top:10px;border-top:1px dashed #111;font-weight:700;break-inside:avoid}
+.receipt-coupons{display:grid;gap:6px;margin:10px 0 0;padding:8px;border:1px dashed #111;text-align:center}.receipt-coupons>p{margin:0;font-weight:700}.receipt-coupons>div{display:grid;gap:1px}.receipt-coupons b{font-size:1.35em;letter-spacing:2px;font-variant-numeric:tabular-nums}.receipt-coupons small{font-size:.85em}

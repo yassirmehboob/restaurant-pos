@@ -1,0 +1,51 @@
+/* Sized in viewport units so the same layout reads well from across a room on a 50" screen. */
+.signage{--bg:#0d0f14;--panel:#171b24;--text:#f6f2ea;--muted:#a9afbd;--accent:#f4b63f;--accent-text:#1b1405;position:fixed;inset:0;z-index:1000;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;overflow:hidden;background:var(--bg);color:var(--text);font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;cursor:none;user-select:none}
+.signage.is-preview{cursor:default}
+.signage-light{--bg:#f7f5f0;--panel:#ffffff;--text:#1d2433;--muted:#5f6b7d;--accent:#d2461f;--accent-text:#fff}
+.signage-warm{--bg:#3a0f0c;--panel:#521915;--text:#fff4e6;--muted:#f1c9a8;--accent:#ffc247;--accent-text:#3a0f0c}
+.signage-header{grid-row:1;display:flex;align-items:center;gap:2vmin;padding:2vmin 3.5vmin;font-size:3.2vmin}
+.signage-header strong{flex:1;font-weight:700;letter-spacing:.02em}
+.signage-header time{color:var(--muted);font-variant-numeric:tabular-nums}
+.signage-logo{width:7vmin;height:7vmin;object-fit:contain;border-radius:1.2vmin;background:#fff}
+/* Pinned to the stretching row: full-screen slides hide the header and must not collapse into its row. */
+.signage-stage{grid-row:2;position:relative;min-height:0;display:grid;animation:signage-fade .7s ease both}
+@keyframes signage-fade{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+.signage-board{display:grid;grid-template-rows:auto 1fr;gap:2vmin;min-height:0;padding:0 3.5vmin 2vmin}
+.signage-board h1{display:flex;align-items:baseline;gap:2vmin;margin:0;font-size:6vmin;font-weight:800;color:var(--accent)}
+.signage-board h1 small{font-size:2.4vmin;font-weight:600;color:var(--muted)}
+.signage-items,.signage-deals{display:grid;grid-template-columns:repeat(var(--columns,4),minmax(0,1fr));grid-template-rows:repeat(var(--rows,2),minmax(0,1fr));gap:2vmin;min-height:0}
+.signage-item,.signage-deal{display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0;overflow:hidden;border-radius:2vmin;background:var(--panel)}
+.signage-item img,.signage-deal img,.signage-placeholder{width:100%;height:100%;min-height:0;object-fit:cover;background:#00000022}
+.signage-placeholder{display:grid;place-items:center;font-size:10vmin;font-weight:800;color:var(--accent)}
+.signage-item>div,.signage-deal>div{display:grid;align-content:start;gap:.8vmin;padding:1.6vmin 2vmin}
+.signage-item h2,.signage-deal h2{margin:0;font-size:3.1vmin;line-height:1.15;font-weight:750}
+.signage-item p{margin:0;color:var(--muted);font-size:2vmin;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.signage-price{justify-self:start;padding:.5vmin 1.6vmin;border-radius:1vmin;background:var(--accent);color:var(--accent-text);font-size:3.2vmin;font-weight:800;font-variant-numeric:tabular-nums}
+.signage-sizes{display:flex;flex-wrap:wrap;gap:.6vmin 1.6vmin;font-size:2.2vmin;color:var(--muted)}.signage-sizes b{color:var(--accent);font-variant-numeric:tabular-nums}
+.signage-deal h2{font-size:4vmin}.signage-deal ul{margin:0;padding:0;list-style:none;color:var(--muted);font-size:2.4vmin;line-height:1.45}.signage-deal .signage-price{font-size:4.4vmin;margin-top:1vmin}
+.signage-brand{display:grid;place-items:center;align-content:center;gap:3vmin;padding:6vmin;text-align:center;background:radial-gradient(circle at 50% 40%,var(--panel),var(--bg) 70%)}
+.signage-brand img{width:38vmin;height:38vmin;object-fit:contain;border-radius:4vmin;background:#fff;padding:2vmin}
+.signage-brand h1{margin:0;font-size:9vmin;font-weight:850;letter-spacing:.01em}
+.signage-brand p{margin:0;max-width:80vw;color:var(--accent);font-size:4.6vmin;font-weight:650}
+.signage-spotlight{display:grid;grid-template-columns:55% 1fr;gap:4vmin;align-items:center;min-height:0;padding:0 4vmin 3vmin}
+.signage-portrait .signage-spotlight{grid-template-columns:none;grid-template-rows:55% auto}
+.signage-spotlight img,.signage-spotlight .signage-placeholder{width:100%;height:100%;max-height:75vh;object-fit:cover;border-radius:3vmin}
+.signage-spotlight h1{margin:1vmin 0;font-size:8vmin;line-height:1.05;font-weight:850}
+.signage-spotlight p{margin:0 0 3vmin;color:var(--muted);font-size:3.4vmin;line-height:1.35}
+.signage-spotlight .signage-price{font-size:6vmin}
+.signage-tag{display:inline-block;padding:.6vmin 1.8vmin;border-radius:10vmin;background:var(--accent);color:var(--accent-text);font-size:2.6vmin;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.signage-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.signage-progress{grid-row:3;height:.5vmin;background:var(--accent);transform-origin:left;animation:signage-progress linear both}
+@keyframes signage-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.signage-footer{grid-row:4;overflow:hidden;padding:1.6vmin 0;background:var(--accent);color:var(--accent-text);font-size:3.2vmin;font-weight:750;white-space:nowrap}
+.signage-footer span{display:inline-block;padding-left:100%;animation:signage-ticker 22s linear infinite}
+@keyframes signage-ticker{to{transform:translateX(-100%)}}
+.signage-offline{position:absolute;top:1.5vmin;right:1.5vmin;padding:.6vmin 1.4vmin;border-radius:1vmin;background:#b42318;color:#fff;font-size:1.8vmin;font-weight:700}
+.signage-status{display:grid;place-items:center;grid-row:1/-1;font-size:4vmin;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){.signage-stage,.signage-footer span{animation:none}.signage-footer span{padding-left:3vmin}}
+.signage-pairing h1{font-size:6vmin}.signage-pairing p{color:var(--muted);font-size:3.2vmin;max-width:70vw;line-height:1.5}.signage-pairing b{color:var(--text)}
+.signage-pairing .signage-code{margin:2vmin 0;color:var(--accent);font-size:16vmin;font-weight:850;letter-spacing:1.5vmin;font-variant-numeric:tabular-nums}
+.signage-spotlight .signage-sizes{gap:1vmin 3vmin;font-size:4.4vmin}
+.is-rows>.signage-item,.is-rows>.signage-deal{grid-template-rows:none;grid-template-columns:42% 1fr}
+.signage-video-problem{position:absolute;left:50%;bottom:8vmin;transform:translateX(-50%);max-width:80vw;padding:2vmin 3vmin;border-radius:2vmin;background:#000c;color:#fff;font-size:3vmin;line-height:1.4;text-align:center}
+.signage-pairing{grid-row:1/-1}
