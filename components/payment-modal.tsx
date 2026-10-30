@@ -1,4 +1,5 @@
 "use client";
+import { randomId } from "@/lib/random-id";
 import { useCan } from "@/components/permission-provider";
 import { useRouter } from "next/navigation";
 import { useEffect,useRef,useState,useTransition } from "react";
@@ -22,7 +23,7 @@ export function PaymentModal({orderId,dueAmount,autoOpen=false,initialMethod="CA
  const change=method==="CASH"&&quote?Math.max(0,amount-quote.dueAmount):0;
  const appliedCoupon=quote?.coupon??null,busy=pending||couponBusy;
  const customerId=draftOrder?draftOrder.customerId??"":quote?.customerId??"";
- const open=()=>{setMethod(initialMethod);setQuote(null);setAttempt(crypto.randomUUID());setError("");setCouponMessage("");setCodeInput("");setOpened(true);dialog.current?.showModal()};
+ const open=()=>{setMethod(initialMethod);setQuote(null);setAttempt(randomId());setError("");setCouponMessage("");setCodeInput("");setOpened(true);dialog.current?.showModal()};
  useEffect(()=>{if(autoOpen)dialog.current?.showModal()},[autoOpen]);
  useEffect(()=>{if(!opened||!allowed)return;let active=true;(draftOrder?previewTakeawayPayment({...draftOrder,paymentMethod:method,couponCode:draftCoupon||undefined}):previewPaymentTax(orderId,method)).then(result=>{if(!active)return;if(result.ok){setQuote({...result,orderId});setAmount(result.prefillDue===false&&method==="CASH"&&result.dueAmount>0?0:result.dueAmount);if("couponError" in result&&result.couponError){setCouponMessage(result.couponError);setDraftCoupon("")}}else setError(result.message)}).catch(()=>{if(active)setError("Could not calculate invoice totals. Please retry.")});return()=>{active=false}},[opened,allowed,orderId,method,refresh,draftOrder,draftCoupon]);
  useEffect(()=>{if(!opened||!allowed||!customerId)return;let active=true;customerCoupons(customerId).then(result=>{if(active)setSaved({customerId,coupons:result.coupons})}).catch(()=>{});return()=>{active=false}},[opened,allowed,customerId,refresh]);
@@ -44,7 +45,7 @@ export function PaymentModal({orderId,dueAmount,autoOpen=false,initialMethod="CA
   try{const result=await removeOrderCoupon(orderId);if(!result.ok){setCouponMessage(result.message);return}refreshQuote();router.refresh()}
   catch{setCouponMessage("Could not remove the coupon. Please try again.")}finally{setCouponBusy(false)}
  };
- const submit=(event:React.FormEvent<HTMLFormElement>)=>{event.preventDefault();if(!ready||!quote)return;const data=new FormData(event.currentTarget),key=attempt||crypto.randomUUID();if(!attempt)setAttempt(key);startTransition(async()=>{try{const paymentInput={orderId,idempotencyKey:key,method,expectedGrandTotal:quote.grandTotal,tenderedAmount:amount,reference:String(data.get("reference")??""),notes:String(data.get("notes")??"")};const result=await (draftOrder?completeTakeawayPayment({...draftOrder,couponCode:draftCoupon||undefined},paymentInput):completeDelivery?completeDeliveryPayment(paymentInput):completeOrderPayment(paymentInput));if(!result.ok){setError(result.message);return}dialog.current?.close();
+ const submit=(event:React.FormEvent<HTMLFormElement>)=>{event.preventDefault();if(!ready||!quote)return;const data=new FormData(event.currentTarget),key=attempt||randomId();if(!attempt)setAttempt(key);startTransition(async()=>{try{const paymentInput={orderId,idempotencyKey:key,method,expectedGrandTotal:quote.grandTotal,tenderedAmount:amount,reference:String(data.get("reference")??""),notes:String(data.get("notes")??"")};const result=await (draftOrder?completeTakeawayPayment({...draftOrder,couponCode:draftCoupon||undefined},paymentInput):completeDelivery?completeDeliveryPayment(paymentInput):completeOrderPayment(paymentInput));if(!result.ok){setError(result.message);return}dialog.current?.close();
   const issued=result.issuedCoupons??[];
   const issuedHtml=issued.length?'<div class="payment-issued-coupons"><b>Coupon for the customer\'s next visit</b>'+issued.map(item=>'<p><strong>'+escape(item.code)+'</strong><span>'+escape(item.batchName)+' · '+escape(item.description)+'</span></p>').join("")+'</div>':"";
   await Swal.fire({target:document.querySelector<HTMLElement>(".pos-orders-dialog[open]")??document.body,icon:"success",title:completeDelivery?"Payment received & delivery confirmed":"Payment received",html:escape(result.orderNumber)+'<br/><strong>'+money(result.amount)+'</strong>'+(result.change>0?'<br/>Change: <strong>'+money(result.change)+'</strong>':'')+issuedHtml,timer:issued.length?undefined:1700,showConfirmButton:issued.length>0,confirmButtonText:"Done"});

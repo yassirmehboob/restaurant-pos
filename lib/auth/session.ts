@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
-import { env } from "@/lib/env";
+import { env, secureCookies } from "@/lib/env";
 import type { UserRole } from "@/lib/roles";
 import { USER_ROLES } from "@/lib/roles";
 import { createHash, randomUUID } from "node:crypto";
@@ -13,7 +13,7 @@ const secretKey=()=>new TextEncoder().encode(env().AUTH_SECRET);
 export async function createSession(payload:SessionPayload){
   const expiresAt=new Date(Date.now()+SESSION_DURATION_SECONDS*1000);
   const token=await new SignJWT(payload).setProtectedHeader({alg:"HS256"}).setJti(randomUUID()).setIssuedAt().setExpirationTime(expiresAt).sign(secretKey());
-  (await cookies()).set(COOKIE_NAME,token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",expires:expiresAt});
+  (await cookies()).set(COOKIE_NAME,token,{httpOnly:true,secure: secureCookies(),sameSite:"lax",path:"/",expires:expiresAt});
 }
 export async function readSession():Promise<SessionPayload|null>{
   const token=(await cookies()).get(COOKIE_NAME)?.value;if(!token)return null;

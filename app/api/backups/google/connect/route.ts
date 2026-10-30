@@ -1,3 +1,4 @@
+import { secureCookies } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/data/auth";
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
   if (!oauth) return NextResponse.redirect(backupsPage(oauth, request, "not-configured"));
   const state = randomBytes(24).toString("base64url"), { verifier, challenge } = createPkcePair();
   const response = NextResponse.redirect(driveAuthUrl(oauth, { redirectUri: oauth.redirectUri, state, challenge }));
-  response.cookies.set(DRIVE_STATE_COOKIE, `${state}.${verifier}.${user.id}`, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: DRIVE_COOKIE_PATH, maxAge: 600 });
+  response.cookies.set(DRIVE_STATE_COOKIE, `${state}.${verifier}.${user.id}`, { httpOnly: true, secure: secureCookies(), sameSite: "lax", path: DRIVE_COOKIE_PATH, maxAge: 600 });
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

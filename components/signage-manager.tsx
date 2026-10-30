@@ -1,4 +1,5 @@
 "use client";
+import { randomId } from "@/lib/random-id";
 import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Eye, Film, Link2, Monitor, Plus, Save, Trash2, Unplug, Upload } from "lucide-react";
@@ -11,7 +12,7 @@ import "./signage-manager.css";
 
 type Screen = SignageData["screens"][number];
 const DEFAULT_SECONDS: Record<SlideType, number> = { BRAND: 8, MENU: 12, DEALS: 12, ITEM: 10, VIDEO: 30 };
-const newSlide = (type: SlideType): Slide => ({ id: crypto.randomUUID().replaceAll("-", "").slice(0, 24), type, durationSeconds: DEFAULT_SECONDS[type], title: "", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", videoId: "", sound: false });
+const newSlide = (type: SlideType): Slide => ({ id: randomId().replaceAll("-", "").slice(0, 24), type, durationSeconds: DEFAULT_SECONDS[type], title: "", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", videoId: "", sound: false });
 const megabytes = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MB`;
 
 export function SignageManager({ data }: { data: SignageData }) {

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/data/auth";
 import { connectToDatabase } from "@/lib/db";
-import { env } from "@/lib/env";
+import { env, secureCookies } from "@/lib/env";
 import { writeAuditLog } from "@/lib/audit";
 import { DriveError, decryptDriveToken, driveAccountEmail, driveFolderName, driveOAuthConfig, encryptDriveToken, ensureDriveFolder, exchangeDriveCode, revokeDriveToken } from "@/lib/backup-drive.mjs";
 import { backupsPage, DRIVE_COOKIE_PATH, DRIVE_STATE_COOKIE } from "@/lib/backup-drive-server";
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const oauth = driveOAuthConfig(), stored = request.cookies.get(DRIVE_STATE_COOKIE)?.value ?? "";
   const finish = (notice: string) => {
     const response = NextResponse.redirect(backupsPage(oauth, request, notice));
-    response.cookies.set(DRIVE_STATE_COOKIE, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: DRIVE_COOKIE_PATH, maxAge: 0 });
+    response.cookies.set(DRIVE_STATE_COOKIE, "", { httpOnly: true, secure: secureCookies(), sameSite: "lax", path: DRIVE_COOKIE_PATH, maxAge: 0 });
     response.headers.set("Cache-Control", "private, no-store");
     return response;
   };

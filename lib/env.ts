@@ -6,3 +6,5 @@ export function env() {
   cachedEnv ??= envSchema.parse({ MONGODB_URI: process.env.MONGODB_URI, AUTH_SECRET: process.env.AUTH_SECRET });
   return cachedEnv;
 }
+// HTTPS-only cookies in production; COOKIE_SECURE=false lets a plain-http LAN server keep logins.
+export const secureCookies = () => process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE !== "false" : process.env.NODE_ENV === "production";

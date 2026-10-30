@@ -2,7 +2,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { env } from "@/lib/env";
+import { env, secureCookies } from "@/lib/env";
 
 const COOKIE_NAME = "restaurant_pos_login_challenge";
 const secretKey = () => new TextEncoder().encode(env().AUTH_SECRET);
@@ -13,7 +13,7 @@ export async function createLoginChallenge(user: ChallengeUser) {
   const token = await new SignJWT({ credential: credentialFingerprint(user.passwordHash), authVersion: user.authVersion ?? 0 })
     .setProtectedHeader({ alg: "HS256" }).setSubject(String(user._id)).setAudience("restaurant-pos:login-2fa")
     .setJti(randomUUID()).setIssuedAt().setExpirationTime("5m").sign(secretKey());
-  (await cookies()).set(COOKIE_NAME, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/login", maxAge: 300 });
+  (await cookies()).set(COOKIE_NAME, token, { httpOnly: true, secure: secureCookies(), sameSite: "lax", path: "/login", maxAge: 300 });
 }
 
 export async function readLoginChallenge() {
@@ -31,5 +31,5 @@ export function matchesLoginChallenge(challenge: NonNullable<Awaited<ReturnType<
 }
 
 export async function clearLoginChallenge() {
-  (await cookies()).set(COOKIE_NAME, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/login", maxAge: 0 });
+  (await cookies()).set(COOKIE_NAME, "", { httpOnly: true, secure: secureCookies(), sameSite: "lax", path: "/login", maxAge: 0 });
 }
