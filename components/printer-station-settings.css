@@ -1,0 +1,26 @@
+.printer-station{margin-top:20px;padding:22px;background:#fff;border:1px solid #e1e6ed;border-radius:15px}
+.printer-station>header{display:flex;align-items:flex-start;gap:12px}
+.printer-station>header>span{display:grid;place-items:center;width:38px;height:38px;flex-shrink:0;border:1px solid #e3eaf5;border-radius:10px;background:#f6f8fc;color:#516684}
+.printer-station>header>div{flex:1;min-width:0}
+.printer-station h2{margin:0;font-size:17px;color:#1d2939}
+.printer-station header p{margin:4px 0 0;color:#667085;font-size:12px;line-height:1.5}
+.printer-station button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border:1px solid #d5dbe4;border-radius:9px;background:#fff;color:#344054;font-size:12px;font-weight:700;cursor:pointer}
+.printer-station button:disabled{opacity:.6;cursor:wait}
+.printer-station-roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin-top:18px}
+.printer-station fieldset{display:grid;gap:12px;margin:0;padding:14px;border:1px solid #e4e7ec;border-radius:12px;min-width:0}
+.printer-station legend{display:flex;align-items:center;gap:6px;padding:0 6px;font-size:13px;font-weight:800;color:#344054}
+.printer-station-modes{display:grid;gap:6px}
+.printer-station-modes label{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 11px;border:1px solid #e4e7ec;border-radius:9px;font-size:12px;color:#475467;cursor:pointer;overflow-wrap:anywhere}
+.printer-station-modes label.is-active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;font-weight:700}
+.printer-station-modes input{margin:0;accent-color:#2563eb}
+.printer-station-field{display:grid;gap:5px;font-size:11px;font-weight:700;color:#475467}
+.printer-station-field input{min-height:40px;padding:0 11px;border:1px solid #d5dbe4;border-radius:9px;font:inherit;font-size:13px;font-weight:400;color:#1d2939;min-width:0}
+.printer-station-lan{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:8px}
+.printer-station-test{justify-self:start}
+.printer-station>footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid #eef1f5}
+.printer-station>footer p{margin:0;color:#667085;font-size:12px;line-height:1.5}
+.printer-station>footer p.is-error{color:#b42318}
+.printer-station>footer button{color:#fff;background:#1d2939;border-color:#1d2939}
+.printer-station-spin{animation:printer-station-spin 1s linear infinite}@keyframes printer-station-spin{to{transform:rotate(360deg)}}
+@media(max-width:640px){.printer-station>header{flex-wrap:wrap}.printer-station>header>button{width:100%}.printer-station>footer{flex-direction:column;align-items:stretch}}
+@media(prefers-reduced-motion:reduce){.printer-station-spin{animation:none}}
