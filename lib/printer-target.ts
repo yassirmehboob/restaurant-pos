@@ -18,6 +18,11 @@ export const printerTargetSchema=z.object({
   if(value.connection==="LAN"&&!validHost(value.host))ctx.addIssue({code:"custom",path:["host"],message:"Enter the printer's IP address, for example 192.168.1.50"});
 });
 
+type StoredPrinters={[key in `${"customer"|"kitchen"}Printer${"Connection"|"Name"|"Host"}`]?:string|null}&{customerPrinterPort?:number|null;kitchenPrinterPort?:number|null};
+export function businessPrinter(business:StoredPrinters,role:"customer"|"kitchen"):PrinterTarget{
+  return{connection:business[`${role}PrinterConnection`]==="LAN"?"LAN":"USB",name:business[`${role}PrinterName`]??"",host:business[`${role}PrinterHost`]??"",port:business[`${role}PrinterPort`]??9100};
+}
+
 export function describePrinter(target:PrinterTarget){
   return target.connection==="LAN"?`LAN ${target.host||"(no IP)"}:${target.port}`:`USB ${target.name||"Windows default printer"}`;
 }

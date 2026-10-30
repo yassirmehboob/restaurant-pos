@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/dates";
 import { activeSaleSession } from "@/lib/sale-sessions";
 import Image from "next/image";
 import Link from "next/link";
-import { CircleDot, LogOut, Play, UtensilsCrossed } from "lucide-react";
+import { CircleDot, LogOut, Play, ShieldCheck, UtensilsCrossed } from "lucide-react";
 import { requireUser } from "@/data/auth";
 import { logoutAction } from "@/app/(auth)/actions";
 import { DashboardNav } from "@/components/dashboard-nav";
@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <aside className="sidebar">
       <Link className="sidebar-brand" href="/dashboard"><span>{user.businessLogoUrl ? <Image className="sidebar-logo" src={user.businessLogoUrl} alt="" width={42} height={42}/> : <UtensilsCrossed size={22}/>}</span><div>{user.businessName}<small>Restaurant POS</small></div></Link>
       <DashboardNav role={user.role} privileges={user.privileges}/>
-      <div className="sidebar-account"><div className="user-block"><div className="avatar">{user.fullName.charAt(0).toUpperCase()}</div><div><strong title={user.fullName}>{user.fullName}</strong><small>{user.role} / {user.username}</small></div></div><form action={logoutAction}><button className="logout-button" type="submit" title="Log out" aria-label="Log out"><LogOut size={19}/><span>Log out</span></button></form></div>
+      <div className="sidebar-account"><div className="user-block"><div className="avatar">{user.fullName.charAt(0).toUpperCase()}</div><div><strong title={user.fullName}>{user.fullName}</strong><small>{user.role} / {user.username}</small></div></div><Link className="logout-button account-security" href="/security" title="Security / 2FA" aria-label="Security / 2FA"><ShieldCheck size={19}/><span>Security / 2FA</span></Link><form action={logoutAction}><button className="logout-button" type="submit" title="Log out" aria-label="Log out"><LogOut size={19}/><span>Log out</span></button></form></div>
     </aside>
     <div className="dashboard-main">
       <SaleBannerVisibility><div className={`session-banner ${sale ? "is-open" : "is-closed"}`}>

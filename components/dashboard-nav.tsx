@@ -26,7 +26,6 @@ const links=[
   ["/staff","Staff",UsersRound],
   ["/users","User Accounts",UsersRound],
   ["/tables","Tables",TableProperties],
-  ["/security","Security / 2FA",ShieldCheck],
   ["/settings/business","Business Profile",Settings],
   ["/settings/backups","Backups & Restore",ShieldCheck],
   ["/settings/sms","SMS History",MessageSquare],
