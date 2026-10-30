@@ -28,6 +28,7 @@
 /backups/
 /restaurant-pos-backups/
 /.restaurant-pos-runtime.json
+/update.ps1
 
 # debug
 npm-debug.log*
@@ -48,3 +49,5 @@ next-env.d.ts
 
 # desktop launcher logs
 pos-server.log*
+pos-crash.log
+updating.flag
