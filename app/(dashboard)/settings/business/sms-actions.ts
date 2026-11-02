@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { requireOwner } from "@/data/auth";
 import { Business } from "@/models/Business";
-import { smsSettingsSchema,deliverySmsSettingsSchema } from "@/lib/validation/sms";
+import { smsSettingsSchema,deliverySmsSettingsSchema,orderSmsSettingsSchema } from "@/lib/validation/sms";
 import { encryptSmsToken } from "@/lib/sms-crypto.mjs";
 import { env } from "@/lib/env";
 import { writeAuditLog } from "@/lib/audit";
@@ -35,4 +35,15 @@ export async function saveDeliverySmsSettings(raw:unknown){
   await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"UPDATE_DELIVERY_SMS_SETTINGS",entityType:"Business",entityId:user.businessId,description:"Updated delivery SMS templates and sending preferences",metadata:{placedEnabled:parsed.data.placed.enabled,outForDeliveryEnabled:parsed.data.outForDelivery.enabled,deliveredEnabled:parsed.data.delivered.enabled}});
   revalidatePath("/settings/sms-messaging");return{ok:true as const,message:"Delivery SMS settings saved."};
  }catch{return{ok:false as const,message:"Could not save delivery SMS settings. Please try again."}}
+}
+
+export async function saveOrderSmsSettings(raw:unknown){
+ const user=await requireOwner(),parsed=orderSmsSettingsSchema.safeParse(raw);
+ if(!parsed.success)return{ok:false as const,message:parsed.error.issues[0]?.message??"Check each order message."};
+ try{
+  const result=await Business.updateOne({_id:user.businessId,isActive:true},{$set:{smsOrderMessages:parsed.data}});
+  if(!result.matchedCount)return{ok:false as const,message:"Business not found."};
+  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"UPDATE_ORDER_SMS_SETTINGS",entityType:"Business",entityId:user.businessId,description:"Updated dine-in and takeaway SMS templates and sending preferences",metadata:Object.fromEntries(Object.entries(parsed.data).map(([key,value])=>[key,{enabled:value.enabled,dineIn:value.dineIn,takeaway:value.takeaway}]))});
+  revalidatePath("/settings/sms-messaging");return{ok:true as const,message:"Dine-in and takeaway SMS settings saved."};
+ }catch{return{ok:false as const,message:"Could not save dine-in and takeaway SMS settings. Please try again."}}
 }
