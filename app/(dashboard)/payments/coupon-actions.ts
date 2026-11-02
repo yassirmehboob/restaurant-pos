@@ -8,7 +8,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { orderWithDiscount } from "@/lib/tax";
 import { allowAuthAttempt } from "@/lib/auth/two-factor";
 import { couponDescription, couponProblem } from "@/lib/coupons";
-import { claimCoupon, couponBusinessDate, releaseOrderCoupon, resolveCoupon } from "@/lib/coupon-service";
+import { claimCoupon, couponBusinessDate, couponsAllowed, COUPONS_OFF_MESSAGE, releaseOrderCoupon, resolveCoupon } from "@/lib/coupon-service";
 import { Coupon } from "@/models/Coupon";
 import { CouponBatch } from "@/models/CouponBatch";
 import { Order } from "@/models/Order";
@@ -23,6 +23,7 @@ export async function applyOrderCoupon(orderId: string, code: string) {
     const user = await requirePermission("payments");
     id.parse(orderId);
     await connectToDatabase();
+    if (!(await couponsAllowed(user.businessId))) throw new Error(COUPONS_OFF_MESSAGE);
     if (!(await allowAuthAttempt("coupon-lookup:" + user.id, 40))) throw new Error("Too many coupon checks. Wait five minutes and try again.");
     const result = await mongoose.connection.transaction(async transaction => {
       const order = await Order.findOne({ _id: orderId, businessId: user.businessId, status: { $ne: "CANCELLED" }, paymentStatus: "UNPAID", paidAmount: 0 }).session(transaction).lean();

@@ -29,3 +29,13 @@ export function orderWithDiscount<Line extends StoredLine>(order:Omit<TaxOrder,"
  const grandTotal=money(result.grandTotal+(order.serviceChargeAmount??0));
  return{items,discountAmount:result.discountAmount,taxAmount:result.taxAmount,grandTotal,dueAmount:money(grandTotal-order.paidAmount)};
 }
+// Payment-time pricing: the tax quote for the method plus an optional invoice discount stacked on any coupon,
+// with the recalculated lines ready to store on the paid order.
+export function paymentPricing<Line extends StoredLine>(order:Omit<TaxOrder,"items">&{items:Line[]},method:PaymentMethod,invoiceDiscount=0){
+ const businessTax=!!order.paymentTaxRatesSnapshot&&PAYMENT_METHODS.every(key=>typeof order.paymentTaxRatesSnapshot![key]==="number");
+ if(invoiceDiscount>0&&order.paidAmount>0)throw new Error("A discount cannot be added to a partly paid invoice.");
+ if(invoiceDiscount>0&&!businessTax){const result=orderWithDiscount(order,(order.discountAmount??0)+invoiceDiscount);return{subtotal:order.subtotal,discountAmount:result.discountAmount,taxAmount:result.taxAmount,grandTotal:result.grandTotal,dueAmount:result.dueAmount,taxRate:order.taxRateSnapshot,method,items:result.items}}
+ const quote=paymentTaxQuote(invoiceDiscount>0?{...order,discountAmount:(order.discountAmount??0)+invoiceDiscount}:order,method);
+ const items=quote.lines?order.items.map((line,index)=>({...line,taxRate:quote.taxRate!,isTaxInclusive:false,discountAmount:quote.lines![index].discountAmount,lineTax:quote.lines![index].taxAmount,lineTotal:quote.lines![index].lineTotal})):order.items;
+ return{subtotal:quote.subtotal,discountAmount:quote.discountAmount,taxAmount:quote.taxAmount,grandTotal:quote.grandTotal,dueAmount:quote.dueAmount,taxRate:quote.taxRate,method,items};
+}

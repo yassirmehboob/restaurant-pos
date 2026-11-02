@@ -28,8 +28,11 @@
 .signage-upload{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
 .signage-progress-bar{height:8px;border-radius:8px;background:#edf1f7;overflow:hidden}.signage-progress-bar span{display:block;height:100%;background:#2563eb;transition:width .2s}
 .signage-video-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}.signage-video-list li{display:grid;grid-template-columns:200px 1fr auto;gap:14px;align-items:center;padding:10px;border:1px solid #e6ecf4;border-radius:11px}
-.signage-video-list video{width:200px;aspect-ratio:16/9;border-radius:8px;background:#000}.signage-video-list b{display:block;color:#1f2f46;font-size:14px}.signage-video-list small{color:#7a8aa0;font-size:12px}
+.signage-video-list video,.signage-video-list img{width:200px;height:auto;object-fit:contain;aspect-ratio:16/9;border-radius:8px;background:#000}.signage-video-list b{display:block;color:#1f2f46;font-size:14px}.signage-video-list small{color:#7a8aa0;font-size:12px}
 .signage-muted{margin:0;color:#8090a6;font-size:12px}.signage-error{margin:0;padding:10px 12px;border-radius:8px;background:#fef3f2;color:#b42318;font-size:12px}
 .signage-swal{display:grid;gap:4px;margin:10px 0 0;text-align:left;font-size:13px;font-weight:600}.signage-swal .swal2-input,.signage-swal .swal2-select{margin:0;width:100%}
-@media(max-width:860px){.signage-settings{grid-template-columns:repeat(2,minmax(0,1fr))}.signage-upload{grid-template-columns:1fr}.signage-video-list li{grid-template-columns:1fr}.signage-video-list video{width:100%}}
+@media(max-width:860px){.signage-settings{grid-template-columns:repeat(2,minmax(0,1fr))}.signage-upload{grid-template-columns:1fr}.signage-video-list li{grid-template-columns:1fr}.signage-video-list video,.signage-video-list img{width:100%}}
 @media(max-width:560px){.signage-settings,.signage-fields{grid-template-columns:1fr}}
+.signage-slide-thumb{width:auto;height:auto;max-width:240px;max-height:135px;border-radius:8px;background:#000;object-fit:contain}
+.signage-ratio-hint{margin:0;padding:9px 12px;border-radius:9px;background:#f1f6ff;color:#35557f;font-size:12px;line-height:1.5}.signage-ratio-hint b{color:#1f2f46}
+.signage-ratio{display:inline-block;margin:4px 0;padding:2px 8px;border-radius:6px;background:#edf4ff;color:#2563eb;font-size:11px;font-weight:700}

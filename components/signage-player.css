@@ -49,3 +49,7 @@
 .is-rows>.signage-item,.is-rows>.signage-deal{grid-template-rows:none;grid-template-columns:42% 1fr}
 .signage-video-problem{position:absolute;left:50%;bottom:8vmin;transform:translateX(-50%);max-width:80vw;padding:2vmin 3vmin;border-radius:2vmin;background:#000c;color:#fff;font-size:3vmin;line-height:1.4;text-align:center}
 .signage-pairing{grid-row:1/-1}
+.signage-poster{position:absolute;inset:0;overflow:hidden;background:#000}
+.signage-poster::before{content:"";position:absolute;inset:-5%;background:var(--poster) center/cover;filter:blur(4vmin) brightness(.55)}
+.signage-poster img{position:relative;width:100%;height:100%;object-fit:contain}
+.signage-poster h1{position:absolute;left:0;right:0;bottom:0;margin:0;padding:6vmin 5vmin 4vmin;background:linear-gradient(transparent,#000b);color:#fff;font-size:5.5vmin;line-height:1.15;text-align:center}

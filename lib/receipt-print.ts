@@ -46,11 +46,12 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
     meta("Payment",order.paymentStatus);
     p.divider();
     // Lines print before tax and discount so they add up to the subtotal; tax and coupon follow it.
-    const discounted=(order.discountAmount??0)>0;
+    const invoiceDiscount=order.invoiceDiscount?.amount>0?order.invoiceDiscount:null,couponDiscount=(order.discountAmount??0)-(invoiceDiscount?.amount??0);
     for(const row of receiptItemRows((order.items as Line[]).map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes})),p.columnsAt("normal"),money))p.bold(Boolean(row.bold)).line(row.text).bold(false);
     p.divider();
     p.row("Subtotal",money(order.subtotal));
-    if(discounted)p.row(`Coupon${order.couponCode?` ${order.couponCode}`:""}`,"-"+money(order.discountAmount));
+    if(couponDiscount>0)p.row(`Coupon${order.couponCode?` ${order.couponCode}`:""}`,"-"+money(couponDiscount));
+    if(invoiceDiscount)p.row(`${invoiceDiscount.name} (${invoiceDiscount.percent}%)`,"-"+money(invoiceDiscount.amount));
     if(order.taxAmount>0)p.row(`Tax${order.taxRateSnapshot!==undefined?` (${order.taxRateSnapshot}%)`:""}`,money(order.taxAmount));
     if(order.deliveryChargeAmount>0)p.row("Delivery",money(order.deliveryChargeAmount));
     p.bold(true).size("tall").row("TOTAL",money(order.grandTotal)).size("normal").bold(false);

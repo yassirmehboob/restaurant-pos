@@ -30,6 +30,7 @@ import "./image-guidance.css";
 import "./image-preview.css";
 import "./product-variants.css";
 import "./weight-picker.css";
+import "./discounts.css";
 import "./category-price-reference.css";
 import "./form-performance.css";
 import "./kitchen.css";
@@ -40,6 +41,7 @@ import "./pos-review.css";
 import "./waiter.css";
 import "./sms-settings.css";
 import "./sms-history.css";
+import { NumberWheelGuard } from "@/components/number-wheel-guard";
 
 export const metadata: Metadata = {
   title: { default: "Restaurant POS", template: "%s | Restaurant POS" },
@@ -49,7 +51,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-GB">
-      <body>{children}</body>
+      <body><NumberWheelGuard/>{children}</body>
     </html>
   );
 }

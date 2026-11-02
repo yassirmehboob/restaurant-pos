@@ -10,6 +10,7 @@ type Frame =
   | { key: string; kind: "MENU"; seconds: number; title: string; items: FeedItem[]; page: string }
   | { key: string; kind: "DEALS"; seconds: number; title: string; deals: FeedDeal[]; page: string }
   | { key: string; kind: "ITEM"; seconds: number; title: string; message: string; item: FeedItem }
+  | { key: string; kind: "IMAGE"; seconds: number; title: string; image: string }
   | { key: string; kind: "VIDEO"; seconds: number; title: string; video: string; sound: boolean };
 
 const REFRESH_MS = 60_000, RELOAD_AFTER_MS = 6 * 3600_000, MAX_VIDEO_MS = 10 * 60_000;
@@ -31,6 +32,7 @@ export function framesFor(feed: SignageFeed): Frame[] {
     else if (slide.type === "MENU") for (const group of slide.groups) { const split = pages(group.items, size.items); split.forEach((items, index) => frames.push({ key: `${slide.id}:${group.title}:${index}`, kind: "MENU", seconds: slide.durationSeconds, title: group.title, items, page: split.length > 1 ? `${index + 1} / ${split.length}` : "" })); }
     else if (slide.type === "DEALS") { const split = pages(slide.deals, size.deals); split.forEach((deals, index) => frames.push({ key: `${slide.id}:${index}`, kind: "DEALS", seconds: slide.durationSeconds, title: slide.title, deals, page: split.length > 1 ? `${index + 1} / ${split.length}` : "" })); }
     else if (slide.type === "ITEM") frames.push({ key: slide.id, kind: "ITEM", seconds: slide.durationSeconds, title: slide.title, message: slide.message, item: slide.item });
+    else if (slide.type === "IMAGE") frames.push({ key: slide.id, kind: "IMAGE", seconds: slide.durationSeconds, title: slide.title, image: slide.image });
     else frames.push({ key: slide.id, kind: "VIDEO", seconds: slide.durationSeconds, title: slide.title, video: slide.video, sound: slide.sound });
   }
   return frames;
@@ -87,7 +89,7 @@ export function SignagePlayer({ feedUrl, mode, onUnauthorized }: { feedUrl: stri
   const theme = feed?.screen.theme.toLowerCase() ?? "dark", orientation = feed?.screen.orientation.toLowerCase() ?? "landscape";
 
   if (!feed) return <div className={`signage signage-${theme} is-${mode}`} onClick={fullscreen}><div className="signage-status">{error || (offline ? "Waiting for the restaurant server..." : "Loading...")}</div></div>;
-  const fullBleed = frame?.kind === "VIDEO" || frame?.kind === "BRAND";
+  const fullBleed = frame?.kind === "VIDEO" || frame?.kind === "IMAGE" || frame?.kind === "BRAND";
   return <div className={`signage signage-${theme} signage-${orientation} is-${mode}`} onClick={fullscreen}>
     {!fullBleed && <header className="signage-header">
       {feed.business.logo ? <Image className="signage-logo" src={feed.business.logo} alt="" width={160} height={160} unoptimized /> : null}
@@ -98,6 +100,7 @@ export function SignagePlayer({ feedUrl, mode, onUnauthorized }: { feedUrl: stri
     <main className="signage-stage" key={frame ? `${frame.key}:${index}` : "empty"}>
       {!frame ? <Brand logo={feed.business.logo} title={feed.business.name} message={mode === "preview" ? "Add slides to this screen in Setup > Display Screens." : ""} />
         : frame.kind === "BRAND" ? <Brand logo={feed.business.logo} title={frame.title} message={frame.message} />
+        : frame.kind === "IMAGE" ? <Poster src={frame.image} title={frame.title} />
         : frame.kind === "VIDEO" ? <Video src={frame.video} sound={frame.sound} onDone={advance} />
         : frame.kind === "ITEM" ? <Spotlight frame={frame} showPrices={feed.screen.showPrices} />
         : frame.kind === "MENU" ? <section className="signage-board"><h1>{frame.title}{frame.page && <small>{frame.page}</small>}</h1><div {...grid("signage-items", gridFor(frame.items.length, feed.screen.orientation, "items"))}>{frame.items.map(item => <Item key={item.id} item={item} showPrices={feed.screen.showPrices} />)}</div></section>
@@ -111,6 +114,10 @@ export function SignagePlayer({ feedUrl, mode, onUnauthorized }: { feedUrl: stri
 
 function Brand({ logo, title, message }: { logo: string | null; title: string; message: string }) {
   return <section className="signage-brand">{logo && <Image src={logo} alt="" width={480} height={480} unoptimized />}<h1>{title}</h1>{message && <p>{message}</p>}</section>;
+}
+// A picture slide fills the screen; the whole picture stays visible, over a blurred copy of itself.
+function Poster({ src, title }: { src: string; title: string }) {
+  return <section className="signage-poster" style={{ "--poster": `url("${src}")` } as React.CSSProperties}><Image src={src} alt={title} width={1920} height={1080} unoptimized />{title && <h1>{title}</h1>}</section>;
 }
 function Picture({ src, name }: { src: string | null; name: string }) {
   return src ? <Image src={src} alt="" width={640} height={480} unoptimized /> : <span className="signage-placeholder">{name.slice(0, 1).toUpperCase()}</span>;

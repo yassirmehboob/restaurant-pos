@@ -1,19 +1,30 @@
 "use client";
+import Image from "next/image";
 import { randomId } from "@/lib/random-id";
 import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Eye, Film, Link2, Monitor, Plus, Save, Trash2, Unplug, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Film, ImageIcon, Link2, Monitor, Plus, Save, Trash2, Unplug, Upload } from "lucide-react";
 import Swal from "sweetalert2";
 import { MasterHeader } from "@/components/master-shell";
 import { formatDateTime } from "@/lib/dates";
+import { MAX_IMAGE_BYTES } from "@/lib/image-upload";
 import { MAX_VIDEO_BYTES, SLIDE_LABELS, SLIDE_TYPES, type Slide, type SlideType } from "@/lib/signage";
-import { createScreen, deleteScreen, deleteVideo, disconnectScreen, pairScreen, saveScreen, type SignageData } from "@/app/(dashboard)/settings/signage/actions";
+import { createScreen, deleteScreen, deleteSignageImage, deleteVideo, disconnectScreen, pairScreen, saveScreen, uploadSignageImage, type SignageData } from "@/app/(dashboard)/settings/signage/actions";
 import "./signage-manager.css";
 
 type Screen = SignageData["screens"][number];
-const DEFAULT_SECONDS: Record<SlideType, number> = { BRAND: 8, MENU: 12, DEALS: 12, ITEM: 10, VIDEO: 30 };
-const newSlide = (type: SlideType): Slide => ({ id: randomId().replaceAll("-", "").slice(0, 24), type, durationSeconds: DEFAULT_SECONDS[type], title: "", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", videoId: "", sound: false });
+const DEFAULT_SECONDS: Record<SlideType, number> = { BRAND: 8, MENU: 12, DEALS: 12, ITEM: 10, IMAGE: 10, VIDEO: 30 };
+const newSlide = (type: SlideType): Slide => ({ id: randomId().replaceAll("-", "").slice(0, 24), type, durationSeconds: DEFAULT_SECONDS[type], title: "", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", imageId: "", videoId: "", sound: false });
 const megabytes = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MB`;
+const RATIOS = [[16, 9], [9, 16], [4, 3], [3, 4], [1, 1], [21, 9], [3, 2], [2, 3], [4, 5], [5, 4]];
+// Labels a picture or video with its pixel size and shape, e.g. "1920×1080 · 16:9 landscape".
+function shapeOf(width: number, height: number) {
+  if (!width || !height) return "";
+  const value = width / height, match = RATIOS.find(([w, h]) => Math.abs(value - w / h) < 0.02);
+  const shape = Math.abs(value - 1) < 0.02 ? "square" : value > 1 ? "landscape" : "portrait";
+  return `${width}×${height} · ${match ? `${match[0]}:${match[1]}` : `${value.toFixed(2)}:1`} ${shape}`;
+}
+const RECOMMENDED = <p className="signage-ratio-hint"><b>Best size:</b> landscape screens 1920×1080 (16:9) · portrait screens 1080×1920 (9:16). Other shapes show with borders.</p>;
 
 export function SignageManager({ data }: { data: SignageData }) {
   const router = useRouter(), [pending, start] = useTransition(), [open, setOpen] = useState<string | null>(data.screens[0]?.id ?? null), [notice, setNotice] = useState("");
@@ -46,7 +57,7 @@ export function SignageManager({ data }: { data: SignageData }) {
   });
 
   return <main className="master-page signage-manager">
-    <MasterHeader eyebrow="Setup" title="Display Screens" description="Show your menu, deals, logo and videos on TVs. Each screen has its own playlist." actions={<button type="button" className="signage-primary" disabled={pending} onClick={add}><Plus size={17} />Add screen</button>} />
+    <MasterHeader eyebrow="Setup" title="Display Screens" description="Show your menu, deals, logo, pictures and videos on TVs. Each screen has its own playlist." actions={<button type="button" className="signage-primary" disabled={pending} onClick={add}><Plus size={17} />Add screen</button>} />
     {notice && <p className="signage-notice" role="status">{notice}</p>}
     <section className="signage-howto"><Monitor size={22} /><p>On each TV, open <b>{origin || "your POS address"}/display</b> in Chrome or a kiosk browser (for example Fully Kiosk Browser on Android). Then choose <b>Connect display</b> below and enter the code the TV shows. Prices and items update on the TV automatically.</p></section>
     {data.screens.length === 0 && <section className="signage-empty"><Monitor size={36} /><h2>No screens yet</h2><p>Add a screen for each TV, for example &ldquo;Counter screen&rdquo; and &ldquo;Entrance screen&rdquo;.</p></section>}
@@ -65,6 +76,7 @@ export function SignageManager({ data }: { data: SignageData }) {
       </footer>
       {open === screen.id && <ScreenEditor key={JSON.stringify(screen)} screen={screen} data={data} onSaved={message => { setNotice(message); router.refresh(); }} />}
     </article>)}
+    <ImageLibrary images={data.images} onChanged={message => { setNotice(message); router.refresh(); }} />
     <VideoLibrary videos={data.videos} onChanged={message => { setNotice(message); router.refresh(); }} />
   </main>;
 }
@@ -92,7 +104,7 @@ function ScreenEditor({ screen, data, onSaved }: { screen: Screen; data: Signage
       <SlideFields slide={slide} data={data} onChange={change => patch(index, change)} />
     </li>)}</ol>
     {slides.length === 0 && <p className="signage-muted">This screen has no slides yet. Add one below.</p>}
-    <div className="signage-add"><span>Add a slide:</span>{SLIDE_TYPES.map(type => <button type="button" key={type} disabled={type === "VIDEO" && !data.videos.length} title={type === "VIDEO" && !data.videos.length ? "Upload a video first" : undefined} onClick={() => setSlides(current => [...current, newSlide(type)])}><Plus size={14} />{SLIDE_LABELS[type]}</button>)}</div>
+    <div className="signage-add"><span>Add a slide:</span>{SLIDE_TYPES.map(type => { const missing = type === "VIDEO" && !data.videos.length ? "Upload a video first" : type === "IMAGE" && !data.images.length ? "Upload a picture first" : undefined; return <button type="button" key={type} disabled={!!missing} title={missing} onClick={() => setSlides(current => [...current, newSlide(type)])}><Plus size={14} />{SLIDE_LABELS[type]}</button>; })}</div>
     {error && <p className="signage-error" role="alert">{error}</p>}
     <div className="signage-save"><span>{dirty ? "You have unsaved changes." : "Saved."}</span><button type="button" className="signage-primary" disabled={pending || !dirty} onClick={save}><Save size={16} />{pending ? "Saving..." : "Save screen"}</button></div>
   </section>;
@@ -122,14 +134,55 @@ function SlideFields({ slide, data, onChange }: { slide: Slide; data: SignageDat
     <label><span>Badge <small>Optional</small></span><input value={slide.title} maxLength={60} placeholder="e.g. Chef's special" onChange={event => onChange({ title: event.target.value })} /></label>
     <label className="wide"><span>Message <small>Defaults to the item description</small></span><input value={slide.message} maxLength={160} onChange={event => onChange({ message: event.target.value })} /></label>
   </div>;
+  if (slide.type === "IMAGE") return <div className="signage-fields">
+    <label><span>Picture</span><select value={slide.imageId} onChange={event => onChange({ imageId: event.target.value })}><option value="">Choose a picture</option>{data.images.map(image => <option key={image.id} value={image.id}>{image.title}</option>)}</select></label>
+    <label><span>Caption <small>Optional</small></span><input value={slide.title} maxLength={60} placeholder="e.g. New on the menu" onChange={event => onChange({ title: event.target.value })} /></label>
+    {slide.imageId && <Image className="signage-slide-thumb wide" src={`/api/signage/media/image/${slide.imageId}`} alt="" width={240} height={135} unoptimized />}
+  </div>;
   return <div className="signage-fields">
     <label><span>Video</span><select value={slide.videoId} onChange={event => onChange({ videoId: event.target.value })}><option value="">Choose a video</option>{data.videos.map(video => <option key={video.id} value={video.id}>{video.title}</option>)}</select></label>
     <label className="signage-check"><input type="checkbox" checked={slide.sound} onChange={event => onChange({ sound: event.target.checked })} /><span>Play sound <small>Needs a kiosk browser that allows sound</small></span></label>
   </div>;
 }
 
+function ImageLibrary({ images, onChanged }: { images: SignageData["images"]; onChanged: (message: string) => void }) {
+  const [shapes, setShapes] = useState<Record<string, string>>({}), [title, setTitle] = useState(""), [file, setFile] = useState<File | null>(null), [error, setError] = useState(""), [pending, start] = useTransition();
+  const input = useRef<HTMLInputElement>(null);
+  const upload = () => start(async () => {
+    if (!file) return;
+    if (file.size > MAX_IMAGE_BYTES) { setError("Pictures must be 5 MB or smaller."); return; }
+    setError("");
+    const form = new FormData(); form.set("image", file); form.set("title", title);
+    const outcome = await uploadSignageImage(form);
+    if (!outcome.ok) { setError(outcome.message); return; }
+    setTitle(""); setFile(null); if (input.current) input.current.value = "";
+    onChanged("Picture uploaded. Add a Picture slide to a screen to show it.");
+  });
+  const remove = (image: SignageData["images"][number]) => start(async () => {
+    const answer = await Swal.fire({ icon: "warning", titleText: `Delete ${image.title}?`, text: "It is removed from every screen that shows it.", showCancelButton: true, confirmButtonText: "Delete picture", confirmButtonColor: "#b42318", reverseButtons: true });
+    if (!answer.isConfirmed) return;
+    const outcome = await deleteSignageImage(image.id);
+    if (outcome.ok) onChanged(`${image.title} deleted.`); else setError(outcome.message);
+  });
+  return <section className="signage-videos">
+    <div className="signage-videos-head"><span className="signage-screen-icon"><ImageIcon size={20} /></span><div><h2>Pictures</h2><p>Posters, offers or photos as JPG, PNG or WebP, up to 5 MB each.</p></div></div>
+    {RECOMMENDED}
+    <div className="signage-upload">
+      <label><span>Title</span><input value={title} maxLength={80} placeholder="e.g. Weekend offer poster" onChange={event => setTitle(event.target.value)} /></label>
+      <label><span>Picture file</span><input ref={input} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { setFile(event.target.files?.[0] ?? null); setError(""); }} /></label>
+      <button type="button" className="signage-primary" disabled={!file || pending} onClick={upload}><Upload size={16} />{pending ? "Uploading..." : "Upload picture"}</button>
+    </div>
+    {error && <p className="signage-error" role="alert">{error}</p>}
+    {images.length ? <ul className="signage-video-list">{images.map(image => <li key={image.id}>
+      <Image src={`/api/signage/media/image/${image.id}`} alt="" width={200} height={113} unoptimized onLoad={event => { const { naturalWidth, naturalHeight } = event.currentTarget; setShapes(current => ({ ...current, [image.id]: shapeOf(naturalWidth, naturalHeight) })); }} />
+      <div><b>{image.title}</b>{shapes[image.id] && <span className="signage-ratio">{shapes[image.id]}</span>}<small>{megabytes(image.bytes)} · {formatDateTime(image.uploadedAt)}</small></div>
+      <button type="button" className="danger" disabled={pending} onClick={() => remove(image)}><Trash2 size={15} />Delete</button>
+    </li>)}</ul> : <p className="signage-muted">No pictures uploaded yet.</p>}
+  </section>;
+}
+
 function VideoLibrary({ videos, onChanged }: { videos: SignageData["videos"]; onChanged: (message: string) => void }) {
-  const [title, setTitle] = useState(""), [file, setFile] = useState<File | null>(null), [progress, setProgress] = useState<number | null>(null), [error, setError] = useState(""), [pending, start] = useTransition();
+  const [shapes, setShapes] = useState<Record<string, string>>({}), [title, setTitle] = useState(""), [file, setFile] = useState<File | null>(null), [progress, setProgress] = useState<number | null>(null), [error, setError] = useState(""), [pending, start] = useTransition();
   const input = useRef<HTMLInputElement>(null);
   const upload = async () => {
     if (!file) return;
@@ -161,6 +214,7 @@ function VideoLibrary({ videos, onChanged }: { videos: SignageData["videos"]; on
   });
   return <section className="signage-videos">
     <div className="signage-videos-head"><span className="signage-screen-icon"><Film size={20} /></span><div><h2>Videos</h2><p>Short MP4 or WebM clips up to 100 MB each. Videos play muted unless sound is allowed on the TV. They are not included in restaurant backups, so keep your original files.</p></div></div>
+    {RECOMMENDED}
     <div className="signage-upload">
       <label><span>Title</span><input value={title} maxLength={80} placeholder="e.g. Azadi offer advert" onChange={event => setTitle(event.target.value)} /></label>
       <label><span>Video file</span><input ref={input} type="file" accept="video/mp4,video/webm" onChange={event => { setFile(event.target.files?.[0] ?? null); setError(""); }} /></label>
@@ -169,8 +223,8 @@ function VideoLibrary({ videos, onChanged }: { videos: SignageData["videos"]; on
     {progress !== null && <div className="signage-progress-bar"><span style={{ width: `${progress}%` }} /></div>}
     {error && <p className="signage-error" role="alert">{error}</p>}
     {videos.length ? <ul className="signage-video-list">{videos.map(video => <li key={video.id}>
-      <video src={`/api/signage/media/video/${video.id}`} preload="metadata" muted controls playsInline />
-      <div><b>{video.title}</b><small>{megabytes(video.bytes)}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)}:${String(video.durationSeconds % 60).padStart(2, "0")}` : ""} · {formatDateTime(video.uploadedAt)}</small></div>
+      <video src={`/api/signage/media/video/${video.id}`} preload="metadata" muted controls playsInline onLoadedMetadata={event => { const { videoWidth, videoHeight } = event.currentTarget; setShapes(current => ({ ...current, [video.id]: shapeOf(videoWidth, videoHeight) })); }} />
+      <div><b>{video.title}</b>{shapes[video.id] && <span className="signage-ratio">{shapes[video.id]}</span>}<small>{megabytes(video.bytes)}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)}:${String(video.durationSeconds % 60).padStart(2, "0")}` : ""} · {formatDateTime(video.uploadedAt)}</small></div>
       <button type="button" className="danger" disabled={pending} onClick={() => remove(video)}><Trash2 size={15} />Delete</button>
     </li>)}</ul> : <p className="signage-muted">No videos uploaded yet.</p>}
   </section>;

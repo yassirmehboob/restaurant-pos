@@ -142,6 +142,31 @@ test("display screens: pairing, live feed, videos, revocation and isolation", { 
       assert.ok(!(await SignageScreen.findById(screenId).lean()).slides.some(slide => slide.type === "VIDEO"), "deleted videos leave the playlist");
     });
 
+    await t.test("pictures are checked, shown full screen on the TV and leave screens when deleted", async () => {
+      await signIn(owner);
+      const form = (bytes, type, name = "poster.png", title = "Weekend poster") => { const data = new FormData(); data.set("image", new File([bytes], name, { type })); data.set("title", title); return data; };
+      assert.equal((await actions.uploadSignageImage(form(Buffer.from("<html>not a picture</html>"), "image/png"))).ok, false, "contents must be a real picture");
+      const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), Buffer.alloc(500, 1)]);
+      const uploaded = await actions.uploadSignageImage(form(png, "image/png"));
+      assert.equal(uploaded.ok, true, uploaded.message);
+      const imageId = uploaded.id, data = await actions.loadSignage();
+      assert.deepEqual(data.images.map(image => [image.id, image.title, image.bytes]), [[imageId, "Weekend poster", png.length]]);
+      const slide = { id: "picture1", type: "IMAGE", durationSeconds: 10, title: "New on the menu", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", imageId: "", videoId: "", sound: false };
+      assert.equal((await actions.saveScreen(screenId, { name: "Counter", orientation: "LANDSCAPE", theme: "DARK", showPrices: true, footerText: "", slides: [slide] })).ok, false, "a picture slide needs a picture");
+      assert.equal((await actions.saveScreen(screenId, { name: "Counter", orientation: "LANDSCAPE", theme: "DARK", showPrices: true, footerText: "", slides: [{ ...slide, imageId }] })).ok, true);
+      assert.equal((await actions.loadSignage()).screens[0].slides[0].imageId, imageId, "the playlist reopens with its picture");
+      const feed = await (await feedOf(token)).json();
+      assert.deepEqual(feed.slides.map(row => [row.type, row.title, row.image]), [["IMAGE", "New on the menu", `/api/display/${token}/media/image/${imageId}`]]);
+      const media = await mediaGET(new Request("http://localhost"), { params: Promise.resolve({ token, kind: "image", id: imageId }) });
+      assert.equal(media.status, 200); assert.equal(media.headers.get("content-type"), "image/png");
+      await signIn(otherOwner);
+      assert.equal((await actions.deleteSignageImage(imageId)).ok, false, "another owner cannot delete it");
+      await signIn(owner);
+      assert.equal((await actions.deleteSignageImage(imageId)).ok, true);
+      assert.equal((await SignageScreen.findById(screenId).lean()).slides.length, 0, "deleted pictures leave the playlist");
+      assert.equal((await actions.loadSignage()).images.length, 0);
+    });
+
     await t.test("disconnecting or re-pairing revokes the old TV immediately", async () => {
       await signIn(owner);
       const replacement = await requestCode();

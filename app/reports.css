@@ -4,3 +4,31 @@
 @media(max-width:480px){.report-kpis,.daily-metrics,.sales-filters{grid-template-columns:1fr}.sales-search{grid-column:1}.sales-summary{display:grid;grid-template-columns:1fr 1fr}.sales-summary>div{min-width:0}}
 
 .dashboard-header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.dashboard-amount-toggle{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;background:white;color:#334155;font-size:12px;font-weight:700;cursor:pointer}.dashboard-amount-toggle:hover{background:#eff6ff;border-color:#93c5fd}.dashboard-amount-toggle:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.dashboard-amount{font-variant-numeric:tabular-nums}
+/* Larger item text in report tables so names and amounts are easy to read at the counter. */
+.report-table table{font-size:13px}
+.report-table th{font-size:11px}
+.report-table td{padding:10px 8px}
+.report-table td:first-child{font-weight:600}
+.profit-breakdown>article{font-size:14px}
+.profit-breakdown small{font-size:11px}
+.profit-equation article>span,.profit-equation article>small{font-size:11px}
+.profit-equation article>strong{font-size:20px}
+.sms-log-table.discount-report-table td{font-size:13px}
+.sms-log-table.discount-report-table th{font-size:11px}
+.sms-log-table.discount-report-table td small{font-size:11px}
+@media(max-width:1100px){.sms-log-table.discount-report-table td{font-size:14px}.sms-log-table.discount-report-table td::before{font-size:12px}}
+/* Product sales is the longest list: give it the full width, and keep amounts on one line. */
+.reports-page .report-grid>.report-table-card:first-child{grid-column:1/-1}
+.report-table td:not(:first-child),.report-table th:not(:first-child){white-space:nowrap}
+@media(max-width:760px){.report-table td:first-child{min-width:150px}}
+/* Sale History: compact header, larger table text. */
+.sales-page .master-header{margin-bottom:14px;padding-bottom:12px;align-items:center}
+.sales-page .master-header .eyebrow{margin-bottom:4px}
+.sales-page .master-header h1{margin-bottom:2px;font-size:30px}
+.sales-page .master-header>div>p:last-child{font-size:12px}
+.sales-row{padding:12px 14px;grid-template-columns:140px 180px 1fr 1fr 120px 130px;font-size:13px}
+.sales-row strong{font-size:14px}
+.sales-row small{font-size:12px}
+.sales-head{font-size:11px}
+@media(max-width:1200px){.sales-row{grid-template-columns:120px 160px 1fr 1fr 110px 120px}}
+@media(max-width:800px){.sales-row{grid-template-columns:1fr auto}}

@@ -94,6 +94,21 @@ test("SMS outbox is transactional, isolated and sends at most once even with con
    await Business.updateOne({_id:a._id},{$set:{"smsDeliveryMessages.outForDelivery.enabled":false}});const count=calls.length;await tick();assert.equal(calls.length,count);assert.equal((await SmsMessage.findOne({orderId:second._id})).status,"SKIPPED");
    const cancelled={...delivery,_id:new mongoose.Types.ObjectId()};await mongoose.connection.db.collection("orders").insertOne({...cancelled});await mongoose.connection.transaction(session=>queueDeliverySms(cancelled,"DELIVERY_PLACED",now,session));await mongoose.connection.db.collection("orders").updateOne({_id:cancelled._id},{$set:{status:"CANCELLED"}});await tick();assert.equal(calls.length,count);assert.equal((await SmsMessage.findOne({orderId:cancelled._id})).failureCode,"ORDER_UNAVAILABLE");
   });
+  await t.test("discount alerts go to each owner number without opt-out text, only while SMS is on",async()=>{
+   const { queueDiscountSms }=await import("../lib/discount-sms.ts");
+   await Business.updateOne({_id:b._id},{$set:{smsEnabled:true,smsPaymentReceiptEnabled:false,discountSmsNumbers:["03001112223","+923004445556"]}});
+   const discounted=order(b),values={amountBefore:2300,amountAfter:2070,cashier:"Cashier Ali",discount:{typeId:"x",name:"Discount",mode:"OPEN",percent:10,capAmount:null,amount:200,remarks:"Regular guest"}};
+   await mongoose.connection.transaction(session=>queueDiscountSms(discounted,values,session));
+   await mongoose.connection.transaction(session=>queueDiscountSms(discounted,values,session));
+   assert.equal(await SmsMessage.countDocuments({orderId:discounted._id}),2,"a repeat queue must not duplicate alerts");
+   const before=calls.length;await tick();const sent=calls.slice(before).map(row=>({auth:row.headers.Authorization,...JSON.parse(row.body)}));
+   assert.deepEqual(sent.map(row=>[row.to,row.includeOptOut,row.auth]).sort(),[["+923001112223",false,"Bearer token-b"],["+923004445556",false,"Bearer token-b"]]);
+   assert.match(sent[0].body,/Discount \(10%\) PKR 200\.00/);assert.match(sent[0].body,/Remarks: Regular guest/);
+   await Business.updateOne({_id:b._id},{$set:{smsEnabled:false}});
+   const off=order(b);await mongoose.connection.transaction(session=>queueDiscountSms(off,values,session));
+   assert.equal(await SmsMessage.countDocuments({orderId:off._id}),0);
+   await Business.updateOne({_id:b._id},{$set:{smsEnabled:true,smsPaymentReceiptEnabled:true,discountSmsNumbers:[]}});
+  });
   await t.test("actual API statuses are retained for success and failure responses without raw response secrets",async()=>{
    await Business.updateOne({_id:a._id},{$set:{smsEnabled:true,smsPaymentReceiptEnabled:true}});
    for(const [status,httpStatus,queueStatus]of [["queued",202,"ACCEPTED"],["invalid_subscription",401,"FAILED"],["provider_unavailable",503,"UNKNOWN"],[0,200,"ACCEPTED"],[false,200,"ACCEPTED"]]){

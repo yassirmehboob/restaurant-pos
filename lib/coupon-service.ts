@@ -7,6 +7,11 @@ import { Order } from "@/models/Order";
 import { activeSaleSession } from "@/lib/sale-sessions";
 import { dateISO } from "@/lib/dates";
 import { couponDescription, couponDiscount, couponProblem, normalizeCouponCode, type CouponBatchRules } from "@/lib/coupons";
+import { Business } from "@/models/Business";
+
+export const COUPONS_OFF_MESSAGE="Coupon codes are turned off in Discount settings.";
+// Owners can hide coupon entry at payment; existing coupons on an order are unaffected.
+export async function couponsAllowed(businessId:unknown,session?:ClientSession){const business=await Business.findOne({_id:businessId,isActive:true}).select("couponOnPayment").session(session??null).lean();return business?.couponOnPayment!==false}
 
 type Id = Types.ObjectId | string;
 type Batch = CouponBatchRules & { _id: Types.ObjectId; maxDiscount?: number | null; minOrderAmount?: number | null };

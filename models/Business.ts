@@ -20,8 +20,14 @@ const businessSchema = new Schema({
   kitchenTimingUpdatedBy:{type:Schema.Types.ObjectId,ref:"User"},
   kitchenTimingEnabled:{type:Boolean,default:false}, kitchenPreparingDelaySeconds:{type:Number,default:60,min:1,max:3600}, kitchenReadyDelayMinutes:{type:Number,default:25,min:1,max:1440},
   saleTaxRate:{type:Number,min:0,max:100},paymentTaxRates:{CASH:{type:Number,min:0,max:100},CARD:{type:Number,min:0,max:100},BANK:{type:Number,min:0,max:100},OTHER:{type:Number,min:0,max:100}},
+  // Invoice discounts the cashier can give at payment; numbers in discountSmsNumbers get an SMS for each one.
+  invoiceDiscountEnabled:{type:Boolean,default:false},
+  discountTypes:{type:[new Schema({name:{type:String,required:true,trim:true},mode:{type:String,enum:["OPEN","FIXED"],default:"OPEN"},percent:{type:Number,min:0,max:100,default:null},capAmount:{type:Number,min:0,default:null},remarksRequired:{type:Boolean,default:false}})],default:[]},
+  discountSmsNumbers:{type:[String],default:[]},
+  // Shows the coupon code box when receiving payment; off hides it and the server refuses codes.
+  couponOnPayment:{type:Boolean,default:true},
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
-if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")))deleteModel("Business");
+if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);

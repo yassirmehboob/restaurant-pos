@@ -1,8 +1,8 @@
 import { Schema,model,models } from "mongoose";
 
 const slideSchema=new Schema({
- id:{type:String,required:true},type:{type:String,enum:["BRAND","MENU","DEALS","ITEM","VIDEO"],required:true},durationSeconds:{type:Number,required:true},
- title:String,message:String,categoryId:String,productIds:{type:[String],default:[]},dealIds:{type:[String],default:[]},productId:String,videoId:String,sound:{type:Boolean,default:false},
+ id:{type:String,required:true},type:{type:String,enum:["BRAND","MENU","DEALS","ITEM","IMAGE","VIDEO"],required:true},durationSeconds:{type:Number,required:true},
+ title:String,message:String,categoryId:String,productIds:{type:[String],default:[]},dealIds:{type:[String],default:[]},productId:String,imageId:String,videoId:String,sound:{type:Boolean,default:false},
 },{_id:false});
 
 // A display screen and its playlist. Only a hash of the paired device's access key is stored.

@@ -6,8 +6,9 @@ import { requireUser } from "@/data/auth";
 import { connectToDatabase } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { allowAuthAttempt } from "@/lib/auth/two-factor";
-import { MAX_SCREENS_PER_BUSINESS, ORIENTATIONS, screenSettingsSchema } from "@/lib/signage";
-import { hashSecret, listVideos, newDisplayToken, videoBucket } from "@/lib/signage-server";
+import { MAX_IMAGES_PER_BUSINESS, MAX_SCREENS_PER_BUSINESS, ORIENTATIONS, screenSettingsSchema } from "@/lib/signage";
+import { hashSecret, imageBucket, listImages, listVideos, newDisplayToken, videoBucket } from "@/lib/signage-server";
+import { uploadImage } from "@/lib/uploads";
 import { Category } from "@/models/Category";
 import { Deal } from "@/models/Deal";
 import { Product } from "@/models/Product";
@@ -25,9 +26,10 @@ async function owner() {
 
 export async function loadSignage() {
   const user = await owner();
-  const [screens, videos, categories, products, deals] = await Promise.all([
+  const [screens, videos, images, categories, products, deals] = await Promise.all([
     SignageScreen.find({ businessId: user.businessId }).sort({ createdAt: 1 }).lean(),
     listVideos(user.businessId),
+    listImages(user.businessId),
     Category.find({ businessId: user.businessId, isActive: true }).sort({ sortOrder: 1, name: 1 }).select("name").lean(),
     Product.find({ businessId: user.businessId, isActive: true }).sort({ sortOrder: 1, name: 1 }).select("name categoryId").lean(),
     Deal.find({ businessId: user.businessId, isActive: true }).sort({ sortOrder: 1, name: 1 }).select("name").lean(),
@@ -39,9 +41,10 @@ export async function loadSignage() {
       pairedAt: screen.pairedAt ? new Date(screen.pairedAt).toISOString() : null, lastSeenAt: screen.lastSeenAt ? new Date(screen.lastSeenAt).toISOString() : null,
       // Decided once on the server so the page renders the same status during hydration.
       online: !!screen.tokenHash && !!screen.lastSeenAt && Date.now() - new Date(screen.lastSeenAt).getTime() < 3 * 60_000,
-      slides: (screen.slides ?? []).map((slide: Record<string, unknown>) => ({ id: String(slide.id), type: slide.type as never, durationSeconds: Number(slide.durationSeconds), title: String(slide.title ?? ""), message: String(slide.message ?? ""), categoryId: String(slide.categoryId ?? ""), productIds: (slide.productIds as string[] | undefined) ?? [], dealIds: (slide.dealIds as string[] | undefined) ?? [], productId: String(slide.productId ?? ""), videoId: String(slide.videoId ?? ""), sound: !!slide.sound })),
+      slides: (screen.slides ?? []).map((slide: Record<string, unknown>) => ({ id: String(slide.id), type: slide.type as never, durationSeconds: Number(slide.durationSeconds), title: String(slide.title ?? ""), message: String(slide.message ?? ""), categoryId: String(slide.categoryId ?? ""), productIds: (slide.productIds as string[] | undefined) ?? [], dealIds: (slide.dealIds as string[] | undefined) ?? [], productId: String(slide.productId ?? ""), imageId: String(slide.imageId ?? ""), videoId: String(slide.videoId ?? ""), sound: !!slide.sound })),
     })),
     videos,
+    images,
     categories: categories.map(row => ({ id: String(row._id), name: String(row.name) })),
     products: products.map(row => ({ id: String(row._id), name: String(row.name), categoryId: String(row.categoryId) })),
     deals: deals.map(row => ({ id: String(row._id), name: String(row.name) })),
@@ -55,7 +58,7 @@ export async function createScreen(name: string, orientation: string) {
     const user = await owner();
     const clean = z.string().trim().min(1, "Enter a screen name.").max(40).parse(name), layout = z.enum(ORIENTATIONS).parse(orientation);
     if (await SignageScreen.countDocuments({ businessId: user.businessId }) >= MAX_SCREENS_PER_BUSINESS) throw new Error(`Up to ${MAX_SCREENS_PER_BUSINESS} display screens can be added.`);
-    const slide = (type: string, durationSeconds: number) => ({ id: new mongoose.Types.ObjectId().toString(), type, durationSeconds, title: "", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", videoId: "", sound: false });
+    const slide = (type: string, durationSeconds: number) => ({ id: new mongoose.Types.ObjectId().toString(), type, durationSeconds, title: "", message: "", categoryId: "", productIds: [], dealIds: [], productId: "", imageId: "", videoId: "", sound: false });
     const screen = await SignageScreen.create({ businessId: user.businessId, name: clean, orientation: layout, slides: [slide("BRAND", 8), slide("MENU", 12), slide("DEALS", 12)] });
     await writeAuditLog({ businessId: user.businessId, userId: user.id, userName: user.fullName, action: "CREATE_DISPLAY_SCREEN", entityType: "SignageScreen", entityId: String(screen._id), description: `Added display screen ${clean}` });
     revalidatePath("/settings/signage");
@@ -129,4 +132,33 @@ export async function deleteVideo(videoId: string) {
     revalidatePath("/settings/signage");
     return { ok: true as const };
   } catch (error) { return { ok: false as const, message: message(error, "Could not delete the video.") }; }
+}
+
+export async function uploadSignageImage(data: FormData) {
+  try {
+    const user = await owner();
+    const file = data.get("image");
+    if (!(file instanceof File) || !file.size) throw new Error("Choose a picture.");
+    if ((await listImages(user.businessId)).length >= MAX_IMAGES_PER_BUSINESS) throw new Error(`Delete an old picture first. Up to ${MAX_IMAGES_PER_BUSINESS} pictures can be stored.`);
+    const title = String(data.get("title") ?? "").trim().slice(0, 80) || file.name.replace(/.[^.]+$/, "").slice(0, 80) || "Untitled picture";
+    const url = await uploadImage(file, `business-${user.businessId}/signage`, title);
+    const imageId = String(url).split("/").pop()!;
+    await writeAuditLog({ businessId: user.businessId, userId: user.id, userName: user.fullName, action: "UPLOAD_DISPLAY_IMAGE", entityType: "SignageImage", entityId: imageId, description: `Uploaded display picture ${title} (${(file.size / 1048576).toFixed(1)} MB)` });
+    revalidatePath("/settings/signage");
+    return { ok: true as const, id: imageId };
+  } catch (error) { return { ok: false as const, message: message(error, "Could not upload the picture.") }; }
+}
+
+export async function deleteSignageImage(imageId: string) {
+  try {
+    const user = await owner(); id.parse(imageId);
+    const store = imageBucket(), objectId = new mongoose.Types.ObjectId(imageId);
+    const [file] = await store.find({ _id: objectId, "metadata.businessId": user.businessId, "metadata.kind": "signage" }).limit(1).toArray();
+    if (!file) throw new Error("Picture not found.");
+    await store.delete(objectId);
+    await SignageScreen.updateMany({ businessId: user.businessId }, { $pull: { slides: { type: "IMAGE", imageId } } });
+    await writeAuditLog({ businessId: user.businessId, userId: user.id, userName: user.fullName, action: "DELETE_DISPLAY_IMAGE", entityType: "SignageImage", entityId: imageId, description: `Deleted display picture ${file.metadata?.title ?? file.filename}` });
+    revalidatePath("/settings/signage");
+    return { ok: true as const };
+  } catch (error) { return { ok: false as const, message: message(error, "Could not delete the picture.") }; }
 }

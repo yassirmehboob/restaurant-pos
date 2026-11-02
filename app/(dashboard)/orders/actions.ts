@@ -34,10 +34,13 @@ import { notifyWaiterOrder } from "@/lib/waiter-push.mjs";
 import { reviseWaiterRequest,claimWaiterRequest } from "@/lib/waiter-requests";
 import { queuePaymentSms } from "@/lib/payment-sms";
 import { queueDeliverySms } from "@/lib/delivery-sms";
-import { autoIssueCoupons,claimCoupon,releaseOrderCoupon,resolveCoupon } from "@/lib/coupon-service";
+import { autoIssueCoupons,claimCoupon,couponsAllowed,COUPONS_OFF_MESSAGE,releaseOrderCoupon,resolveCoupon } from "@/lib/coupon-service";
 import { activeSaleSession } from "@/lib/sale-sessions";
 import { dateISO } from "@/lib/dates";
 import { allowAuthAttempt } from "@/lib/auth/two-factor";
+import { businessDiscountTypes,resolveInvoiceDiscount,type AppliedDiscount,type DiscountInput } from "@/lib/invoice-discount";
+import { queueDiscountSms } from "@/lib/discount-sms";
+import type { ClientSession } from "mongoose";
 
 export async function changeDeliveryStatus(id:string,next:"OUT_FOR_DELIVERY"|"DELIVERED",confirmed=false){
  try{
@@ -70,7 +73,7 @@ export async function saveWaiterRequest(raw:unknown){
   const parsed=waiterRequestSchema.parse(raw);
   // Identity and payment defaults are controlled by the server.
   const data=await context({...parsed.input,waiterId:"",customerId:"",paymentMethod:"CASH",deliveryCharge:0});
-  const values={input:data.input,tableName:data.table?.name,displayLines:data.items.map(item=>({name:item.nameSnapshot,quantity:item.quantity,note:item.notes??""})),summary:{subtotal:data.totals.subtotal,taxAmount:data.totals.taxAmount,grandTotal:data.totals.grandTotal}};
+  const values={input:data.input,tableName:data.table?.name,displayLines:data.items.map(item=>({name:item.nameSnapshot,quantity:item.quantity,note:item.notes??"",unitPrice:item.unitPrice})),summary:{subtotal:data.totals.subtotal,taxAmount:data.totals.taxAmount,grandTotal:data.totals.grandTotal}};
   const row=parsed.id?await reviseWaiterRequest({id:parsed.id,businessId:user.businessId,userId:user.id,revision:parsed.revision},values):await WaiterRequest.findOneAndUpdate({businessId:user.businessId,userId:user.id,submissionKey:parsed.submissionKey},{$setOnInsert:{...values,businessId:user.businessId,userId:user.id,waiterName:user.fullName,submissionKey:parsed.submissionKey}},{upsert:true,returnDocument:"after",setDefaultsOnInsert:true});
   if(!row)throw new Error("This order was confirmed or changed. Refresh before editing.");
   revalidatePath("/waiter");revalidatePath("/waiter-requests");
@@ -142,11 +145,17 @@ export async function cancelOrder(id:string,reason:string){const user=await requ
 const takeawayPaymentSchema=paymentInputSchema;
 // Repeated wrong codes are throttled so staff accounts cannot be used to guess coupons.
 async function checkCouponAttempts(userId:string){if(!(await allowAuthAttempt("coupon-lookup:"+userId,40)))throw new Error("Too many coupon checks. Wait five minutes and try again.")}
-export async function previewTakeawayPayment(input:OrderInput){
+async function discountTypesFor(businessId:string,session?:ClientSession){const business=await Business.findOne({_id:businessId,isActive:true}).select("invoiceDiscountEnabled discountTypes").session(session??null).lean();return business?businessDiscountTypes(business):[]}
+export async function previewTakeawayPayment(input:OrderInput,discountInput?:DiscountInput){
  try{await requirePermission("pos");await requirePermission("payments");const data=await context(input);if(data.input.orderType!=="TAKEAWAY")throw new Error("Invalid takeaway order.");
  let priced={items:data.items,totals:data.totals},coupon:{code:string;description:string;discountAmount:number}|null=null,couponError="";
- if(data.input.couponCode){try{await checkCouponAttempts(data.user.id);const saleDate=(await activeSaleSession(data.user))?.saleDate??dateISO();const resolved=await resolveCoupon({businessId:data.user.businessId,code:data.input.couponCode,customerId:data.customer?._id,saleDate,subtotal:data.totals.subtotal});priced=data.build(resolved.discountAmount);coupon={code:String(resolved.coupon.code),description:resolved.description,discountAmount:priced.totals.discountAmount}}catch(error){couponError=error instanceof Error&&error.constructor===Error?error.message:"Could not check this coupon."}}
- return{ok:true as const,subtotal:priced.totals.subtotal,discountAmount:priced.totals.discountAmount,taxAmount:priced.totals.taxAmount,grandTotal:priced.totals.grandTotal,dueAmount:priced.totals.grandTotal,taxRate:data.taxRateSnapshot,method:data.taxPaymentMethod,coupon,couponError,prefillDue:await paymentPrefillDue(data.user.businessId)}}catch(error){return{ok:false as const,message:saleSessionError(error)}}
+ const couponOnPayment=await couponsAllowed(data.user.businessId);
+ if(data.input.couponCode&&!couponOnPayment)couponError=COUPONS_OFF_MESSAGE;
+ else if(data.input.couponCode){try{await checkCouponAttempts(data.user.id);const saleDate=(await activeSaleSession(data.user))?.saleDate??dateISO();const resolved=await resolveCoupon({businessId:data.user.businessId,code:data.input.couponCode,customerId:data.customer?._id,saleDate,subtotal:data.totals.subtotal});priced=data.build(resolved.discountAmount);coupon={code:String(resolved.coupon.code),description:resolved.description,discountAmount:priced.totals.discountAmount}}catch(error){couponError=error instanceof Error&&error.constructor===Error?error.message:"Could not check this coupon."}}
+ // The invoice discount stacks on the coupon: a percentage of the pre-tax amount left after it.
+ const discountTypes=await discountTypesFor(data.user.businessId);let invoiceDiscount:AppliedDiscount|null=null,discountError="";
+ if(discountInput)try{const couponDiscount=priced.totals.discountAmount;invoiceDiscount=resolveInvoiceDiscount(discountTypes,discountInput,Math.max(0,priced.totals.subtotal-couponDiscount),{requireRemarks:false});priced=data.build(couponDiscount+invoiceDiscount.amount)}catch(error){discountError=error instanceof Error?error.message:"Could not apply this discount."}
+ return{ok:true as const,couponOnPayment,discountTypes,invoiceDiscount,discountError,subtotal:priced.totals.subtotal,discountAmount:priced.totals.discountAmount,taxAmount:priced.totals.taxAmount,grandTotal:priced.totals.grandTotal,dueAmount:priced.totals.grandTotal,taxRate:data.taxRateSnapshot,method:data.taxPaymentMethod,coupon,couponError,prefillDue:await paymentPrefillDue(data.user.businessId)}}catch(error){return{ok:false as const,message:saleSessionError(error)}}
 }
 export async function completeTakeawayPayment(input:OrderInput,paymentInput:z.infer<typeof takeawayPaymentSchema>){
  try{
@@ -156,23 +165,28 @@ export async function completeTakeawayPayment(input:OrderInput,paymentInput:z.in
  const result=await withSaleSession(data.user,async(sale,transaction)=>{
  if(await Payment.exists({businessId:data.user.businessId,idempotencyKey:payment.idempotencyKey}).session(transaction))throw new Error("This payment was already submitted. Check orders before retrying.");
  // The coupon is checked against the open sale's business date inside the payment transaction.
+ if(data.input.couponCode&&!await couponsAllowed(data.user.businessId,transaction))throw new Error(COUPONS_OFF_MESSAGE);
  const coupon=data.input.couponCode?await resolveCoupon({businessId:data.user.businessId,code:data.input.couponCode,customerId:data.customer?._id,saleDate:sale.saleDate,subtotal:data.totals.subtotal,session:transaction}):null;
- const priced=coupon?data.build(coupon.discountAmount):{items:data.items,totals:data.totals},total=priced.totals.grandTotal;
+ const couponPriced=coupon?data.build(coupon.discountAmount):{items:data.items,totals:data.totals},couponDiscount=couponPriced.totals.discountAmount;
+ const discount=payment.discount?resolveInvoiceDiscount(await discountTypesFor(data.user.businessId,transaction),payment.discount,Math.max(0,couponPriced.totals.subtotal-couponDiscount)):null;
+ const priced=discount?data.build(couponDiscount+discount.amount):couponPriced,total=priced.totals.grandTotal;
  if(Math.abs(total-payment.expectedGrandTotal)>0.005)throw new Error("The invoice changed. Refresh totals before receiving payment.");
  if(total<=0||tendered<total||(payment.method!=="CASH"&&tendered!==total))throw new Error("Check the payment amount.");
  const change=payment.method==="CASH"?Math.round((tendered-total)*100)/100:0;
  const counter=await OrderCounter.findOneAndUpdate({businessId:data.user.businessId},{$inc:{sequence:1}},{returnDocument:"after",upsert:true,setDefaultsOnInsert:true,session:transaction});
  const now=new Date();
- const [created]=await Order.create([{businessId:data.user.businessId,orderNumber:"ORD-"+String(counter.sequence).padStart(6,"0"),orderType:"TAKEAWAY",status:"SENT_TO_KITCHEN",kitchenSentAt:now,kitchenStatusSource:"MANUAL",saleSessionId:sale._id,saleDate:sale.saleDate,counterNameSnapshot:sale.counterName,collectedInSessionId:sale._id,customerId:data.customer?._id,customerSnapshot:data.customer?{name:data.customer.name,phone:data.customer.phone,address:data.customer.address,area:data.customer.area}:undefined,items:priced.items,subtotal:priced.totals.subtotal,discountAmount:priced.totals.discountAmount,...(coupon?{discountType:coupon.batch.discountType,discountValue:coupon.batch.discountValue,couponId:coupon.coupon._id,couponCode:coupon.coupon.code,couponSnapshot:coupon.snapshot}:{}),taxAmount:priced.totals.taxAmount,grandTotal:total,paidAmount:total,dueAmount:0,paymentStatus:"PAID",paymentTaxRatesSnapshot:data.paymentTaxRatesSnapshot,taxRateSnapshot:data.taxRateSnapshot,taxPaymentMethod:payment.method,createdByUserId:data.user.id,cashierNameSnapshot:data.user.fullName,openedAt:now}],{session:transaction});
- if(coupon)await claimCoupon(coupon.coupon._id,{orderId:created._id,orderNumber:created.orderNumber,status:"REDEEMED",discountAmount:priced.totals.discountAmount},transaction);
+ const [created]=await Order.create([{businessId:data.user.businessId,orderNumber:"ORD-"+String(counter.sequence).padStart(6,"0"),orderType:"TAKEAWAY",status:"SENT_TO_KITCHEN",kitchenSentAt:now,kitchenStatusSource:"MANUAL",saleSessionId:sale._id,saleDate:sale.saleDate,counterNameSnapshot:sale.counterName,collectedInSessionId:sale._id,customerId:data.customer?._id,customerSnapshot:data.customer?{name:data.customer.name,phone:data.customer.phone,address:data.customer.address,area:data.customer.area}:undefined,items:priced.items,subtotal:priced.totals.subtotal,discountAmount:priced.totals.discountAmount,...(coupon?{discountType:coupon.batch.discountType,discountValue:coupon.batch.discountValue,couponId:coupon.coupon._id,couponCode:coupon.coupon.code,couponSnapshot:coupon.snapshot}:{}),...(discount?{invoiceDiscount:{...discount,amountBefore:couponPriced.totals.grandTotal,appliedByUserId:data.user.id,appliedByName:data.user.fullName}}:{}),taxAmount:priced.totals.taxAmount,grandTotal:total,paidAmount:total,dueAmount:0,paymentStatus:"PAID",paymentTaxRatesSnapshot:data.paymentTaxRatesSnapshot,taxRateSnapshot:data.taxRateSnapshot,taxPaymentMethod:payment.method,createdByUserId:data.user.id,cashierNameSnapshot:data.user.fullName,openedAt:now}],{session:transaction});
+ if(coupon)await claimCoupon(coupon.coupon._id,{orderId:created._id,orderNumber:created.orderNumber,status:"REDEEMED",discountAmount:couponDiscount},transaction);
  await Payment.create([{businessId:data.user.businessId,saleSessionId:sale._id,saleDate:sale.saleDate,counterNameSnapshot:sale.counterName,orderId:created._id,idempotencyKey:payment.idempotencyKey,amount:total,tenderedAmount:tendered,changeAmount:change,method:payment.method,reference:payment.reference||undefined,notes:payment.notes||undefined,receivedByUserId:data.user.id,receivedByNameSnapshot:data.user.fullName,paidAt:now}],{session:transaction});
  const issued=await autoIssueCoupons(created.toObject(),sale.saleDate,transaction);
- await queuePaymentSms(created.toObject(),now,transaction);return{order:created,total,change,issued,couponCode:coupon?String(coupon.coupon.code):null};
+ await queuePaymentSms(created.toObject(),now,transaction);
+ if(discount)await queueDiscountSms(created.toObject(),{amountBefore:couponPriced.totals.grandTotal,discount,amountAfter:total,cashier:data.user.fullName},transaction);
+ return{order:created,total,change,issued,discount,couponCode:coupon?String(coupon.coupon.code):null};
  });
  const{order,total,change,issued}=result;
- await writeAuditLog({businessId:data.user.businessId,userId:data.user.id,userName:data.user.fullName,action:"COMPLETE_PAYMENT",entityType:"Order",entityId:String(order._id),description:"Created paid takeaway order "+order.orderNumber+" and sent to kitchen",metadata:{amount:total,method:payment.method,change,saleDate:order.saleDate,sentToKitchen:true,...(result.couponCode?{couponCode:result.couponCode,discountAmount:order.discountAmount}:{}),...(issued.length?{issuedCoupons:issued.map(item=>item.code)}:{})}});
+ await writeAuditLog({businessId:data.user.businessId,userId:data.user.id,userName:data.user.fullName,action:"COMPLETE_PAYMENT",entityType:"Order",entityId:String(order._id),description:"Created paid takeaway order "+order.orderNumber+" and sent to kitchen",metadata:{amount:total,method:payment.method,change,saleDate:order.saleDate,sentToKitchen:true,...(result.couponCode?{couponCode:result.couponCode,discountAmount:order.discountAmount}:{}),...(issued.length?{issuedCoupons:issued.map(item=>item.code)}:{}),...(result.discount?{invoiceDiscount:{name:result.discount.name,percent:result.discount.percent,amount:result.discount.amount,remarks:result.discount.remarks}}:{})}});
  const business=await Business.findOne({_id:data.user.businessId,isActive:true}).lean();
- for(const path of ["/orders","/kitchen","/sale-sessions","/sales","/reports","/reports/profit-loss","/dashboard","/coupons"])revalidatePath(path);
+ for(const path of ["/orders","/kitchen","/sale-sessions","/sales","/reports","/reports/profit-loss","/dashboard","/coupons","/reports/discounts"])revalidatePath(path);
  return{ok:true as const,orderId:String(order._id),orderNumber:order.orderNumber,amount:total,change,issuedCoupons:issued.map(item=>({code:item.code,batchName:item.batchName,description:item.description})),autoPrint:Boolean(can(data.user,"printing")&&business?.autoPrintCustomerOnPayment&&business.customerPrintingEnabled!==false),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
  }catch(error){return{ok:false as const,message:saleSessionError(error)}}
 }

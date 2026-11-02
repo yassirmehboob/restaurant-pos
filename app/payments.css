@@ -14,3 +14,10 @@
 .payment-tax-summary>.payment-discount,.payment-tax-summary>.payment-discount strong{color:#1e7a5f}
 .payment-issued-coupons{display:grid;gap:6px;margin-top:14px;padding:10px;border:1px dashed #86c5a8;border-radius:10px;background:#f2fbf6;text-align:left;font-size:13px}.payment-issued-coupons p{display:grid;margin:0}.payment-issued-coupons strong{font-size:18px;letter-spacing:1px;font-variant-numeric:tabular-nums}.payment-issued-coupons span{color:#4b6b5d;font-size:12px}
 .order-coupon{margin:0 0 12px}
+/* Receive payment: one column on phones, two side by side on wider screens so the dialog fits without scrolling. */
+.payment-columns,.payment-column{display:grid;gap:12px;align-content:start;min-width:0}
+.payment-column>*{margin:0!important}
+.payment-dialog .payment-tax-summary{gap:6px;padding:10px 12px}
+.payment-dialog .payment-tax-summary button{min-height:36px}
+.payment-dialog .payment-coupon{padding:10px 12px}
+@media(min-width:760px){.payment-dialog{width:min(880px,calc(100% - 32px))}.payment-dialog form{padding:18px 22px;gap:12px}.payment-columns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}.payment-dialog footer{bottom:-18px;padding-top:4px}}

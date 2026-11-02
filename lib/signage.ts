@@ -2,12 +2,13 @@ import { z } from "zod";
 
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 export const MAX_VIDEOS_PER_BUSINESS = 30;
+export const MAX_IMAGES_PER_BUSINESS = 50;
 export const MAX_SCREENS_PER_BUSINESS = 10;
 export const MAX_SLIDES = 40;
 export const VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
-export const SLIDE_TYPES = ["BRAND", "MENU", "DEALS", "ITEM", "VIDEO"] as const;
+export const SLIDE_TYPES = ["BRAND", "MENU", "DEALS", "ITEM", "IMAGE", "VIDEO"] as const;
 export type SlideType = (typeof SLIDE_TYPES)[number];
-export const SLIDE_LABELS: Record<SlideType, string> = { BRAND: "Logo & message", MENU: "Menu items", DEALS: "Deals", ITEM: "Featured item", VIDEO: "Video" };
+export const SLIDE_LABELS: Record<SlideType, string> = { BRAND: "Logo & message", MENU: "Menu items", DEALS: "Deals", ITEM: "Featured item", IMAGE: "Picture", VIDEO: "Video" };
 export const THEMES = ["DARK", "LIGHT", "WARM"] as const;
 export const ORIENTATIONS = ["LANDSCAPE", "PORTRAIT"] as const;
 // Items and deals shown per page; longer lists continue on further pages of the same slide.
@@ -25,10 +26,12 @@ export const slideSchema = z.object({
   productIds: z.array(objectId).max(40).default([]),
   dealIds: z.array(objectId).max(20).default([]),
   productId: z.union([z.literal(""), objectId]).default(""),
+  imageId: z.union([z.literal(""), objectId]).default(""),
   videoId: z.union([z.literal(""), objectId]).default(""),
   sound: z.boolean().default(false),
 }).superRefine((slide, ctx) => {
   if (slide.type === "ITEM" && !slide.productId) ctx.addIssue({ code: "custom", path: ["productId"], message: "Choose the featured item." });
+  if (slide.type === "IMAGE" && !slide.imageId) ctx.addIssue({ code: "custom", path: ["imageId"], message: "Choose a picture for each picture slide." });
   if (slide.type === "VIDEO" && !slide.videoId) ctx.addIssue({ code: "custom", path: ["videoId"], message: "Choose a video for each video slide." });
 });
 export type Slide = z.infer<typeof slideSchema>;

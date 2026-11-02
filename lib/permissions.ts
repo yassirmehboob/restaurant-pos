@@ -12,6 +12,7 @@ export function routePrivilege(path:string):Privilege|"owner"|undefined{
  if(path==="/settings/backups"||path.startsWith("/settings/backups/"))return "backups";
  if(path==="/settings/sms"||path.startsWith("/settings/sms/"))return "owner";
  if(path.startsWith("/settings/sms-messaging"))return "owner";
+ if(path.startsWith("/settings/discounts"))return "owner";
  if(path.startsWith("/settings/kitchen"))return "owner";
  if(path.startsWith("/users"))return "owner";
  if(path.startsWith("/coupons"))return "owner";

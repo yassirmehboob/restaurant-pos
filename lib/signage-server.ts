@@ -23,6 +23,7 @@ function bucket(name: string) {
   return new mongoose.mongo.GridFSBucket(db, { bucketName: name });
 }
 export const videoBucket = () => bucket(VIDEO_BUCKET);
+export const imageBucket = () => bucket("images");
 
 // Resolves a paired display. lastSeenAt is written at most once a minute per screen.
 export async function screenByToken(token: string) {
@@ -41,6 +42,13 @@ export async function listVideos(businessId: string) {
   return files.map(file => ({ id: String(file._id), title: String(file.metadata?.title ?? file.filename), bytes: file.length, durationSeconds: Number(file.metadata?.durationSeconds) || null, uploadedAt: file.uploadDate.toISOString() }));
 }
 
+// Pictures uploaded for display screens, kept apart from product, deal and logo images.
+export async function listImages(businessId: string) {
+  await connectToDatabase();
+  const files = await imageBucket().find({ "metadata.businessId": businessId, "metadata.kind": "signage" }).sort({ uploadDate: -1 }).toArray();
+  return files.map(file => ({ id: String(file._id), title: String(file.metadata?.title ?? file.filename), bytes: file.length, uploadedAt: file.uploadDate.toISOString() }));
+}
+
 type Line = { name: string; quantity: number };
 export type FeedItem = { id: string; name: string; description: string; image: string | null; price: number; prices: { name: string; price: number }[] };
 export type FeedDeal = { id: string; name: string; description: string; image: string | null; price: number; items: Line[] };
@@ -49,28 +57,30 @@ export type FeedSlide =
   | { id: string; type: "MENU"; durationSeconds: number; title: string; groups: { title: string; items: FeedItem[] }[] }
   | { id: string; type: "DEALS"; durationSeconds: number; title: string; deals: FeedDeal[] }
   | { id: string; type: "ITEM"; durationSeconds: number; title: string; message: string; item: FeedItem }
+  | { id: string; type: "IMAGE"; durationSeconds: number; title: string; image: string }
   | { id: string; type: "VIDEO"; durationSeconds: number; title: string; video: string; sound: boolean };
 export type SignageFeed = { screen: { name: string; orientation: "LANDSCAPE" | "PORTRAIT"; theme: "DARK" | "LIGHT" | "WARM"; showPrices: boolean; footerText: string }; business: { name: string; logo: string | null }; slides: FeedSlide[]; version: string };
 
 type ScreenDoc = { businessId: unknown; name: string; orientation?: string; theme?: string; showPrices?: boolean; footerText?: string | null; slides?: Slide[] };
 
-// Turns a playlist into display data. Inactive or unavailable items, deals and missing videos are left out.
+// Turns a playlist into display data. Inactive or unavailable items, deals and missing pictures or videos are left out.
 export async function buildFeed(screen: ScreenDoc, mediaUrl: (kind: "image" | "video", id: string) => string): Promise<SignageFeed> {
   const businessId = String(screen.businessId), slides = (screen.slides ?? []) as Slide[];
   await connectToDatabase();
-  const [business, categories, products, deals, videos] = await Promise.all([
+  const [business, categories, products, deals, videos, pictures] = await Promise.all([
     Business.findOne({ _id: businessId, isActive: true }).select("name logoUrl").lean(),
     Category.find({ businessId, isActive: true }).sort({ sortOrder: 1, name: 1 }).lean(),
     Product.find({ businessId, isActive: true, isAvailable: true }).sort({ sortOrder: 1, name: 1 }).lean(),
     Deal.find({ businessId, isActive: true, isAvailable: true }).sort({ sortOrder: 1, name: 1 }).lean(),
     slides.some(slide => slide.type === "VIDEO") ? listVideos(businessId) : Promise.resolve([]),
+    slides.some(slide => slide.type === "IMAGE") ? listImages(businessId) : Promise.resolve([]),
   ]);
   if (!business) throw new Error("Restaurant unavailable.");
   const image = (url?: string | null) => { const id = /^\/api\/images\/([a-f\d]{24})$/i.exec(url ?? "")?.[1]; return id ? mediaUrl("image", id) : null; };
   const productMap = new Map(products.map(row => [String(row._id), row])), allProducts = new Map((await Product.find({ businessId }).select("name").lean()).map(row => [String(row._id), String(row.name)]));
   const item = (row: (typeof products)[number]): FeedItem => ({ id: String(row._id), name: String(row.name), description: String(row.description ?? ""), image: image(row.imageUrl), price: Number(row.salePrice), prices: (row.variants ?? []).map((variant: { name: string; salePrice: number }) => ({ name: variant.name, price: Number(variant.salePrice) })) });
   const deal = (row: (typeof deals)[number]): FeedDeal => ({ id: String(row._id), name: String(row.name), description: String(row.description ?? ""), image: image(row.imageUrl), price: Number(row.salePrice), items: row.items.map((line: { productId: unknown; quantity: number }) => ({ name: allProducts.get(String(line.productId)) ?? "Item", quantity: line.quantity })) });
-  const videoIds = new Set(videos.map(video => video.id));
+  const videoIds = new Set(videos.map(video => video.id)), imageIds = new Set(pictures.map(picture => picture.id));
   const resolved: FeedSlide[] = [];
   for (const slide of slides) {
     const base = { id: slide.id, durationSeconds: slide.durationSeconds };
@@ -87,7 +97,8 @@ export async function buildFeed(screen: ScreenDoc, mediaUrl: (kind: "image" | "v
     } else if (slide.type === "ITEM") {
       const row = productMap.get(slide.productId);
       if (row) resolved.push({ ...base, type: "ITEM", title: slide.title ?? "", message: slide.message ?? "", item: item(row) });
-    } else if (slide.type === "VIDEO" && videoIds.has(slide.videoId)) resolved.push({ ...base, type: "VIDEO", title: slide.title ?? "", video: mediaUrl("video", slide.videoId), sound: !!slide.sound });
+    } else if (slide.type === "IMAGE" && imageIds.has(slide.imageId)) resolved.push({ ...base, type: "IMAGE", title: slide.title ?? "", image: mediaUrl("image", slide.imageId) });
+    else if (slide.type === "VIDEO" && videoIds.has(slide.videoId)) resolved.push({ ...base, type: "VIDEO", title: slide.title ?? "", video: mediaUrl("video", slide.videoId), sound: !!slide.sound });
   }
   const feed = { screen: { name: String(screen.name), orientation: screen.orientation === "PORTRAIT" ? "PORTRAIT" as const : "LANDSCAPE" as const, theme: (["LIGHT", "WARM"].includes(String(screen.theme)) ? screen.theme : "DARK") as SignageFeed["screen"]["theme"], showPrices: screen.showPrices !== false, footerText: String(screen.footerText ?? "") }, business: { name: String(business.name), logo: image(business.logoUrl) }, slides: resolved };
   return { ...feed, version: createHash("sha1").update(JSON.stringify(feed)).digest("hex") };
