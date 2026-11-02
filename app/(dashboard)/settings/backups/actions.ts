@@ -11,12 +11,13 @@ import { User } from "@/models/User";
 import { Business } from "@/models/Business";
 import { allowAuthAttempt, consumeSecondFactor } from "@/lib/auth/two-factor";
 import { writeAuditLog } from "@/lib/audit";
+import { COUNTER_ROLES } from "@/lib/roles";
 import { env } from "@/lib/env";
 import { decryptDriveToken, driveOAuthConfig, DRIVE_UPLOAD_MODES, revokeDriveToken } from "@/lib/backup-drive.mjs";
 
 async function backupUser(ownerOnly = false) {
   const user = await requirePermission("backups");
-  if (!["OWNER", "ADMIN", "CASHIER"].includes(user.role) || (ownerOnly && user.role !== "OWNER")) throw new Error(ownerOnly ? "Only the owner can configure backups or prepare a restore." : "You cannot access backups.");
+  if (!COUNTER_ROLES.includes(user.role) || (ownerOnly && user.role !== "OWNER")) throw new Error(ownerOnly ? "Only the owner can configure backups or prepare a restore." : "You cannot access backups.");
   await connectToDatabase();
   return user;
 }

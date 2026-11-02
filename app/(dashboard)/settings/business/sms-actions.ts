@@ -21,7 +21,7 @@ export async function saveSmsSettings(raw:unknown){
   const result=await Business.updateOne({_id:user.businessId,isActive:true},{$set:update,...(values.removeToken?{$unset:{smsTokenEncrypted:1}}:{})});
   if(!result.matchedCount)return{ok:false as const,message:"Business not found."};
   await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"UPDATE_SMS_SETTINGS",entityType:"Business",entityId:user.businessId,description:"Updated SMS subscription and payment message settings",metadata:{enabled:values.enabled,paymentReceiptEnabled:values.paymentReceiptEnabled,includeOptOut:values.includeOptOut,tokenChanged:Boolean(values.token||values.removeToken)}});
-  revalidatePath("/settings/business");
+  revalidatePath("/settings/sms-messaging");
   return{ok:true as const,message:"SMS settings saved.",hasToken:!values.removeToken&&(hasToken||!!values.token)};
  }catch{return{ok:false as const,message:"Could not save SMS settings. Please try again."}}
 }
@@ -33,6 +33,6 @@ export async function saveDeliverySmsSettings(raw:unknown){
   const result=await Business.updateOne({_id:user.businessId,isActive:true},{$set:{smsDeliveryMessages:parsed.data}});
   if(!result.matchedCount)return{ok:false as const,message:"Business not found."};
   await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"UPDATE_DELIVERY_SMS_SETTINGS",entityType:"Business",entityId:user.businessId,description:"Updated delivery SMS templates and sending preferences",metadata:{placedEnabled:parsed.data.placed.enabled,outForDeliveryEnabled:parsed.data.outForDelivery.enabled,deliveredEnabled:parsed.data.delivered.enabled}});
-  revalidatePath("/settings/business");return{ok:true as const,message:"Delivery SMS settings saved."};
+  revalidatePath("/settings/sms-messaging");return{ok:true as const,message:"Delivery SMS settings saved."};
  }catch{return{ok:false as const,message:"Could not save delivery SMS settings. Please try again."}}
 }

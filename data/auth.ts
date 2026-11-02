@@ -18,3 +18,5 @@ export async function requireUser(){const user=await getCurrentUser();if(!user)r
 export async function requirePermission(permission:Privilege){const user=await requireUser();if(!can(user,permission))throw new Error("You do not have permission to perform this action.");return user;}
 export async function requireOwner(){const user=await requireUser();if(user.role!=="OWNER")throw new Error("Only the restaurant owner can manage user accounts.");return user;}
 export async function requirePagePermission(permission:Privilege){const user=await requireUser();if(!can(user,permission))redirect("/access-denied");return user;}
+/** The main owner is the business's first owner account (created at registration); other owners cannot change it. */
+export async function findMainOwnerId(businessId:string){const main=await User.findOne({businessId,role:"OWNER"}).sort({_id:1}).select("_id").lean();return main?String(main._id):null;}

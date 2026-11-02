@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/data/auth";
 import { can } from "@/lib/permissions";
+import { COUNTER_ROLES } from "@/lib/roles";
 import { connectToDatabase } from "@/lib/db";
 import { Business } from "@/models/Business";
 import { WaiterRequest } from "@/models/WaiterRequest";
@@ -7,7 +8,7 @@ import { WaiterRequest } from "@/models/WaiterRequest";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return Response.json({ message: "Please sign in again." }, { status: 401 });
-  if (!["OWNER", "ADMIN", "CASHIER"].includes(user.role) || !can(user, "pos")) return Response.json({ message: "Access denied." }, { status: 403 });
+  if (!COUNTER_ROLES.includes(user.role) || !can(user, "pos")) return Response.json({ message: "Access denied." }, { status: 403 });
   await connectToDatabase();
   const [requests, business] = await Promise.all([
     WaiterRequest.find({ businessId: user.businessId, status: "PENDING" }).select("revision waiterName tableName displayLines summary createdAt").sort({ createdAt: 1 }).lean(),

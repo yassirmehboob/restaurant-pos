@@ -8,6 +8,7 @@ import { SaleSession } from "@/models/SaleSession";
 import { MasterHeader } from "@/components/master-shell";
 import { StartSaleForm, CloseSaleForm } from "@/components/sale-session-forms";
 import type { SessionTotals } from "@/lib/sale-session-totals";
+import { SHIFT_MANAGER_ROLES } from "@/lib/roles";
 
 const money = (amount: number) => `Rs ${amount.toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const timestamp = formatDateTime;
@@ -21,7 +22,7 @@ function Totals({ opening, totals }: { opening: number; totals: SessionTotals })
 
 export default async function SaleSessionsPage() {
   const user = await requirePagePermission("sale_sessions"), active = await activeSaleSession(user);
-  const manager = ["OWNER", "ADMIN"].includes(user.role);
+  const manager = SHIFT_MANAGER_ROLES.includes(user.role);
   const history = await SaleSession.find({ businessId: user.businessId, ...(!manager ? { userId: user.id } : {}), status: "CLOSED" }).sort({ closedAt: -1 }).limit(100).lean();
   const openCounters=await SaleSession.find({businessId:user.businessId,status:"OPEN"}).sort({openedAt:1}).lean();
   const totals = active ? await sessionTotals(user.businessId, String(active._id), active.openingBalance) : null;

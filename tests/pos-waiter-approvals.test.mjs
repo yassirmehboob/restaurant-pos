@@ -19,11 +19,11 @@ const { GET } = await import("../app/api/pos/waiter-requests/route.ts");
 
 test("POS approval queue requires cashier access and exposes only pending requests from the signed-in business", async () => {
   assert.equal((await GET()).status, 401);
-  for (const user of [{ role: "WAITER", privileges: ["pos"] }, { role: "KITCHEN", privileges: ["pos"] }, { role: "CASHIER", privileges: [] }]) {
+  for (const user of [{ role: "WAITER", privileges: ["pos"] }, { role: "KITCHEN", privileges: ["pos"] }, { role: "CHEF", privileges: ["pos"] }, { role: "CASHIER", privileges: [] }]) {
     state.user = user;
     assert.equal((await GET()).status, 403);
   }
-  for (const role of ["OWNER", "ADMIN", "CASHIER"]) {
+  for (const role of ["OWNER", "ADMIN", "MANAGER", "SUPERVISOR", "CASHIER"]) {
     state.user = { role, businessId: "business-a" };
     state.rows = [{ _id: "request-a", revision: 4, waiterName: "Ali", tableName: "Table 4", createdAt: new Date("2026-10-29T10:00:00Z"), displayLines: [{ name: "Soup", quantity: 2, note: "No salt", unitCost: 100 }], summary: { subtotal: 500, taxAmount: 50, grandTotal: 550 }, userId: "private-user", input: { internal: true } }];
     const response = await GET();

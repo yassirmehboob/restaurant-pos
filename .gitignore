@@ -27,6 +27,7 @@
 *.rpos.json
 /backups/
 /restaurant-pos-backups/
+/uploads/
 /.restaurant-pos-runtime.json
 /update.ps1
 

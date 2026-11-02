@@ -4,13 +4,14 @@ export const PRIVILEGES=[
 ] as const;
 export type Privilege=(typeof PRIVILEGES)[number][0];
 export const PRIVILEGE_KEYS=PRIVILEGES.map(([key])=>key);
-export const ROLE_PRIVILEGES:Record<UserRole,readonly Privilege[]>={OWNER:PRIVILEGE_KEYS,ADMIN:PRIVILEGE_KEYS,CASHIER:["pos","orders","edit_orders","payments","printing","sale_sessions","sales","customers","backups"],WAITER:["waiter"],KITCHEN:["kitchen"]};
+export const ROLE_PRIVILEGES:Record<UserRole,readonly Privilege[]>={OWNER:PRIVILEGE_KEYS,ADMIN:PRIVILEGE_KEYS,MANAGER:PRIVILEGE_KEYS.filter(key=>key!=="waiter"&&key!=="settings"),SUPERVISOR:["pos","orders","edit_orders","cancel_orders","kitchen","payments","printing","sale_sessions","sales","reports","customers","tables","backups"],CASHIER:["pos","orders","edit_orders","payments","printing","sale_sessions","sales","customers","backups"],WAITER:["waiter"],KITCHEN:["kitchen"],CHEF:["kitchen","printing"]};
 export type PermissionUser={role:UserRole;privileges?:readonly string[]};
 export function can(user:PermissionUser,permission:Privilege){return user.role==="WAITER"?permission==="waiter":user.role==="OWNER"||(user.privileges??ROLE_PRIVILEGES[user.role]??[]).includes(permission)}
 export function permissionsFor(user:PermissionUser):Privilege[]{return PRIVILEGE_KEYS.filter(key=>can(user,key))}
 export function routePrivilege(path:string):Privilege|"owner"|undefined{
  if(path==="/settings/backups"||path.startsWith("/settings/backups/"))return "backups";
  if(path==="/settings/sms"||path.startsWith("/settings/sms/"))return "owner";
+ if(path.startsWith("/settings/sms-messaging"))return "owner";
  if(path.startsWith("/settings/kitchen"))return "owner";
  if(path.startsWith("/users"))return "owner";
  if(path.startsWith("/coupons"))return "owner";

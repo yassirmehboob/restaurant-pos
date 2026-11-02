@@ -20,6 +20,7 @@ import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 import { paymentInputSchema } from "@/lib/validation/payment";
 import { can } from "@/lib/permissions";
+import { COUNTER_ROLES } from "@/lib/roles";
 import { z } from "zod";
 import { OrderCounter } from "@/models/OrderCounter";
 import { Product } from "@/models/Product";
@@ -79,7 +80,7 @@ export async function saveWaiterRequest(raw:unknown){
 export async function confirmWaiterRequest(id:string,revision:number){
  try{
   const user=await requirePermission("pos");
-  if(!["OWNER","ADMIN","CASHIER"].includes(user.role))throw new Error("Only a cashier, admin or owner can confirm waiter orders.");
+  if(!COUNTER_ROLES.includes(user.role))throw new Error("Only a cashier, supervisor, manager, admin or owner can confirm waiter orders.");
   orderIdSchema.parse(id);z.number().int().min(0).parse(revision);
   await connectToDatabase();
   const request=await WaiterRequest.findOne({_id:id,businessId:user.businessId,status:"PENDING",revision}).lean();

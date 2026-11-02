@@ -35,7 +35,7 @@ test("server actions allow cashier backups but deny cashier/admin schedule chang
     const restore = await requestBackupRestore({ backupId: "1234567890123-aaaaaaaaaaaaaaaa.rpos", confirmation: "RESTORE", password: "anything", code: "" });
     assert.equal(restore.ok, false); assert.match(restore.message, /Only the owner/);
   }
-  for (const role of ["WAITER", "KITCHEN"]) {
+  for (const role of ["WAITER", "KITCHEN", "CHEF"]) {
     state.user = { id: String(new mongoose.Types.ObjectId()), businessId: String(new mongoose.Types.ObjectId()), role, privileges: ["backups"] };
     assert.equal((await requestManualBackup()).ok, false);
   }

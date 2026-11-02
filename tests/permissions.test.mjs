@@ -24,5 +24,22 @@ test("owner profile accepts identity changes and strips access-control fields",(
 test("account validation normalizes usernames and rejects invalid access and account fields",()=>{
  assert.equal(userAccountSchema.parse(valid).username,"test.cashier");
  assert.equal(userAccountSchema.parse({...valid,password:""}).password,"");
- for(const update of [{role:"OWNER"},{privileges:["unknown"]},{phone:"no-mobile"},{password:"short"},{username:"bad name"},{isActive:"yes"}])assert.equal(userAccountSchema.safeParse({...valid,...update}).success,false);
+ assert.equal(userAccountSchema.safeParse({...valid,role:"OWNER"}).success,true);
+ for(const update of [{role:"SUPERADMIN"},{privileges:["unknown"]},{phone:"no-mobile"},{password:"short"},{username:"bad name"},{isActive:"yes"}])assert.equal(userAccountSchema.safeParse({...valid,...update}).success,false);
+});
+test("manager, supervisor and chef roles get their default access and can be saved",()=>{
+ assert.equal(can({role:"MANAGER"},"profit"),true);assert.equal(can({role:"MANAGER"},"settings"),false);assert.equal(can({role:"MANAGER"},"waiter"),false);
+ assert.equal(can({role:"SUPERVISOR"},"cancel_orders"),true);assert.equal(can({role:"SUPERVISOR"},"profit"),false);assert.equal(can({role:"SUPERVISOR"},"staff"),false);
+ assert.equal(can({role:"CHEF"},"kitchen"),true);assert.equal(can({role:"CHEF"},"payments"),false);
+ for(const role of ["MANAGER","SUPERVISOR","CHEF"])assert.equal(userAccountSchema.safeParse({...valid,role}).success,true);
+ assert.equal(userAccountSchema.safeParse({...valid,role:"CLEANER"}).success,false);
+});
+test("staff CNIC, address and remarks are optional and CNIC is normalized",async()=>{
+ const{staffSchema}=await import("../lib/validation/master-data.ts");
+ const base={fullName:"Ali Khan",role:"CLEANER",phone:"",cnic:"",address:"",remarks:""};
+ assert.equal(staffSchema.safeParse(base).success,true);
+ assert.equal(staffSchema.parse({...base,cnic:"4210112345671"}).cnic,"42101-1234567-1");
+ assert.equal(staffSchema.parse({...base,cnic:"42101-1234567-1"}).cnic,"42101-1234567-1");
+ assert.equal(staffSchema.safeParse({...base,cnic:"12345"}).success,false);
+ assert.equal("code" in staffSchema.parse({...base,code:"W-01"}),false);
 });

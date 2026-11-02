@@ -3,7 +3,7 @@ import { useCan } from "@/components/permission-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowRight, Check, CheckCheck, ChefHat, ClipboardList, Clock3, Flame, Maximize2, Minimize2, RefreshCw, Search, StickyNote, UserRound, Utensils, X } from "lucide-react";
+import { ArrowRight, Check, CheckCheck, ChefHat, ClipboardList, Clock3, Flame, LogOut, Maximize2, Minimize2, RefreshCw, Search, StickyNote, UserRound, Utensils, X } from "lucide-react";
 import { changeOrderStatus } from "@/app/(dashboard)/orders/actions";
 import { formatElapsedTime } from "@/lib/elapsed-time";
 import { formatTime } from "@/lib/dates";
@@ -70,7 +70,7 @@ export function KitchenBoard({ orders, initialNow }: { orders: KitchenOrder[]; t
       <div className="kitchen-header-actions"><span className="kitchen-live"><i/>{orders.length} active orders</span>
         <button type="button" onClick={() => startRefresh(() => { setNow(Date.now()); router.refresh(); })} disabled={refreshing} aria-label="Refresh kitchen orders"><RefreshCw size={17} className={refreshing ? "kitchen-spin" : ""}/><span>Refresh</span></button>
         <button type="button" onClick={() => void toggleFullscreen()} aria-label={fullscreen ? "Exit full screen" : "Enter full screen"} title={fullscreen ? "Exit full screen" : "Full screen"}>{fullscreen ? <Minimize2 size={18}/> : <Maximize2 size={18}/>}</button>
-        {can("orders") && <Link href="/orders" aria-label="Placed Orders"><ClipboardList size={17}/><span>Placed Orders</span></Link>}
+        <Link href="/dashboard" aria-label="Exit kitchen display"><LogOut size={17}/><span>Exit</span></Link>
       </div>
     </header>
     {error && <div className="kitchen-error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError("")}><X size={18}/></button></div>}
