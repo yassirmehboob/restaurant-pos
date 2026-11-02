@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check, ChefHat, RefreshCw, UtensilsCrossed, X } from "lucide-react";
 import { confirmWaiterRequest } from "@/app/(dashboard)/orders/actions";
+import { printPlacedOrder } from "@/lib/printers";
 import { formatTime } from "@/lib/dates";
 import "./pos-waiter-approvals.css";
 
@@ -75,7 +76,8 @@ export function PosWaiterApprovals() {
       const result = await confirmWaiterRequest(reviewed.id, reviewed.revision);
       if (!result.ok) { setNotice(result.message); await refresh(); return; }
       generation.current++;
-      setNotice(`${reviewed.tableName}: order approved and sent to the kitchen.`);
+      const failures = await printPlacedOrder(result);
+      setNotice(`${reviewed.tableName}: order approved and sent to the kitchen.${failures.map(failure => ` ${failure.title}: ${failure.text}`).join("")}`);
       const remaining = latest.current.requests.filter(request => request.id !== reviewed.id);
       latest.current = { ...latest.current, requests: remaining };
       setData(latest.current);

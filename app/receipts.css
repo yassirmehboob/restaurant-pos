@@ -4,3 +4,12 @@
 
 .receipt footer .receipt-ready-time{margin-top:12px;padding-top:10px;border-top:1px dashed #111;font-weight:700;break-inside:avoid}
 .receipt-coupons{display:grid;gap:6px;margin:10px 0 0;padding:8px;border:1px dashed #111;text-align:center}.receipt-coupons>p{margin:0;font-weight:700}.receipt-coupons>div{display:grid;gap:1px}.receipt-coupons b{font-size:1.35em;letter-spacing:2px;font-variant-numeric:tabular-nums}.receipt-coupons small{font-size:.85em}
+
+/* Font style and size from Printing settings; the base size follows the paper width. */
+.receipt-page .receipt{font-size:calc(var(--receipt-base,11px) * var(--receipt-font-scale,1) * var(--receipt-size-scale,1))}
+.receipt-page.paper-58{--receipt-base:10px}
+.receipt-page.font-compact{--receipt-font-scale:.8}
+.receipt-page.font-bold .receipt{font-weight:700}
+.receipt-page.size-tall{--receipt-size-scale:1.25}
+.receipt-page.size-large{--receipt-size-scale:1.5}
+.receipt-page .receipt{font-family:var(--receipt-family,"Courier New",monospace)}

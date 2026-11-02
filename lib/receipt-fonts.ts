@@ -1,0 +1,18 @@
+// Thermal printers only carry their built-in fonts. Any other family is drawn on the counter PC and
+// printed as an image (QZ Tray), or used directly by the browser print pages.
+export const RECEIPT_FAMILIES=["PRINTER","ARIAL","TAHOMA","VERDANA","SEGOE","CALIBRI","TIMES","COURIER","CONSOLAS"] as const;
+export type ReceiptFamily=(typeof RECEIPT_FAMILIES)[number];
+
+export const FAMILY_FONTS:Record<ReceiptFamily,{label:string;css:string}>={
+  PRINTER:{label:"Printer font (fastest)",css:`"Courier New",Courier,monospace`},
+  ARIAL:{label:"Arial",css:`Arial,"Helvetica Neue",Helvetica,sans-serif`},
+  TAHOMA:{label:"Tahoma",css:`Tahoma,Verdana,sans-serif`},
+  VERDANA:{label:"Verdana",css:`Verdana,Tahoma,sans-serif`},
+  SEGOE:{label:"Segoe UI",css:`"Segoe UI",system-ui,sans-serif`},
+  CALIBRI:{label:"Calibri",css:`Calibri,Carlito,sans-serif`},
+  TIMES:{label:"Times New Roman",css:`"Times New Roman",Times,serif`},
+  COURIER:{label:"Courier New",css:`"Courier New",Courier,monospace`},
+  CONSOLAS:{label:"Consolas",css:`Consolas,"Lucida Console",monospace`},
+};
+
+export const receiptFamily=(value:unknown):ReceiptFamily=>RECEIPT_FAMILIES.includes(value as ReceiptFamily)?value as ReceiptFamily:"PRINTER";

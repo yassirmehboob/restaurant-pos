@@ -49,3 +49,20 @@ test("received rows name the payment method and list split payments per method",
     { label: "Received - Bank", amount: 50 },
   ]);
 });
+
+test("kitchen tickets use the same table, with only Qty when prices are hidden", () => {
+  const kitchen = [{ name: "Family Deal", unitPrice: 2499, quantity: 1, components: ["2x Zinger Burger", "1x Fries"], notes: "No ice" }, { name: "Garlic Naan", unitPrice: 60, quantity: 4 }];
+  const rows = receiptItemRows(kitchen, 42, money, { prices: false });
+  assert.deepEqual(rows.map(row => row.text), [
+    "#  Item                                Qty",
+    "1  Family Deal                           1",
+    "   > 2x Zinger Burger",
+    "   > 1x Fries",
+    "   Note: No ice",
+    "2  Garlic Naan                           4",
+  ]);
+  assert.deepEqual(rows.map(row => row.kind), ["head", "item", "detail", "detail", "note", "item"]);
+  assert.ok(receiptItemRows(kitchen, 30, money, { prices: false }).every(row => row.text.length <= 30));
+  // With prices on, the kitchen table matches the customer receipt line for line.
+  assert.equal(receiptItemRows(kitchen, 42, money)[1].text, receiptItemRows([{ name: "Family Deal", unitPrice: 2499, quantity: 1 }], 42, money)[1].text);
+});

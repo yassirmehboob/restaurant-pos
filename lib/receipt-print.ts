@@ -1,23 +1,25 @@
 import "server-only";
-import { formatDate,formatDateTime } from "@/lib/dates";
-import { EscPos,columnsFor,type PaperWidth } from "@/lib/escpos";
 import type { PrinterTarget } from "@/lib/printer-target";
+import type { PaperWidth } from "@/lib/escpos";
+import type { ReceiptFamily } from "@/lib/receipt-fonts";
+import { familyFor,paperWidth,renderReceipt,type PrintPart,type ReceiptBusiness,type ReceiptExtras,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
 import { readyTimeMessage } from "@/lib/preparation-time";
 import { receiptPreparationMinutes } from "@/lib/receipt-preparation";
-import { receiptItemRows,receivedRows } from "@/lib/receipt-lines";
 import { orderCashierName } from "@/lib/order-cashier";
 import { Business } from "@/models/Business";
 import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 
-export type ReceiptKind="customer"|"kitchen";
-// "logo" marks where the client inserts the logo image; QZ Tray rasterises it between the command parts.
-export type PrintPart={type:"command";base64:string}|{type:"logo";url:string};
-export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;parts:PrintPart[]};
-type Line={lineId:string;quantity:number;nameSnapshot:string;unitPrice:number;lineTotal:number;notes?:string;dealItemsSnapshot?:{name:string;quantity:number}[]};
+export type { PrintPart,ReceiptKind };
+export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
 
-const money=(value:number)=>(value??0).toLocaleString("en-PK",{minimumFractionDigits:2,maximumFractionDigits:2});
 const target=(business:Record<string,unknown>,role:ReceiptKind):PrinterTarget=>({connection:business[`${role}PrinterConnection`]==="LAN"?"LAN":"USB",name:String(business[`${role}PrinterName`]??""),host:String(business[`${role}PrinterHost`]??""),port:Number(business[`${role}PrinterPort`]??9100)||9100});
+
+async function customerExtras(businessId:string,order:{_id:unknown}&Parameters<typeof orderCashierName>[0]&Parameters<typeof receiptPreparationMinutes>[1],business:{showOrderReadyTime?:boolean|null}):Promise<ReceiptExtras>{
+  const[payments,cashier]=await Promise.all([Payment.find({orderId:order._id,businessId}).select("method amount tenderedAmount changeAmount").sort({paidAt:1}).lean(),orderCashierName(order)]);
+  const readyMessage=readyTimeMessage(Boolean(business.showOrderReadyTime),business.showOrderReadyTime?await receiptPreparationMinutes(businessId,order):null);
+  return{payments,cashier,readyMessage};
+}
 
 export async function buildPrintJob(businessId:string,orderId:string,kind:ReceiptKind):Promise<PrintJob|{error:string}>{
   if(!/^[a-f\d]{24}$/i.test(orderId))return{error:"Order not found."};
@@ -25,68 +27,12 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
   if(!order||!business)return{error:"Order not found."};
   if(kind==="customer"&&business.customerPrintingEnabled===false)return{error:"Customer printing is turned off in Printing settings."};
   if(kind==="kitchen"&&business.kitchenPrintingEnabled===false)return{error:"Kitchen printing is turned off in Printing settings."};
-  const paper:PaperWidth=business.receiptPaperWidth==="58"?"58":"80",p=new EscPos(columnsFor(paper)),parts:PrintPart[]=[];
-  const meta=(label:string,value:string)=>p.row(label,value);
-  if(kind==="customer"){
-    const[payments,cashier]=await Promise.all([Payment.find({orderId,businessId}).select("method amount tenderedAmount changeAmount").sort({paidAt:1}).lean(),orderCashierName(order)]);
-    const readyMessage=readyTimeMessage(Boolean(business.showOrderReadyTime),business.showOrderReadyTime?await receiptPreparationMinutes(businessId,order):null);
-    p.align("center");
-    if(business.showLogoOnCustomerReceipt!==false&&business.logoUrl){parts.push({type:"command",base64:p.toBase64()},{type:"logo",url:business.logoUrl});p.reset()}
-    p.align("center").bold(true).size("tall").text(business.name).size("normal").bold(false);
-    for(const line of [business.receiptHeader,business.address,business.phone,business.taxNumber?`Tax #: ${business.taxNumber}`:""])if(line)p.text(line);
-    p.align("left").divider();
-    meta("Receipt",order.orderNumber);meta("Date",formatDateTime(order.createdAt));
-    if(order.saleDate)meta("Sale date",formatDate(order.saleDate));
-    meta("Type",order.orderType.replace("_","-"));
-    if(order.tableNameSnapshot)meta("Table",order.tableNameSnapshot);
-    if(cashier)meta("Cashier",cashier);
-    if(order.waiterNameSnapshot)meta("Waiter",order.waiterNameSnapshot);
-    if(order.customerSnapshot?.name)meta("Customer",order.customerSnapshot.name);
-    if(order.orderType==="DELIVERY"){p.text("Address: "+(order.customerSnapshot?.address||"Not provided"));p.text("Area: "+(order.customerSnapshot?.area||"Not provided"))}
-    meta("Payment",order.paymentStatus);
-    p.divider();
-    // Lines print before tax and discount so they add up to the subtotal; tax and coupon follow it.
-    const invoiceDiscount=order.invoiceDiscount?.amount>0?order.invoiceDiscount:null,couponDiscount=(order.discountAmount??0)-(invoiceDiscount?.amount??0);
-    for(const row of receiptItemRows((order.items as Line[]).map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes})),p.columnsAt("normal"),money))p.bold(Boolean(row.bold)).line(row.text).bold(false);
-    p.divider();
-    p.row("Subtotal",money(order.subtotal));
-    if(couponDiscount>0)p.row(`Coupon${order.couponCode?` ${order.couponCode}`:""}`,"-"+money(couponDiscount));
-    if(invoiceDiscount)p.row(`${invoiceDiscount.name} (${invoiceDiscount.percent}%)`,"-"+money(invoiceDiscount.amount));
-    if(order.taxAmount>0)p.row(`Tax${order.taxRateSnapshot!==undefined?` (${order.taxRateSnapshot}%)`:""}`,money(order.taxAmount));
-    if(order.deliveryChargeAmount>0)p.row("Delivery",money(order.deliveryChargeAmount));
-    p.bold(true).size("tall").row("TOTAL",money(order.grandTotal)).size("normal").bold(false);
-    p.row("Paid",money(order.paidAmount));
-    if(payments.length){for(const row of receivedRows(payments))p.row(row.label,money(row.amount));p.row("Change",money(payments.reduce((sum,payment)=>sum+(payment.changeAmount??0),0)))}
-    p.row("Balance",money(order.dueAmount));
-    const coupons=(order.issuedCoupons??[]) as {code:string;batchName:string;description:string;expiresOn?:string;usage?:string}[];
-    if(coupons.length){
-      p.divider().align("center").bold(true).text("Your coupon for next time").bold(false);
-      for(const coupon of coupons){p.bold(true).size("large").text(coupon.code,p.columnsAt("large")).size("normal").bold(false).text(coupon.batchName);p.text(`${coupon.description}${coupon.usage==="NEXT_VISIT"?" - use on your next visit":""}${coupon.expiresOn?` - valid until ${formatDate(coupon.expiresOn)}`:""}`)}
-      p.align("left");
-    }
-    p.feed(1).align("center").barcode(order.orderNumber).text(business.receiptFooter||"Thank you!");
-    if(readyMessage)p.bold(true).text(readyMessage).bold(false);
-  }else{
-    p.align("center").bold(true).text("KITCHEN ORDER").size("large").text(order.orderNumber,p.columnsAt("large")).size("normal").bold(false);
-    p.barcode(order.orderNumber).align("left").divider();
-    if(order.saleDate)meta("Sale date",formatDate(order.saleDate));
-    meta("Created",formatDateTime(order.createdAt));meta("Type",order.orderType.replace("_","-"));
-    if(order.tableNameSnapshot)meta("Table",order.tableNameSnapshot);
-    if(order.waiterNameSnapshot)meta("Waiter",order.waiterNameSnapshot);
-    p.divider();
-    for(const line of order.items as Line[]){
-      p.size("tall").bold(true);
-      if(business.showPricesOnKitchenReceipt)p.row(`${line.quantity}x ${line.nameSnapshot}`,money(line.unitPrice*line.quantity));else p.text(`${line.quantity}x ${line.nameSnapshot}`);
-      p.size("normal").bold(false);
-      for(const item of line.dealItemsSnapshot??[])p.text(`  > ${item.quantity}x ${item.name}`);
-      if(line.notes)p.bold(true).text(`  NOTE: ${line.notes}`).bold(false);
-    }
-    if(order.notes)p.divider().bold(true).text("ORDER NOTE").bold(false).text(order.notes);
-  }
-  p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
-  parts.push({type:"command",base64:p.toBase64()});
+  const extras=kind==="customer"?await customerExtras(businessId,order,business):{};
+  const settings=business as unknown as ReceiptBusiness,parts=renderReceipt(kind,settings,order as unknown as ReceiptOrder,extras);
   // One-printer mode sends kitchen tickets to the customer printer.
   const role:ReceiptKind=kind==="kitchen"&&business.onePrinterMode===false?"kitchen":"customer";
-  const copies=Math.min(5,Math.max(1,Number(kind==="kitchen"?business.kitchenReceiptCopies:business.customerReceiptCopies)||1));
-  return{kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,parts};
+  // An unpaid dine-in bill has its own copy count (often one for the table and one for the waiter).
+  const unpaidDineIn=kind==="customer"&&order.orderType==="DINE_IN"&&order.paymentStatus!=="PAID";
+  const copies=Math.min(5,Math.max(1,Number(kind==="kitchen"?business.kitchenReceiptCopies:unpaidDineIn?business.unpaidDineInReceiptCopies:business.customerReceiptCopies)||1));
+  return{kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,paper:paperWidth(settings),family:familyFor(settings,kind),parts};
 }

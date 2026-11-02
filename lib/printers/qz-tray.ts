@@ -1,11 +1,13 @@
 import type qzTray from "qz-tray";
 import { EscPos,columnsFor,type PaperWidth } from "@/lib/escpos";
 import { describePrinter,type PrinterTarget } from "@/lib/printer-target";
+import type { ReceiptFamily } from "@/lib/receipt-fonts";
+import { decodeEscPos,nativeCommand,rasterBlocks } from "@/lib/receipt-raster";
 import type { PrinterAdapter,PrintResult,ReceiptKind } from "./types";
 
 type Qz=typeof qzTray;
 type PrintPart={type:"command";base64:string}|{type:"logo";url:string};
-type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;parts:PrintPart[]};
+type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
 export type StationPrinters=Partial<Record<ReceiptKind,PrinterTarget>>;
 
 // Each counter PC can override the business printers (e.g. its own USB receipt printer).
@@ -46,13 +48,26 @@ async function logoBase64(url:string){
   return canvas.toDataURL("image/png").split(",")[1]??null;
 }
 
-export async function sendToPrinter(target:PrinterTarget,parts:PrintPart[],copies=1){
+const pngBase64=(canvas:HTMLCanvasElement)=>canvas.toDataURL("image/png").split(",")[1]??"";
+const image=(data:string):Parameters<Qz["print"]>[1][number]=>({type:"raw",format:"image",flavor:"base64",data,options:{language:"ESCPOS",dotDensity:"double"}});
+// Desktop font families: the text is drawn on this PC and printed as images; barcodes and the cut stay printer commands.
+async function rasterParts(parts:PrintPart[],paper:PaperWidth,family:ReceiptFamily){
+  await document.fonts?.ready;
+  const data:Parameters<Qz["print"]>[1]=[{type:"raw",format:"command",flavor:"base64",data:btoa("\x1b@")}];
+  for(const part of parts){
+    if(part.type==="logo"){const logo=await logoBase64(part.url).catch(()=>null);if(logo)data.push(image(logo));continue}
+    for(const block of rasterBlocks(decodeEscPos(part.base64),paper,family))data.push(block.kind==="image"?image(pngBase64(block.canvas)):{type:"raw",format:"command",flavor:"base64",data:nativeCommand(block)});
+  }
+  return data;
+}
+
+export async function sendToPrinter(target:PrinterTarget,parts:PrintPart[],copies=1,style?:{paper:PaperWidth;family:ReceiptFamily}){
   const qz=await connectQz();
   if(target.connection==="LAN"&&!target.host)throw new Error("Enter the LAN printer's IP address in Printing settings.");
   const printer=target.connection==="LAN"?{host:target.host,port:target.port||9100}:target.name||await qz.printers.getDefault();
   if(!printer)throw new Error("No printer selected and Windows has no default printer.");
-  const data:Parameters<Qz["print"]>[1]=[];
-  for(const part of parts){
+  const data:Parameters<Qz["print"]>[1]=style&&style.family!=="PRINTER"?await rasterParts(parts,style.paper,style.family):[];
+  if(!data.length)for(const part of parts){
     if(part.type==="command"){data.push({type:"raw",format:"command",flavor:"base64",data:part.base64});continue}
     const logo=await logoBase64(part.url).catch(()=>null);
     if(logo)data.push({type:"raw",format:"image",flavor:"base64",data:logo,options:{language:"ESCPOS",dotDensity:"double"}});
@@ -75,7 +90,7 @@ export class QzTrayPrinterAdapter implements PrinterAdapter{
       const job=await response.json() as PrintJob&{message?:string};
       if(!response.ok)return{ok:false,confirmed:false,message:job.message??"Could not prepare the receipt."};
       const target=readStationPrinters()[job.role]??job.printer;
-      await sendToPrinter(target,job.parts,job.copies);
+      await sendToPrinter(target,job.parts,job.copies,{paper:job.paper,family:job.family});
       return{ok:true,confirmed:true,message:`Sent to ${describePrinter(target)}.`};
     }catch(error){return{ok:false,confirmed:false,message:message(error)}}
   }

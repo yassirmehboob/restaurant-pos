@@ -1,3 +1,4 @@
+import { RECEIPT_FAMILIES } from "@/lib/receipt-fonts";
 import { Schema, model, models, deleteModel, type InferSchemaType } from "mongoose";
 const deliveryMessageSchema=new Schema({enabled:{type:Boolean,default:false},includeOptOut:{type:Boolean,default:true},template:String},{_id:false});
 const orderMessageSchema=new Schema({enabled:{type:Boolean,default:false},includeOptOut:{type:Boolean,default:true},template:String,dineIn:{type:Boolean,default:true},takeaway:{type:Boolean,default:true}},{_id:false});
@@ -13,6 +14,10 @@ const businessSchema = new Schema({
   customerPrinterConnection:{type:String,enum:["USB","LAN"],default:"USB"}, customerPrinterHost:String, customerPrinterPort:{type:Number,default:9100,min:1,max:65535},
   kitchenPrinterConnection:{type:String,enum:["USB","LAN"],default:"USB"}, kitchenPrinterHost:String, kitchenPrinterPort:{type:Number,default:9100,min:1,max:65535},
   customerPrintingEnabled:{type:Boolean,default:true}, kitchenPrintingEnabled:{type:Boolean,default:true}, customerReceiptCopies:{type:Number,default:1,min:1,max:5}, kitchenReceiptCopies:{type:Number,default:1,min:1,max:5},
+  customerReceiptFont:{type:String,enum:["STANDARD","COMPACT","BOLD"],default:"STANDARD"}, customerReceiptSize:{type:String,enum:["NORMAL","TALL","LARGE"],default:"NORMAL"},
+  kitchenReceiptFont:{type:String,enum:["STANDARD","COMPACT","BOLD"],default:"STANDARD"}, kitchenReceiptSize:{type:String,enum:["NORMAL","TALL","LARGE"],default:"NORMAL"},
+  autoPrintUnpaidDineIn:{type:Boolean,default:false}, unpaidDineInReceiptCopies:{type:Number,default:1,min:1,max:5},
+  customerReceiptFamily:{type:String,enum:RECEIPT_FAMILIES,default:"PRINTER"}, kitchenReceiptFamily:{type:String,enum:RECEIPT_FAMILIES,default:"PRINTER"},
   autoPrintCustomerOnPayment:{type:Boolean,default:false},
   waiterShowBillSummary:{type:Boolean,default:false},
   paymentPrefillDueAmount:{type:Boolean,default:true},
@@ -31,5 +36,5 @@ const businessSchema = new Schema({
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
-if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")))deleteModel("Business");
+if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);
