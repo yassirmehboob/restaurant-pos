@@ -29,6 +29,7 @@ import "./orders-date.css";
 import "./image-guidance.css";
 import "./image-preview.css";
 import "./product-variants.css";
+import "./weight-picker.css";
 import "./category-price-reference.css";
 import "./form-performance.css";
 import "./kitchen.css";

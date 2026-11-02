@@ -11,6 +11,7 @@ import { Deal } from "@/models/Deal";
 import { Product } from "@/models/Product";
 import { Customer } from "@/models/Customer";
 import { z } from "zod";
+import { productLinePrice } from "@/lib/weight";
 import { revalidatePath } from "next/cache";
 
 const posCustomerSchema=z.object({name:z.string().trim().min(2).max(100),phone:z.string().trim().min(1,"Mobile number is required.").max(30),address:z.string().trim().max(500).default(""),area:z.string().trim().max(100).default(""),delivery:z.boolean()}).superRefine((value,ctx)=>{if(value.delivery&&!value.address)ctx.addIssue({code:"custom",path:["address"],message:"Address is required for delivery."});if(value.delivery&&!value.area)ctx.addIssue({code:"custom",path:["area"],message:"Area is required for delivery."})});
@@ -32,7 +33,7 @@ export async function previewPosTotals(input:PosPreviewInput){
   const productMap=new Map(products.map(item=>[String(item._id),item]));
   const dealMap=new Map(deals.map(item=>[String(item._id),item]));
   if(productMap.size!==new Set(productIds).size||dealMap.size!==new Set(dealIds).size)return{ok:false as const,message:"An item or deal is no longer available. Remove it and try again."};
-  const priced=parsed.data.lines.map(line=>{const record=line.kind==="PRODUCT"?productMap.get(line.id):dealMap.get(line.id);if(!record)throw new Error("Catalog record unavailable");const variant=line.kind==="PRODUCT"&&line.variantName?record.variants?.find((row:{name:string})=>row.name.toLowerCase()===line.variantName!.toLowerCase()):undefined;if(line.kind==="PRODUCT"&&line.variantName&&!variant)throw new Error(`The selected size for ${record.name} is unavailable.`);return{key:`${line.kind}:${line.id}:${line.variantName??""}`,name:variant?`${record.name} (${variant.name})`:record.name,quantity:line.quantity,unitPrice:variant?.salePrice??record.salePrice,taxRate:line.kind==="PRODUCT"?record.taxRate:0,isTaxInclusive:line.kind==="PRODUCT"?record.isTaxInclusive:false}});
+  const priced=parsed.data.lines.map(line=>{const record=line.kind==="PRODUCT"?productMap.get(line.id):dealMap.get(line.id);if(!record)throw new Error("Catalog record unavailable");const variant=line.kind==="PRODUCT"&&line.variantName?record.variants?.find((row:{name:string})=>row.name.toLowerCase()===line.variantName!.toLowerCase()):undefined;if(line.kind==="PRODUCT"&&line.variantName&&!variant)throw new Error(`The selected size for ${record.name} is unavailable.`);if(line.kind==="DEAL"&&line.weightGrams!==undefined)throw new Error(`${record.name} is not sold by weight.`);const price=line.kind==="PRODUCT"?productLinePrice(record,variant,line.weightGrams):{name:record.name,unitPrice:record.salePrice};return{key:`${line.kind}:${line.id}:${line.variantName??""}:${line.weightGrams??""}`,name:price.name,quantity:line.quantity,unitPrice:price.unitPrice,taxRate:line.kind==="PRODUCT"?record.taxRate:0,isTaxInclusive:line.kind==="PRODUCT"?record.isTaxInclusive:false}});
   const business=await Business.findOne({_id:user.businessId,isActive:true}).lean();
   if(!business)return{ok:false as const,message:"Business unavailable."};
   const rate=businessTaxRates(business)?.[parsed.data.paymentMethod];

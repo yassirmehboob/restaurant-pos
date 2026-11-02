@@ -49,6 +49,8 @@ export class EscPos{
     for(const line of lines)this.text(line,width);
     this.bytes.push(...encode(last+" ".repeat(Math.max(1,width-last.length-right.length))+right),0x0a);return this
   }
+  // Prints pre-aligned text (tables) as is: spacing is kept, nothing wraps, and overflow is cut at the paper width.
+  line(value:string){this.bytes.push(...encode(value.slice(0,this.columns)),0x0a);return this}
   divider(char="-"){this.bytes.push(...encode(char.repeat(this.columns)),0x0a);return this}
   feed(lines=1){return this.raw(ESC,0x64,Math.min(255,Math.max(0,lines)))}
   barcode(value:string){

@@ -24,6 +24,11 @@ test("rows right-align amounts on the last wrapped line", () => {
   assert.equal(printed.at(-1).length, 20);
 });
 
+test("line() keeps table spacing and cuts at the paper width", () => {
+  const printed = text(new EscPos(12).line("1  Naan     50.00").line("#  Item").toBytes()).split("\n").map(line => line.replace(/^\x1b@\x1bt\x10/, ""));
+  assert.deepEqual(printed.slice(0, 2), ["1  Naan     ", "#  Item"]);
+});
+
 test("printer is initialised with the Latin code page and unsupported characters print as ?", () => {
   const bytes = new EscPos(42).text("Café × 2 — اردو").toBytes();
   assert.deepEqual([...bytes.slice(0, 5)], [0x1b, 0x40, 0x1b, 0x74, 16]);

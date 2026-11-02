@@ -4,6 +4,8 @@ import { EscPos,columnsFor,type PaperWidth } from "@/lib/escpos";
 import type { PrinterTarget } from "@/lib/printer-target";
 import { readyTimeMessage } from "@/lib/preparation-time";
 import { receiptPreparationMinutes } from "@/lib/receipt-preparation";
+import { receiptItemRows,receivedRows } from "@/lib/receipt-lines";
+import { orderCashierName } from "@/lib/order-cashier";
 import { Business } from "@/models/Business";
 import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
@@ -26,7 +28,7 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
   const paper:PaperWidth=business.receiptPaperWidth==="58"?"58":"80",p=new EscPos(columnsFor(paper)),parts:PrintPart[]=[];
   const meta=(label:string,value:string)=>p.row(label,value);
   if(kind==="customer"){
-    const payments=await Payment.find({orderId,businessId}).select("amount tenderedAmount changeAmount").lean();
+    const[payments,cashier]=await Promise.all([Payment.find({orderId,businessId}).select("method amount tenderedAmount changeAmount").sort({paidAt:1}).lean(),orderCashierName(order)]);
     const readyMessage=readyTimeMessage(Boolean(business.showOrderReadyTime),business.showOrderReadyTime?await receiptPreparationMinutes(businessId,order):null);
     p.align("center");
     if(business.showLogoOnCustomerReceipt!==false&&business.logoUrl){parts.push({type:"command",base64:p.toBase64()},{type:"logo",url:business.logoUrl});p.reset()}
@@ -37,17 +39,15 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
     if(order.saleDate)meta("Sale date",formatDate(order.saleDate));
     meta("Type",order.orderType.replace("_","-"));
     if(order.tableNameSnapshot)meta("Table",order.tableNameSnapshot);
+    if(cashier)meta("Cashier",cashier);
     if(order.waiterNameSnapshot)meta("Waiter",order.waiterNameSnapshot);
     if(order.customerSnapshot?.name)meta("Customer",order.customerSnapshot.name);
     if(order.orderType==="DELIVERY"){p.text("Address: "+(order.customerSnapshot?.address||"Not provided"));p.text("Area: "+(order.customerSnapshot?.area||"Not provided"))}
     meta("Payment",order.paymentStatus);
     p.divider();
-    // With a discount, lines show their full price so they add up to the subtotal above the coupon line.
+    // Lines print before tax and discount so they add up to the subtotal; tax and coupon follow it.
     const discounted=(order.discountAmount??0)>0;
-    for(const line of order.items as Line[]){
-      p.row(`${line.quantity}x ${line.nameSnapshot}`,money(discounted?line.unitPrice*line.quantity:line.lineTotal));
-      p.text(`   @ ${money(line.unitPrice)}${line.notes?` - ${line.notes}`:""}`);
-    }
+    for(const row of receiptItemRows((order.items as Line[]).map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes})),p.columnsAt("normal"),money))p.bold(Boolean(row.bold)).line(row.text).bold(false);
     p.divider();
     p.row("Subtotal",money(order.subtotal));
     if(discounted)p.row(`Coupon${order.couponCode?` ${order.couponCode}`:""}`,"-"+money(order.discountAmount));
@@ -55,7 +55,7 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
     if(order.deliveryChargeAmount>0)p.row("Delivery",money(order.deliveryChargeAmount));
     p.bold(true).size("tall").row("TOTAL",money(order.grandTotal)).size("normal").bold(false);
     p.row("Paid",money(order.paidAmount));
-    if(payments.length){p.row("Received",money(payments.reduce((sum,payment)=>sum+(payment.tenderedAmount??payment.amount),0)));p.row("Change",money(payments.reduce((sum,payment)=>sum+(payment.changeAmount??0),0)))}
+    if(payments.length){for(const row of receivedRows(payments))p.row(row.label,money(row.amount));p.row("Change",money(payments.reduce((sum,payment)=>sum+(payment.changeAmount??0),0)))}
     p.row("Balance",money(order.dueAmount));
     const coupons=(order.issuedCoupons??[]) as {code:string;batchName:string;description:string;expiresOn?:string;usage?:string}[];
     if(coupons.length){
@@ -75,7 +75,7 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
     p.divider();
     for(const line of order.items as Line[]){
       p.size("tall").bold(true);
-      if(business.showPricesOnKitchenReceipt)p.row(`${line.quantity}x ${line.nameSnapshot}`,money(line.lineTotal));else p.text(`${line.quantity}x ${line.nameSnapshot}`);
+      if(business.showPricesOnKitchenReceipt)p.row(`${line.quantity}x ${line.nameSnapshot}`,money(line.unitPrice*line.quantity));else p.text(`${line.quantity}x ${line.nameSnapshot}`);
       p.size("normal").bold(false);
       for(const item of line.dealItemsSnapshot??[])p.text(`  > ${item.quantity}x ${item.name}`);
       if(line.notes)p.bold(true).text(`  NOTE: ${line.notes}`).bold(false);

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { DatePicker } from "@/components/date-picker";
 import { useActionState,useEffect,useRef,useState } from "react";
 import { useFormStatus } from "react-dom";
-import { ImagePlus,Plus,Trash2 } from "lucide-react";
+import { ImagePlus,Plus,Scale,Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
 import type { MasterState } from "@/app/(dashboard)/master-actions";
 
@@ -28,8 +28,11 @@ export function MasterForm({title,description,action,fields,children,fieldAddons
 }
 
 export function ProductVariants({initial=[]}:{initial?:{name:string;salePrice:number;costPrice:number}[]}){
-  const[rows,setRows]=useState(initial.map(row=>({...row,key:randomId()})));
-  return <div className="product-variants wide"><div className="product-variants-title"><div><strong>Sizes / price variants</strong><span>Optional — add sizes such as Small, Medium, or Large.</span></div><button type="button" onClick={()=>setRows(value=>[...value,{name:"",salePrice:0,costPrice:0,key:randomId()}])}><Plus size={16}/>Add size</button></div>{rows.map((row,index)=><div className="product-variant-row" key={row.key}><label><span>Size name</span><input name="variantName" defaultValue={row.name} placeholder="Large" required/></label><label><span>Sale price</span><input name="variantSalePrice" type="number" min="0" step="0.01" defaultValue={row.salePrice||""} required/></label><label><span>Cost price</span><input name="variantCostPrice" type="number" min="0" step="0.01" defaultValue={row.costPrice||""} required/></label><button type="button" onClick={()=>setRows(value=>value.filter((_,rowIndex)=>rowIndex!==index))} aria-label="Remove size"><Trash2 size={17}/></button></div>)}</div>;
+  const root=useRef<HTMLDivElement>(null),[rows,setRows]=useState(initial.map(row=>({...row,key:randomId()}))),[byWeight,setByWeight]=useState(false);
+  // KG items are priced per KG and take a weight at the counter, so they have no sizes.
+  useEffect(()=>{const form=root.current?.closest("form"),select=form?.elements.namedItem("sellBy") as HTMLSelectElement|null;if(!select)return;const update=()=>setByWeight(select.value==="WEIGHT"),reset=()=>window.setTimeout(update,0);update();select.addEventListener("change",update);form?.addEventListener("reset",reset);return()=>{select.removeEventListener("change",update);form?.removeEventListener("reset",reset)}},[]);
+  if(byWeight)return <div className="product-variants wide" ref={root}><div className="product-variants-title"><div><strong><Scale size={16}/> Sold by weight</strong><span>The base sale and cost prices are for 1 KG. The cashier picks the weight (125 g or more) when ordering, and the price is rounded to the whole rupee.</span></div></div></div>;
+  return <div className="product-variants wide" ref={root}><div className="product-variants-title"><div><strong>Sizes / price variants</strong><span>Optional — add sizes such as Small, Medium, or Large.</span></div><button type="button" onClick={()=>setRows(value=>[...value,{name:"",salePrice:0,costPrice:0,key:randomId()}])}><Plus size={16}/>Add size</button></div>{rows.map((row,index)=><div className="product-variant-row" key={row.key}><label><span>Size name</span><input name="variantName" defaultValue={row.name} placeholder="Large" required/></label><label><span>Sale price</span><input name="variantSalePrice" type="number" min="0" step="0.01" defaultValue={row.salePrice||""} required/></label><label><span>Cost price</span><input name="variantCostPrice" type="number" min="0" step="0.01" defaultValue={row.costPrice||""} required/></label><button type="button" onClick={()=>setRows(value=>value.filter((_,rowIndex)=>rowIndex!==index))} aria-label="Remove size"><Trash2 size={17}/></button></div>)}</div>;
 }
 
 export function CategoryPriceReference({items}:{items:{id:string;categoryId:string;name:string;salePrice:number;costPrice:number}[]}){
