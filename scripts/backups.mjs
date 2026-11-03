@@ -46,11 +46,17 @@ try {
     validateBackupPayload(payload, payload.businessId);
     console.log(`Backup verified for restaurant ${payload.businessId}. No database was changed.`);
   } else {
-    if (!["create", "list", "restore", "switch"].includes(command)) throw new Error("Commands: create --business ID; list --business ID; verify --file PATH; restore --file PATH --confirm RESTORE; restore --business ID --backup FILE --confirm RESTORE; switch --database NAME --confirm SWITCH.");
+    if (!["create", "create-all", "list", "restore", "switch"].includes(command)) throw new Error("Commands: create --business ID; create-all; list --business ID; verify --file PATH; restore --file PATH --confirm RESTORE; restore --business ID --backup FILE --confirm RESTORE; switch --database NAME --confirm SWITCH.");
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
     const db = mongoose.connection.db, client = mongoose.connection.getClient();
     if (command === "switch") await switchDatabase();
     else if (command === "create") console.log(JSON.stringify(await createBusinessBackup(client, db, options.business), null, 2));
+    // Used by update-pos.bat: one backup per active restaurant before new code is installed.
+    else if (command === "create-all") {
+      const businesses = await db.collection("businesses").find({ isActive: true }, { projection: { name: 1 } }).toArray();
+      for (const business of businesses) { const backup = await createBusinessBackup(client, db, String(business._id)); console.log(`Backed up ${business.name}: ${backup.id} (${backup.documents} records)`); }
+      console.log(businesses.length ? `${businesses.length} restaurant backup(s) created.` : "No restaurants to back up.");
+    }
     else if (command === "list") console.log(JSON.stringify(await listBusinessBackups(options.business), null, 2));
     else {
       if (options.confirm !== "RESTORE") throw new Error("Use --confirm RESTORE to prepare a separate restore database.");
