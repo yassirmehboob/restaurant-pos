@@ -10,6 +10,8 @@ schema.add({deliveryStatus:{type:String,enum:["PLACED","OUT_FOR_DELIVERY","DELIV
 schema.add({cashierNameSnapshot:String});
 // The invoice discount given at payment; discountAmount holds it plus any coupon discount.
 schema.add({invoiceDiscount:new Schema({typeId:String,name:String,mode:String,percent:Number,capAmount:Number,amount:Number,amountBefore:Number,remarks:String,appliedByUserId:Schema.Types.ObjectId,appliedByName:String},{_id:false})});
+// Where the order came from: the counter, a waiter tablet, or a guest scanning the table QR code.
+schema.add({orderSource:{type:String,enum:["POS","WAITER","QR"]}});
 schema.index({businessId:1,saleDate:1});
 schema.index({businessId:1,status:1,kitchenSentAt:1});
 schema.index({businessId:1,status:1,preparingAt:1});
@@ -22,4 +24,5 @@ if(models.Order&&!models.Order.schema.path("deliveryStatus"))deleteModel("Order"
 if(models.Order&&!models.Order.schema.path("couponCode"))deleteModel("Order");
 if(models.Order&&!models.Order.schema.path("cashierNameSnapshot"))deleteModel("Order");
 if(models.Order&&!models.Order.schema.path("invoiceDiscount"))deleteModel("Order");
+if(models.Order&&!models.Order.schema.path("orderSource"))deleteModel("Order");
 export const Order=models.Order??model("Order",schema);

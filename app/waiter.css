@@ -40,3 +40,18 @@
 .is-review .waiter-header{align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--w-line)}.is-review .waiter-header-actions{flex-shrink:1;min-width:0}.is-review .waiter-header-actions .waiter-service-bar{border:0;padding:0;flex-wrap:wrap;justify-content:flex-end;row-gap:4px}.is-review .waiter-header-actions .waiter-service-bar>small{margin-left:0}
 /* Cashier review: tighter cards, with subtotal / tax / total on one line. */
 .is-review .waiter-order-grid{gap:12px}.is-review .waiter-order-grid article{padding:12px 14px}.is-review .waiter-order-grid article header{margin-bottom:8px}.is-review .waiter-order-table{min-height:30px;padding:4px 12px}.is-review .waiter-order-grid h3{margin-bottom:2px}.is-review .waiter-order-items{margin:8px 0}.is-review .waiter-order-items th{padding:5px 6px}.is-review .waiter-order-items td{padding:5px 6px}.is-review .waiter-order-grid dl{display:grid;grid-template-columns:repeat(3,auto);justify-content:space-between;gap:12px;padding:8px 0 0;margin-bottom:10px}.is-review .waiter-order-grid dl>div{display:block;margin:0}.is-review .waiter-order-grid dl>div:last-child{text-align:right}.is-review .waiter-order-grid dt{font-size:10px;color:var(--w-muted)}.is-review .waiter-order-grid article>button,.is-review .waiter-order-grid article>.waiter-open-order{min-height:40px;margin-top:auto;padding:8px 14px}
+.qr-settings-url{display:block}.qr-settings-url input{width:100%;box-sizing:border-box;margin-top:10px;min-height:42px;padding:0 12px;border:1px solid #dbe3ee;border-radius:9px;font:inherit;font-size:13px;color:#23334c;background:#fff}.qr-settings-url input:focus{outline:2px solid #93b8ff;border-color:#2563eb}.waiter-settings-preview a{color:#2563eb;font-weight:700}
+
+.waiter-approval-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:10px}.waiter-approval-actions>.waiter-primary{flex:1 1 100%}
+/* Same size and weight as "Confirm & send to kitchen", so the bottom buttons line up across cards. */
+.waiter-order-grid article>.waiter-open-order,.is-review .waiter-order-grid article>.waiter-open-order{min-height:48px;font-size:12px;font-weight:700;box-shadow:none}
+.waiter-qr-print,.waiter-qr-cancel{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 12px;border:1px solid #f1d3bf;border-radius:9px;background:#fff8f2;color:#b4441c;font-weight:700;cursor:pointer}
+.waiter-qr-cancel{border-color:#f0c9c5;background:#fff7f6;color:#c2352b}
+.waiter-qr-print:disabled,.waiter-qr-cancel:disabled{opacity:.5;cursor:wait}
+
+.waiter-cancel-reasons{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:14px 2em 0}
+.waiter-cancel-reasons button{min-height:34px;padding:0 12px;border:1px solid #efc6c2;border-radius:999px;background:#fff7f6;color:#9f2f28;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.waiter-cancel-reasons button:hover{background:#c2352b;border-color:#c2352b;color:#fff}
+
+.waiter-assign{flex:1 1 100%;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#52647e}
+.waiter-assign select{flex:1;min-height:40px;padding:0 10px;border:1px solid #dce4ef;border-radius:9px;background:#fff;font:inherit;font-weight:600}

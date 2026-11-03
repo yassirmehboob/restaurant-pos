@@ -6,7 +6,10 @@ export const DELIVERY_SMS_STAGES=[
 ] as const;
 export const ORDER_SMS_STAGES=[
  {key:"placed",type:"ORDER_PLACED",label:"Order placed",description:"Sent when a dine-in or takeaway order is sent to the kitchen.",template:"Hi {{customer_name}}, your order {{order_number}} at {{business_name}} has been placed. Total: {{currency}} {{order_total}}."},
+ {key:"preparing",type:"ORDER_PREPARING",label:"Preparing",description:"Sent when the kitchen starts preparing the order, by hand or by the kitchen timer.",template:"Hi {{customer_name}}, the kitchen at {{business_name}} is now preparing your order {{order_number}}."},
  {key:"ready",type:"ORDER_READY",label:"Order ready",description:"Sent when the kitchen marks the order ready, by hand or by the kitchen timer.",template:"Hi {{customer_name}}, your order {{order_number}} at {{business_name}} is ready. Thank you!"},
+ {key:"served",type:"ORDER_SERVED",label:"Served",description:"Sent when staff mark a dine-in order served, or a takeaway order handed over.",template:"Hi {{customer_name}}, your order {{order_number}} has been served. Enjoy your meal at {{business_name}}!"},
+ {key:"completed",type:"ORDER_COMPLETED",label:"Completed",description:"Sent when the order is closed after payment.",template:"Hi {{customer_name}}, your order {{order_number}} at {{business_name}} is complete. Thank you for visiting!"},
 ] as const;
 export type OrderSmsStage=(typeof ORDER_SMS_STAGES)[number]["key"];
 export type OrderSmsSettings=Record<OrderSmsStage,{enabled:boolean;includeOptOut:boolean;template:string;dineIn:boolean;takeaway:boolean}>;

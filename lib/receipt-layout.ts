@@ -17,7 +17,7 @@ type Line={quantity:number;nameSnapshot:string;unitPrice:number;notes?:string;de
 type IssuedCoupon={code:string;batchName:string;description:string;expiresOn?:string;usage?:string};
 export type ReceiptOrder={
   orderNumber:string;createdAt:Date|string;saleDate?:string|null;orderType:string;tableNameSnapshot?:string|null;waiterNameSnapshot?:string|null;
-  customerSnapshot?:{name?:string|null;address?:string|null;area?:string|null}|null;paymentStatus:string;items:Line[];notes?:string|null;
+  customerSnapshot?:{name?:string|null;address?:string|null;area?:string|null}|null;paymentStatus:string;items:Line[];notes?:string|null;orderSource?:string|null;
   subtotal:number;discountAmount?:number|null;couponCode?:string|null;invoiceDiscount?:{name:string;percent:number;amount:number}|null;
   taxAmount:number;taxRateSnapshot?:number|null;deliveryChargeAmount?:number|null;grandTotal:number;paidAmount:number;dueAmount:number;issuedCoupons?:IssuedCoupon[]|null;
 };
@@ -86,6 +86,7 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     meta("Created",formatDateTime(order.createdAt));meta("Type",order.orderType.replace("_","-"));
     if(order.tableNameSnapshot)meta("Table",order.tableNameSnapshot);
     if(order.waiterNameSnapshot)meta("Waiter",order.waiterNameSnapshot);
+    if(order.orderSource==="QR")meta("Source","QR code order");
     p.divider();
     // Same item table as the customer receipt; the cook reads item names and notes in bold.
     const items=order.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes,components:(line.dealItemsSnapshot??[]).map(item=>`${item.quantity}x ${item.name}`)}));
@@ -95,4 +96,19 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
   p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
   parts.push({type:"command",base64:p.toBase64()});
   return parts;
+}
+
+// Slip for a QR guest order that is not approved yet: the waiter takes it to the table and checks it with the guest.
+export type QrSlip={tableName:string;guestName:string;guestPhone:string;createdAt:Date|string;lines:{name:string;quantity:number;note?:string;unitPrice?:number}[];grandTotal?:number|null};
+export function renderQrSlip(business:ReceiptBusiness,slip:QrSlip,prices:boolean):PrintPart[]{
+  const paper=paperWidth(business),style=receiptStyle(business,"kitchen"),p=new EscPos(columnsFor(paper,style.font),style);
+  p.align("center").bold(true).text("QR ORDER - PLEASE CONFIRM").size("large").text(slip.tableName,p.columnsAt("large")).size("normal").bold(false).text("Not sent to the kitchen yet").align("left").divider();
+  p.row("Guest",slip.guestName||"Guest");p.row("Mobile",slip.guestPhone||"-");p.row("Ordered",formatDateTime(slip.createdAt));
+  p.divider();
+  const items=slip.lines.map(line=>({name:line.name,unitPrice:line.unitPrice??0,quantity:line.quantity,notes:line.note}));
+  for(const row of receiptItemRows(items,p.columnsAt("normal"),money,{prices}))p.bold(row.kind!=="detail").line(row.text).bold(false);
+  if(prices&&slip.grandTotal!=null)p.divider().bold(true).row("Estimated total",money(slip.grandTotal)).bold(false);
+  p.divider().feed(1).text("Confirmed with guest: ____________").feed(1).text("Waiter: __________________").feed(1).align("center").text("This is not a bill.");
+  p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
+  return[{type:"command",base64:p.toBase64()}];
 }

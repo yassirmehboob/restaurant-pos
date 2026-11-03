@@ -82,6 +82,17 @@ export async function printTestPage(target:PrinterTarget,paper:PaperWidth,label:
   await sendToPrinter(target,[{type:"command",base64:page.toBase64()}]);
 }
 
+export async function printQzQrSlip(requestId:string):Promise<PrintResult>{
+  try{
+    const response=await fetch(`/api/print/qr-request/${encodeURIComponent(requestId)}`,{cache:"no-store"});
+    const job=await response.json() as PrintJob&{message?:string};
+    if(!response.ok)return{ok:false,confirmed:false,message:job.message??"Could not prepare the slip."};
+    const target=readStationPrinters().customer??job.printer;
+    await sendToPrinter(target,job.parts,job.copies,{paper:job.paper,family:job.family});
+    return{ok:true,confirmed:true,message:`Sent to ${describePrinter(target)}.`};
+  }catch(error){return{ok:false,confirmed:false,message:message(error)}}
+}
+
 export class QzTrayPrinterAdapter implements PrinterAdapter{
   async listPrinters(){return listQzPrinters()}
   private async print(orderId:string,kind:ReceiptKind):Promise<PrintResult>{

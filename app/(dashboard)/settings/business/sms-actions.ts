@@ -43,7 +43,7 @@ export async function saveOrderSmsSettings(raw:unknown){
  try{
   const result=await Business.updateOne({_id:user.businessId,isActive:true},{$set:{smsOrderMessages:parsed.data}});
   if(!result.matchedCount)return{ok:false as const,message:"Business not found."};
-  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"UPDATE_ORDER_SMS_SETTINGS",entityType:"Business",entityId:user.businessId,description:"Updated dine-in and takeaway SMS templates and sending preferences",metadata:Object.fromEntries(Object.entries(parsed.data).map(([key,value])=>[key,{enabled:value.enabled,dineIn:value.dineIn,takeaway:value.takeaway}]))});
+  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"UPDATE_ORDER_SMS_SETTINGS",entityType:"Business",entityId:user.businessId,description:"Updated dine-in and takeaway SMS templates and sending preferences",metadata:Object.fromEntries(Object.entries(parsed.data).flatMap(([key,value])=>value?[[key,{enabled:value.enabled,dineIn:value.dineIn,takeaway:value.takeaway}]]:[]))});
   revalidatePath("/settings/sms-messaging");return{ok:true as const,message:"Dine-in and takeaway SMS settings saved."};
  }catch{return{ok:false as const,message:"Could not save dine-in and takeaway SMS settings. Please try again."}}
 }

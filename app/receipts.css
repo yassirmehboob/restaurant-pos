@@ -13,3 +13,5 @@
 .receipt-page.size-tall{--receipt-size-scale:1.25}
 .receipt-page.size-large{--receipt-size-scale:1.5}
 .receipt-page .receipt{font-family:var(--receipt-family,"Courier New",monospace)}
+
+.qr-slip-sign{margin-top:12px;display:grid;gap:10px}.qr-slip-sign p{margin:0}

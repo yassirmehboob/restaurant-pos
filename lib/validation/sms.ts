@@ -9,5 +9,6 @@ export const smsSettingsSchema=z.object({
 }).superRefine((value,ctx)=>{if(value.removeToken&&value.token)ctx.addIssue({code:"custom",path:["token"],message:"Choose either replacing or removing the token."});if(value.removeToken&&value.enabled)ctx.addIssue({code:"custom",path:["enabled"],message:"Turn SMS off before removing its token."})});
 const deliveryMessageSchema=z.object({enabled:z.boolean(),includeOptOut:z.boolean(),template:z.string().trim().max(1000).superRefine((value,ctx)=>{const error=smsTemplateError(value);if(error)ctx.addIssue({code:"custom",message:error})})});
 const orderMessageSchema=deliveryMessageSchema.extend({dineIn:z.boolean(),takeaway:z.boolean()}).refine(value=>!value.enabled||value.dineIn||value.takeaway,{message:"Choose dine-in, takeaway or both for each enabled message.",path:["dineIn"]});
-export const orderSmsSettingsSchema=z.object({placed:orderMessageSchema,ready:orderMessageSchema});
+// The later stages are optional so a settings page opened before they existed can still save.
+export const orderSmsSettingsSchema=z.object({placed:orderMessageSchema,preparing:orderMessageSchema.optional(),ready:orderMessageSchema,served:orderMessageSchema.optional(),completed:orderMessageSchema.optional()});
 export const deliverySmsSettingsSchema=z.object({placed:deliveryMessageSchema,outForDelivery:deliveryMessageSchema,delivered:deliveryMessageSchema});

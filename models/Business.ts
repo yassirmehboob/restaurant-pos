@@ -23,7 +23,11 @@ const businessSchema = new Schema({
   paymentPrefillDueAmount:{type:Boolean,default:true},
   smsEnabled:{type:Boolean,default:false},smsPaymentReceiptEnabled:{type:Boolean,default:false},smsIncludeOptOut:{type:Boolean,default:true},smsTokenEncrypted:{type:String,select:false},smsPaymentTemplate:String,smsEvidenceReference:{type:String,default:"customer-acknowledgement"},
   smsDeliveryMessages:{placed:{type:deliveryMessageSchema,default:()=>({})},outForDelivery:{type:deliveryMessageSchema,default:()=>({})},delivered:{type:deliveryMessageSchema,default:()=>({})}},
-  smsOrderMessages:{placed:{type:orderMessageSchema,default:()=>({})},ready:{type:orderMessageSchema,default:()=>({})}},
+  smsOrderMessages:{placed:{type:orderMessageSchema,default:()=>({})},preparing:{type:orderMessageSchema,default:()=>({})},ready:{type:orderMessageSchema,default:()=>({})},served:{type:orderMessageSchema,default:()=>({})},completed:{type:orderMessageSchema,default:()=>({})}},
+  // Guests scan a table QR code to order; the request waits for a cashier, like a waiter order.
+  qrOrderingEnabled:{type:Boolean,default:false},qrShowBillSummary:{type:Boolean,default:true},qrMenuBaseUrl:{type:String,trim:true},
+  // Guests confirm their mobile number with an SMS code before their first QR order.
+  qrPhoneVerification:{type:Boolean,default:false},
   kitchenTimingUpdatedBy:{type:Schema.Types.ObjectId,ref:"User"},
   kitchenTimingEnabled:{type:Boolean,default:false}, kitchenPreparingDelaySeconds:{type:Number,default:60,min:1,max:3600}, kitchenReadyDelayMinutes:{type:Number,default:25,min:1,max:1440},
   saleTaxRate:{type:Number,min:0,max:100},paymentTaxRates:{CASH:{type:Number,min:0,max:100},CARD:{type:Number,min:0,max:100},BANK:{type:Number,min:0,max:100},OTHER:{type:Number,min:0,max:100}},
@@ -36,5 +40,5 @@ const businessSchema = new Schema({
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
-if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")))deleteModel("Business");
+if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")||!models.Business.schema.path("smsOrderMessages.served")||!models.Business.schema.path("qrPhoneVerification")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);

@@ -17,6 +17,8 @@ import { paymentPrefillDue } from "@/lib/payment-settings";
 import { paymentInputSchema } from "@/lib/validation/payment";
 import { queuePaymentSms } from "@/lib/payment-sms";
 import { queueDeliverySms } from "@/lib/delivery-sms";
+import { queueOrderStageSms } from "@/lib/order-stage-sms.mjs";
+import mongoose from "mongoose";
 import { autoIssueCoupons,redeemOrderCoupon } from "@/lib/coupon-service";
 
 const schema=paymentInputSchema.extend({orderId:z.string().regex(/^[a-f\d]{24}$/i)});
@@ -74,6 +76,7 @@ async function recordOrderPayment(input:z.infer<typeof schema>,completeDelivery:
       const issued=await autoIssueCoupons(paid.toObject(),order.saleDate||sale.saleDate,transaction);
       if(deliveryCompleted)await queueDeliverySms(paid.toObject(),"DELIVERY_DELIVERED",payment.paidAt,transaction);
       else await queuePaymentSms(paid.toObject(),payment.paidAt,transaction);
+      if(completeOrder&&!deliveryCompleted)await queueOrderStageSms(mongoose.connection.db!,paid.toObject(),"ORDER_COMPLETED",payment.paidAt,transaction);
       if(discount)await queueDiscountSms(paid.toObject(),{amountBefore:base.grandTotal,discount,amountAfter:quote.grandTotal,cashier:user.fullName},transaction);
       return {completed:completeOrder,deliveryCompleted:completeDelivery,sentToKitchen:sendToKitchen,change,taxRate:quote.taxRate,taxAmount:quote.taxAmount,previousGrandTotal:order.grandTotal,grandTotal:quote.grandTotal,saleDate:order.saleDate||sale.saleDate,orderNumber:order.orderNumber,orderId:String(order._id),paymentId:String(payment._id),amount:due,issued,couponCode:order.couponCode?String(order.couponCode):null,discountAmount:order.discountAmount??0,discount};
     });

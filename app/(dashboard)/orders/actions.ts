@@ -2,20 +2,15 @@
 import { requirePermission } from "@/data/auth";
 
 import { withSaleSession,saleSessionError } from "@/lib/sale-sessions";
-import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/data/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { connectToDatabase } from "@/lib/db";
 import { Business } from "@/models/Business";
-import { maxPreparationMinutes } from "@/lib/preparation-time";
-import { businessTaxRates } from "@/lib/tax";
 import { paymentPrefillDue } from "@/lib/payment-settings";
-import { calculateOrderPreview,type PricedLine } from "@/lib/order-calculation";
 import { orderIdSchema,orderInputSchema,type OrderInput } from "@/lib/validation/order";
 import { Coupon } from "@/models/Coupon";
 import { Customer } from "@/models/Customer";
-import { Deal } from "@/models/Deal";
 import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 import { paymentInputSchema } from "@/lib/validation/payment";
@@ -23,9 +18,7 @@ import { can } from "@/lib/permissions";
 import { autoPrintsUnpaidBill,counterPrintsKitchen } from "@/lib/printer-target";
 import { COUNTER_ROLES } from "@/lib/roles";
 import { z } from "zod";
-import { productLinePrice } from "@/lib/weight";
 import { OrderCounter } from "@/models/OrderCounter";
-import { Product } from "@/models/Product";
 import { RestaurantTable } from "@/models/RestaurantTable";
 import { Staff } from "@/models/Staff";
 import { WaiterRequest } from "@/models/WaiterRequest";
@@ -33,6 +26,7 @@ import { waiterRequestSchema } from "@/lib/validation/waiter";
 import mongoose from "mongoose";
 import { notifyWaiterOrder } from "@/lib/waiter-push.mjs";
 import { reviseWaiterRequest,claimWaiterRequest } from "@/lib/waiter-requests";
+import { orderSnapshots } from "@/lib/order-snapshots";
 import { queuePaymentSms } from "@/lib/payment-sms";
 import { queueDeliverySms } from "@/lib/delivery-sms";
 import { queueOrderStageSms } from "@/lib/order-stage-sms.mjs";
@@ -83,7 +77,8 @@ export async function saveWaiterRequest(raw:unknown){
  }catch(error){return{ok:false as const,message:error instanceof z.ZodError?error.issues[0].message:saleSessionError(error)}}
 }
 
-export async function confirmWaiterRequest(id:string,revision:number){
+// waiterId (QR orders only): the staff waiter who checked the order with the guest and will serve the table.
+export async function confirmWaiterRequest(id:string,revision:number,waiterId=""){
  try{
   const user=await requirePermission("pos");
   if(!COUNTER_ROLES.includes(user.role))throw new Error("Only a cashier, supervisor, manager, admin or owner can confirm waiter orders.");
@@ -93,37 +88,54 @@ export async function confirmWaiterRequest(id:string,revision:number){
   if(!request)throw new Error("The waiter changed this order or it is already confirmed. Refresh and review it again.");
   const data=await context(orderInputSchema.parse(request.input));
   if(Math.abs(data.totals.grandTotal-request.summary.grandTotal)>0.005||Math.abs(data.totals.taxAmount-request.summary.taxAmount)>0.005)throw new Error("Menu prices or taxes changed. Ask the waiter to save the order again, then review the updated summary.");
+  const qr=request.source==="QR";
+  if(waiterId&&(!qr||!orderIdSchema.safeParse(waiterId).success))throw new Error("Choose a waiter from the list.");
+  const waiter=waiterId?await Staff.findOne({_id:waiterId,businessId:user.businessId,isActive:true,role:"WAITER"}).select("fullName").lean():null;
+  if(waiterId&&!waiter)throw new Error("The selected waiter is no longer available. Choose another waiter.");
   const order=await withSaleSession(user,async(sale,transaction)=>{
    const claimed=await claimWaiterRequest({id,businessId:user.businessId,revision},user.id,transaction);
    if(!claimed)throw new Error("The order changed. Refresh and review it again.");
+   // A QR guest becomes (or matches) a customer by mobile number, so SMS updates and history work as for counter orders.
+   const customer=qr&&request.guest?.phone?await guestCustomer(user.businessId,request.guest,transaction):null;
    const counter=await OrderCounter.findOneAndUpdate({businessId:user.businessId},{$inc:{sequence:1}},{returnDocument:"after",upsert:true,setDefaultsOnInsert:true,session:transaction});
-   const [created]=await Order.create([{businessId:user.businessId,orderNumber:`ORD-${String(counter.sequence).padStart(6,"0")}`,orderType:"DINE_IN",status:"SENT_TO_KITCHEN",kitchenSentAt:new Date(),kitchenStatusSource:"MANUAL",saleSessionId:sale._id,saleDate:sale.saleDate,counterNameSnapshot:sale.counterName,tableId:data.table?._id,tableNameSnapshot:data.table?.name,waiterNameSnapshot:request.waiterName,createdByUserId:request.userId,cashierNameSnapshot:user.fullName,lastUpdatedByUserId:user.id,items:data.items,subtotal:data.totals.subtotal,taxAmount:data.totals.taxAmount,grandTotal:data.totals.grandTotal,dueAmount:data.totals.grandTotal,paymentTaxRatesSnapshot:data.paymentTaxRatesSnapshot,taxRateSnapshot:data.taxRateSnapshot,taxPaymentMethod:data.taxPaymentMethod}],{session:transaction});
+   const [created]=await Order.create([{businessId:user.businessId,orderNumber:`ORD-${String(counter.sequence).padStart(6,"0")}`,orderType:"DINE_IN",status:"SENT_TO_KITCHEN",kitchenSentAt:new Date(),kitchenStatusSource:"MANUAL",saleSessionId:sale._id,saleDate:sale.saleDate,counterNameSnapshot:sale.counterName,orderSource:qr?"QR":"WAITER",tableId:data.table?._id,tableNameSnapshot:data.table?.name,...(waiter?{waiterId:waiter._id}:{}),waiterNameSnapshot:qr?waiter?.fullName:request.waiterName,...(customer?{customerId:customer._id,customerSnapshot:{name:customer.name,phone:customer.phone}}:{}),createdByUserId:request.userId??user.id,cashierNameSnapshot:user.fullName,lastUpdatedByUserId:user.id,items:data.items,subtotal:data.totals.subtotal,taxAmount:data.totals.taxAmount,grandTotal:data.totals.grandTotal,dueAmount:data.totals.grandTotal,paymentTaxRatesSnapshot:data.paymentTaxRatesSnapshot,taxRateSnapshot:data.taxRateSnapshot,taxPaymentMethod:data.taxPaymentMethod}],{session:transaction});
    await WaiterRequest.updateOne({_id:id},{$set:{orderId:created._id}},{session:transaction});
+   if(qr)await queueOrderStageSms(mongoose.connection.db!,created.toObject(),"ORDER_PLACED",new Date(),transaction);
    return created;
   });
-  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"CONFIRM_WAITER_ORDER",entityType:"Order",entityId:String(order._id),description:`Confirmed waiter order ${order.orderNumber}`});
+  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:qr?"CONFIRM_QR_ORDER":"CONFIRM_WAITER_ORDER",entityType:"Order",entityId:String(order._id),description:qr?`Confirmed QR order ${order.orderNumber} for ${order.tableNameSnapshot??"a table"}`:`Confirmed waiter order ${order.orderNumber}`});
   await notifyWaiterOrder(mongoose.connection.db!,order.toObject());
   for(const path of ["/waiter","/waiter-requests","/orders","/kitchen"])revalidatePath(path);
   return{ok:true as const,orderId:String(order._id),orderNumber:order.orderNumber,...await placedOrderPrints(user,"DINE_IN")};
  }catch(error){return{ok:false as const,message:saleSessionError(error)}}
 }
 
-async function orderSnapshots(businessId:string,input:OrderInput){
-  const productIds=input.lines.filter(line=>line.kind==="PRODUCT").map(line=>line.id),dealIds=input.lines.filter(line=>line.kind==="DEAL").map(line=>line.id);
-  const[products,deals]=await Promise.all([Product.find({_id:{$in:productIds},businessId,isActive:true,isAvailable:true}).lean(),Deal.find({_id:{$in:dealIds},businessId,isActive:true,isAvailable:true}).lean()]);
-  const componentIds=deals.flatMap(deal=>deal.items.map((item:{productId:unknown})=>item.productId));
-  const components=await Product.find({_id:{$in:componentIds},businessId}).lean();
-  const productMap=new Map(products.map(row=>[String(row._id),row])),dealMap=new Map(deals.map(row=>[String(row._id),row])),componentMap=new Map(components.map(row=>[String(row._id),row]));
-  if(productMap.size!==new Set(productIds).size||dealMap.size!==new Set(dealIds).size)throw new Error("An item or deal is no longer available.");
-  const priced:PricedLine[]=input.lines.map(line=>{const row=line.kind==="PRODUCT"?productMap.get(line.id):dealMap.get(line.id);if(!row)throw new Error("Catalog record unavailable.");const variant=line.kind==="PRODUCT"&&line.variantName?row.variants?.find((item:{name:string})=>item.name.toLowerCase()===line.variantName!.toLowerCase()):undefined;if(line.kind==="PRODUCT"&&line.variantName&&!variant)throw new Error(`The selected size for ${row.name} is unavailable.`);if(line.kind==="DEAL"&&line.weightGrams!==undefined)throw new Error(`${row.name} is not sold by weight.`);const price=line.kind==="PRODUCT"?productLinePrice(row,variant,line.weightGrams):{name:row.name,unitPrice:row.salePrice};return{key:`${line.kind}:${line.id}:${line.variantName??""}:${line.weightGrams??""}`,name:price.name,quantity:line.quantity,unitPrice:price.unitPrice,taxRate:line.kind==="PRODUCT"?row.taxRate:0,isTaxInclusive:line.kind==="PRODUCT"?row.isTaxInclusive:false}});
-  const business=await Business.findOne({_id:businessId,isActive:true}).lean();if(!business)throw new Error("Business unavailable.");
-  const paymentTaxRatesSnapshot=businessTaxRates(business),taxRateSnapshot=paymentTaxRatesSnapshot?.[input.paymentMethod],taxPaymentMethod=input.paymentMethod;
-  // build(discount) re-prices the same snapshot lines with a coupon discount, without reloading the catalog.
-  const build=(discount=0)=>{
-  const totals=calculateOrderPreview(priced,input.orderType==="DELIVERY"?input.deliveryCharge:0,taxRateSnapshot,discount);
-  const items=totals.lines.map((calculated,index)=>{const source=input.lines[index];if(source.kind==="PRODUCT"){const row=productMap.get(source.id)!,variant=source.variantName?row.variants?.find((item:{name:string})=>item.name.toLowerCase()===source.variantName!.toLowerCase()):undefined,price=productLinePrice(row,variant,source.weightGrams);return{lineId:source.lineId||randomUUID(),itemType:"PRODUCT",productId:row._id,preparationTimeMinutesSnapshot:row.preparationTimeMinutes??null,nameSnapshot:price.name,variantNameSnapshot:variant?.name,weightGrams:price.weightGrams,pricePerKgSnapshot:price.pricePerKg,imageUrlSnapshot:row.imageUrl,quantity:source.quantity,unitPrice:price.unitPrice,unitCost:price.unitCost,itemTaxRateSnapshot:row.taxRate??0,taxRate:calculated.taxRate,isTaxInclusive:calculated.isTaxInclusive,discountAmount:calculated.discountAmount,lineSubtotal:calculated.baseAmount,lineTax:calculated.taxAmount,lineTotal:calculated.lineTotal,notes:source.note||undefined,dealItemsSnapshot:[]}}const row=dealMap.get(source.id)!;const dealItemsSnapshot=row.items.map((component:{productId:unknown;quantity:number})=>{const product=componentMap.get(String(component.productId));return{productId:product?._id,name:product?.name??"Unavailable item",quantity:component.quantity,unitCost:product?.costPrice??0}});const unitCost=dealItemsSnapshot.reduce((sum:number,item:{quantity:number;unitCost:number})=>sum+item.quantity*item.unitCost,0);return{lineId:source.lineId||randomUUID(),itemType:"DEAL",dealId:row._id,preparationTimeMinutesSnapshot:maxPreparationMinutes(row.items.map((component:{productId:unknown})=>componentMap.get(String(component.productId))?.preparationTimeMinutes)),nameSnapshot:row.name,imageUrlSnapshot:row.imageUrl,quantity:source.quantity,unitPrice:row.salePrice,unitCost,itemTaxRateSnapshot:0,taxRate:calculated.taxRate,isTaxInclusive:calculated.isTaxInclusive,discountAmount:calculated.discountAmount,lineSubtotal:calculated.baseAmount,lineTax:calculated.taxAmount,lineTotal:calculated.lineTotal,notes:source.note||undefined,dealItemsSnapshot}});
-  return{items,totals}};
-  return{...build(),build,paymentTaxRatesSnapshot,taxRateSnapshot,taxPaymentMethod};
+
+
+async function guestCustomer(businessId:string,guest:{name?:string;phone?:string},session:ClientSession){
+ const phone=String(guest.phone).replace(/^\+92/,"0"),name=String(guest.name||"Guest").slice(0,100);
+ // Saved numbers may be typed as 0300-1234567 or +92 300 1234567; match on the last ten digits.
+ const digits=phone.replace(/\D/g,"").slice(-10),pattern=new RegExp(digits.split("").join("[\\s().+-]*")+"$");
+ const existing=await Customer.findOne({businessId,phone:pattern,isActive:true}).sort({createdAt:1}).session(session);
+ if(existing)return existing;
+ const[created]=await Customer.create([{businessId,name,phone,notes:"Added from a QR table order"}],{session});
+ return created;
+}
+
+// Cashier rejects a pending QR order (a prank, a duplicate, or a guest who left). Waiter orders are edited by the waiter instead.
+export async function cancelWaiterRequest(id:string,revision:number,reason:string){
+ try{
+  const user=await requirePermission("pos");
+  if(!COUNTER_ROLES.includes(user.role))throw new Error("Only a cashier, supervisor, manager, admin or owner can cancel QR orders.");
+  orderIdSchema.parse(id);z.number().int().min(0).parse(revision);
+  const clean=z.string().trim().min(3,"Enter a reason of at least 3 characters.").max(300).parse(reason);
+  await connectToDatabase();
+  const row=await WaiterRequest.findOneAndUpdate({_id:id,businessId:user.businessId,source:"QR",status:"PENDING",revision},{$set:{status:"CANCELLED",cancelledAt:new Date(),cancelledByUserId:user.id,cancellationReason:clean},$inc:{revision:1}},{returnDocument:"after"});
+  if(!row)throw new Error("This QR order was already approved, cancelled or changed. Refresh and check again.");
+  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"CANCEL_QR_ORDER",entityType:"WaiterRequest",entityId:id,description:`Cancelled QR order from ${row.tableName??"a table"} (${row.guest?.name??"guest"}): ${clean}`,metadata:{reason:clean}});
+  revalidatePath("/waiter-requests");
+  return{ok:true as const};
+ }catch(error){return{ok:false as const,message:error instanceof z.ZodError?error.issues[0].message:saleSessionError(error)}}
 }
 
 async function context(input:OrderInput){const user=await requireUser();const parsed=orderInputSchema.safeParse(input);if(!parsed.success)throw new Error(parsed.error.issues[0]?.message??"Check the order details.");await connectToDatabase();const[table,waiter,customer]=await Promise.all([parsed.data.tableId?RestaurantTable.findOne({_id:parsed.data.tableId,businessId:user.businessId,isActive:true}).lean():null,parsed.data.waiterId?Staff.findOne({_id:parsed.data.waiterId,businessId:user.businessId,isActive:true,role:"WAITER"}).lean():null,parsed.data.customerId?Customer.findOne({_id:parsed.data.customerId,businessId:user.businessId,isActive:true}).lean():null]);if(parsed.data.tableId&&!table)throw new Error("Selected table is unavailable.");if(parsed.data.waiterId&&!waiter)throw new Error("Selected waiter is unavailable.");if(parsed.data.customerId&&!customer)throw new Error("Selected customer is unavailable.");const snapshots=await orderSnapshots(user.businessId,parsed.data);return{user,input:parsed.data,table,waiter,customer,...snapshots}}
@@ -146,8 +158,9 @@ export async function changeOrderStatus(id:string,next:"CONFIRMED"|"SENT_TO_KITC
  const order=await Order.findOneAndUpdate({_id:id,businessId:user.businessId,status:{$in:allowed[next]},...(["SERVED","COMPLETED"].includes(next)?{orderType:{$ne:"DELIVERY"}}:{}),...(next==="COMPLETED"?{paymentStatus:"PAID"}:{}),...(next==="SENT_TO_KITCHEN"?{$or:[{orderType:{$ne:"TAKEAWAY"}},{paymentStatus:"PAID"}]}:{})},{$set:updates},{returnDocument:"before"}).lean();if(!order)return{ok:false as const,message:"The order changed or cannot move to this stage. Unpaid orders cannot be completed."};
  await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"ORDER_"+next,entityType:"Order",entityId:id,description:"Changed "+order.orderNumber+" from "+order.status+" to "+next});
  await notifyWaiterOrder(mongoose.connection.db!,{...order,status:next});
- // The order is already ready; a failed SMS queue must not report the kitchen update as failed.
- if(next==="READY")await queueOrderStageSms(mongoose.connection.db!,{...order,status:next},"ORDER_READY",now).catch(()=>{});
+ // The order has already moved; a failed SMS queue must not report the kitchen update as failed.
+ const smsType=({PREPARING:"ORDER_PREPARING",READY:"ORDER_READY",SERVED:"ORDER_SERVED",COMPLETED:"ORDER_COMPLETED"} as const)[next as "PREPARING"];
+ if(smsType)await queueOrderStageSms(mongoose.connection.db!,{...order,status:next},smsType,now).catch(()=>{});
  revalidatePath("/orders");revalidatePath("/kitchen");revalidatePath("/orders/"+id);
  return{ok:true as const};
 }

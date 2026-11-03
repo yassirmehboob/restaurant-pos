@@ -1,0 +1,28 @@
+/* Printed 4x6 inch table cards with the QR code guests scan to order. */
+.table-qr-page{min-height:100vh;padding:24px;background:#e9edf2;display:grid;justify-content:center;gap:24px}
+.table-qr-warning{max-width:4in;padding:12px 14px;border:1px solid #f3c9a5;border-radius:10px;background:#fff8f2;color:#8f3414;font-size:13px;line-height:1.6}
+.table-qr-warning p{margin:0}.table-qr-warning p+p{margin-top:8px}
+.table-qr-card{box-sizing:border-box;width:4in;height:6in;padding:.28in .3in .2in;display:flex;flex-direction:column;align-items:center;background:#fff;color:#2b1a12;border-radius:14px;box-shadow:0 8px 30px #0f172a26;font-family:"Segoe UI",Roboto,Arial,sans-serif;text-align:center;overflow:hidden;border-top:.16in solid #b4441c}
+.table-qr-card header{display:flex;flex-direction:column;align-items:center;gap:6px}
+.table-qr-card header img{width:.6in;height:.6in;object-fit:contain}
+.table-qr-card h1{margin:0;font-size:22pt;line-height:1.1;font-weight:800;overflow-wrap:anywhere}
+.table-qr-scan{display:grid;gap:1px;margin-top:8px}
+.table-qr-scan strong{font-size:15pt;color:#b4441c;letter-spacing:.5px}
+.table-qr-scan span{font-size:11pt;line-height:1.5;font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaleeq","Noto Naskh Arabic",Tahoma,sans-serif}
+.table-qr-code{margin-top:8px;width:2.35in;height:2.35in;padding:.1in;border:3px solid #2b1a12;border-radius:14px}
+.table-qr-code svg{display:block;width:100%;height:100%}
+.table-qr-table{display:grid;margin-top:8px;line-height:1}
+.table-qr-table span{font-size:10pt;font-weight:700;letter-spacing:4px;color:#7a6559}
+.table-qr-table b{font-size:40pt;font-weight:900;color:#b4441c}
+.table-qr-table small{margin-top:3px;font-size:10pt;color:#7a6559}
+.table-qr-steps{display:flex;gap:12px;justify-content:center;list-style:none;margin:auto 0 0;padding:6px 0 0;font-size:8.5pt;font-weight:600;color:#5a463b}
+.table-qr-steps li{display:flex;align-items:center;gap:4px}
+.table-qr-steps i{display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#f4a72c;color:#2b1a12;font-style:normal;font-size:8pt;font-weight:800}
+.table-qr-card footer{margin-top:6px;font-size:6.5pt;color:#9a8679}
+@media print{
+ @page{size:4in 6in;margin:0}
+ .table-qr-page{display:block;min-height:0;padding:0;background:#fff}
+ .table-qr-warning,.receipt-toolbar{display:none!important}
+ .table-qr-card{border-radius:0;box-shadow:none;break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .table-qr-card:last-child{break-after:auto;page-break-after:auto}
+}

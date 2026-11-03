@@ -2,13 +2,14 @@ import "server-only";
 import type { PrinterTarget } from "@/lib/printer-target";
 import type { PaperWidth } from "@/lib/escpos";
 import type { ReceiptFamily } from "@/lib/receipt-fonts";
-import { familyFor,paperWidth,renderReceipt,type PrintPart,type ReceiptBusiness,type ReceiptExtras,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
+import { familyFor,paperWidth,renderQrSlip,renderReceipt,type PrintPart,type QrSlip,type ReceiptBusiness,type ReceiptExtras,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
 import { readyTimeMessage } from "@/lib/preparation-time";
 import { receiptPreparationMinutes } from "@/lib/receipt-preparation";
 import { orderCashierName } from "@/lib/order-cashier";
 import { Business } from "@/models/Business";
 import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
+import { WaiterRequest } from "@/models/WaiterRequest";
 
 export type { PrintPart,ReceiptKind };
 export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
@@ -35,4 +36,21 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
   const unpaidDineIn=kind==="customer"&&order.orderType==="DINE_IN"&&order.paymentStatus!=="PAID";
   const copies=Math.min(5,Math.max(1,Number(kind==="kitchen"?business.kitchenReceiptCopies:unpaidDineIn?business.unpaidDineInReceiptCopies:business.customerReceiptCopies)||1));
   return{kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,paper:paperWidth(settings),family:familyFor(settings,kind),parts};
+}
+
+// QR guest order slip, printed on the customer (counter) printer before the order is approved.
+export async function buildQrSlipJob(businessId:string,requestId:string):Promise<PrintJob|{error:string}>{
+  const slip=await loadQrSlip(businessId,requestId);
+  if(!slip)return{error:"This QR order is no longer waiting for approval."};
+  const{business,data}=slip;
+  if(business.customerPrintingEnabled===false)return{error:"Customer printing is turned off in Printing settings."};
+  const settings=business as unknown as ReceiptBusiness;
+  return{kind:"customer",role:"customer",printer:target(business as unknown as Record<string,unknown>,"customer"),copies:1,paper:paperWidth(settings),family:familyFor(settings,"kitchen"),parts:renderQrSlip(settings,data,business.qrShowBillSummary!==false)};
+}
+export async function loadQrSlip(businessId:string,requestId:string){
+  if(!/^[a-f\d]{24}$/i.test(requestId))return null;
+  const[request,business]=await Promise.all([WaiterRequest.findOne({_id:requestId,businessId,source:"QR",status:"PENDING"}).lean(),Business.findOne({_id:businessId,isActive:true}).lean()]);
+  if(!request||!business)return null;
+  const data:QrSlip={tableName:String(request.tableName??"Table"),guestName:String(request.guest?.name??""),guestPhone:String(request.guest?.phone??""),createdAt:request.createdAt,lines:request.displayLines,grandTotal:request.summary?.grandTotal};
+  return{business,data};
 }
