@@ -5,8 +5,10 @@ title Restaurant POS Server
 cd /d "%~dp0"
 
 :loop
+rem An update takes minutes, so a flag older than 30 minutes was left by a closed or interrupted update.
+if exist updating.flag powershell -NoProfile -Command "if (((Get-Date) - (Get-Item 'updating.flag').LastWriteTime).TotalMinutes -gt 30) { Remove-Item 'updating.flag' }"
 if exist updating.flag (
-  echo Update in progress, waiting...
+  echo Update in progress, waiting... If no update is running, delete updating.flag in this folder.
   timeout /t 5 /nobreak >nul
   goto loop
 )
