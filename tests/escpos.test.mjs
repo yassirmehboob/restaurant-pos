@@ -125,3 +125,20 @@ test("the receipt decoder replays lines, styles, barcodes and the cut", async ()
   assert.ok(barcode.startsWith("\x1ba\x01") && barcode.includes("\x1dk\x49\x07{BORD-1"));
   assert.equal(text(Buffer.from(nativeCommand({ kind: "cut" }), "base64")), "\x1dVB\x03");
 });
+
+test("kitchen tickets print deal items as the item name then its quantity", async () => {
+  const { renderReceipt } = await import("../lib/receipt-layout.ts");
+  const { decodeEscPos } = await import("../lib/receipt-raster.ts");
+  const order = { orderNumber: "ORD-1", createdAt: "2026-11-02T08:00:00Z", orderType: "DINE_IN", paymentStatus: "PAID", items: [{ quantity: 1, nameSnapshot: "Family Deal", unitPrice: 2499, dealItemsSnapshot: [{ name: "Zinger Burger", quantity: 2 }] }], subtotal: 2499, taxAmount: 0, grandTotal: 2499, paidAmount: 2499, dueAmount: 0 };
+  const lines = renderReceipt("kitchen", { name: "Test" }, order).flatMap(part => decodeEscPos(part.base64)).map(row => row.text);
+  assert.ok(lines.includes("   > Zinger Burger - Qty 2"), JSON.stringify(lines));
+  assert.ok(!lines.some(line => /\dx /.test(line ?? "")), JSON.stringify(lines));
+});
+
+test("kitchen tickets start with the restaurant name", async () => {
+  const { renderReceipt } = await import("../lib/receipt-layout.ts");
+  const { decodeEscPos } = await import("../lib/receipt-raster.ts");
+  const order = { orderNumber: "ORD-1", createdAt: "2026-11-02T08:00:00Z", orderType: "DINE_IN", paymentStatus: "PAID", items: [], subtotal: 0, taxAmount: 0, grandTotal: 0, paidAmount: 0, dueAmount: 0 };
+  const lines = renderReceipt("kitchen", { name: "Karachi Grill" }, order).flatMap(part => decodeEscPos(part.base64)).map(row => row.text);
+  assert.deepEqual(lines.slice(0, 3), ["Karachi Grill", "KITCHEN ORDER", "ORD-1"]);
+});

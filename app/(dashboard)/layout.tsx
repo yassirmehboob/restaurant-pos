@@ -9,10 +9,11 @@ import { CircleDot, LogOut, Play, ShieldCheck, UtensilsCrossed } from "lucide-re
 import { requireUser } from "@/data/auth";
 import { logoutAction } from "@/app/(auth)/actions";
 import { DashboardNav } from "@/components/dashboard-nav";
+import { SessionActivity } from "@/components/session-activity";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser(), sale = await activeSaleSession(user);
-  return <PermissionProvider privileges={user.privileges}><div className="dashboard-shell">
+  return <PermissionProvider privileges={user.privileges}><SessionActivity/><div className="dashboard-shell">
     <aside className="sidebar">
       <Link className="sidebar-brand" href="/dashboard"><span>{user.businessLogoUrl ? <Image className="sidebar-logo" src={user.businessLogoUrl} alt="" width={42} height={42}/> : <UtensilsCrossed size={22}/>}</span><div>{user.businessName}<small>Restaurant POS</small></div></Link>
       <DashboardNav role={user.role} privileges={user.privileges}/>

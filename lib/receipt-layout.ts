@@ -58,9 +58,9 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     if(order.orderType==="DELIVERY"){p.text("Address: "+(order.customerSnapshot?.address||"Not provided"));p.text("Area: "+(order.customerSnapshot?.area||"Not provided"))}
     meta("Payment",order.paymentStatus);
     p.divider();
-    // Lines print before tax and discount so they add up to the subtotal; tax and coupon follow it.
+    // Lines print before tax and discount so they add up to the subtotal; tax and coupon follow it. Item notes are for the kitchen, not the customer.
     const invoiceDiscount=(order.invoiceDiscount?.amount??0)>0?order.invoiceDiscount:null,couponDiscount=(order.discountAmount??0)-(invoiceDiscount?.amount??0);
-    for(const row of receiptItemRows(order.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes})),p.columnsAt("normal"),money))p.bold(Boolean(row.bold)).line(row.text).bold(false);
+    for(const row of receiptItemRows(order.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity})),p.columnsAt("normal"),money))p.bold(Boolean(row.bold)).line(row.text).bold(false);
     p.divider();
     p.row("Subtotal",money(order.subtotal));
     if(couponDiscount>0)p.row(`Coupon${order.couponCode?` ${order.couponCode}`:""}`,"-"+money(couponDiscount));
@@ -80,7 +80,7 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     p.feed(1).align("center").barcode(order.orderNumber).text(business.receiptFooter||"Thank you!");
     if(extras.readyMessage)p.bold(true).text(extras.readyMessage).bold(false);
   }else{
-    p.align("center").bold(true).text("KITCHEN ORDER").size("large").text(order.orderNumber,p.columnsAt("large")).size("normal").bold(false);
+    p.align("center").bold(true).size("tall").text(business.name).size("normal").text("KITCHEN ORDER").size("large").text(order.orderNumber,p.columnsAt("large")).size("normal").bold(false);
     p.barcode(order.orderNumber).align("left").divider();
     if(order.saleDate)meta("Sale date",formatDate(order.saleDate));
     meta("Created",formatDateTime(order.createdAt));meta("Type",order.orderType.replace("_","-"));
@@ -89,7 +89,7 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     if(order.orderSource==="QR")meta("Source","QR code order");
     p.divider();
     // Same item table as the customer receipt; the cook reads item names and notes in bold.
-    const items=order.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes,components:(line.dealItemsSnapshot??[]).map(item=>`${item.quantity}x ${item.name}`)}));
+    const items=order.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes,components:(line.dealItemsSnapshot??[]).map(item=>`${item.name} - Qty ${item.quantity}`)}));
     for(const row of receiptItemRows(items,p.columnsAt("normal"),money,{prices:Boolean(business.showPricesOnKitchenReceipt)}))p.bold(row.kind!=="detail").line(row.text).bold(false);
     if(order.notes)p.divider().bold(true).text("ORDER NOTE").bold(false).text(order.notes);
   }

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { registerHooks } from "node:module";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
+import { SignJWT } from "jose";
 import mongoose from "mongoose";
 import { User } from "../models/User.ts";
 import { Business } from "../models/Business.ts";
@@ -34,7 +35,8 @@ test("security: authorization, tenant isolation, sessions and payment integrity"
   await mongoose.connect(process.env.MONGODB_URI, { dbName: "pos_security_test_" + randomUUID().replaceAll("-", ""), serverSelectionTimeoutMS: 5000 });
   globalThis.mongooseConnection = Promise.resolve(mongoose);
   try {
-    const { createSession, deleteSession } = await import("../lib/auth/session.ts");
+    const { createSession, deleteSession, notificationSessionIdentity } = await import("../lib/auth/session.ts");
+    const { GET: sessionGET, POST: sessionPOST } = await import("../app/api/session/route.ts");
     const { getCurrentUser } = await import("../data/auth.ts");
     const { saveUserAccount, saveOwnerProfile } = await import("../app/(dashboard)/users/actions.ts");
     const { saveOrder, cancelOrder, changeOrderStatus,saveWaiterRequest,confirmWaiterRequest,completeTakeawayPayment,changeDeliveryStatus } = await import("../app/(dashboard)/orders/actions.ts");
@@ -231,6 +233,54 @@ test("security: authorization, tenant isolation, sessions and payment integrity"
       const token = await signIn(owner); await deleteSession(); assert.equal(jar.size, 0);
       useCookie(token); assert.equal(await getCurrentUser(), null);
       const fresh = await signIn(owner); assert.notEqual(fresh, token); assert.ok(await getCurrentUser());
+    });
+    await t.test("activity renews the session, polling does not, and logout ends every renewal", async () => {
+      const key = new TextEncoder().encode(process.env.AUTH_SECRET), oneHour = 3600, twelveHours = 12 * 3600;
+      const tokenWith = async (user, seconds) => { const current = await User.findById(user._id); return new SignJWT({ userId: String(current._id), businessId: String(current.businessId), role: current.role, authVersion: current.authVersion ?? 0 }).setProtectedHeader({ alg: "HS256" }).setJti(randomUUID()).setIssuedAt().setExpirationTime(Math.floor(Date.now() / 1000) + seconds).sign(key); };
+      const secondsIn = async response => (await response.json()).expiresInSeconds;
+      const near = (actual, expected) => assert.ok(Math.abs(actual - expected) <= 5, `${actual} is not near ${expected}`);
+      const hash = value => createHash("sha256").update(value).digest("hex");
+
+      const old = await tokenWith(owner, oneHour); useCookie(old);
+      near(await secondsIn(await sessionGET()), oneHour);
+      assert.equal(jar.get("restaurant_pos_session"), old, "a status check must not extend the session");
+      near(await secondsIn(await sessionPOST()), twelveHours);
+      const renewed = jar.get("restaurant_pos_session"); assert.notEqual(renewed, old);
+      near(await secondsIn(await sessionGET()), twelveHours);
+      assert.equal((await getCurrentUser()).id, String(owner._id));
+
+      // Logging out from the newest token also kills a copied earlier one.
+      await deleteSession();
+      useCookie(renewed); assert.equal(await getCurrentUser(), null); assert.equal((await sessionPOST()).status, 401); assert.equal(jar.get("restaurant_pos_session"), renewed);
+      useCookie(old); assert.equal(await getCurrentUser(), null); assert.equal((await sessionPOST()).status, 401); assert.equal(jar.get("restaurant_pos_session"), old);
+
+      // Sessions that lapsed, or accounts locked out since login, cannot renew.
+      useCookie(await tokenWith(owner, -1));
+      assert.equal((await sessionPOST()).status, 401); assert.equal((await sessionGET()).status, 401);
+      useCookie(await tokenWith(cashier, oneHour)); await User.updateOne({ _id: cashier._id }, { $inc: { authVersion: 1 } });
+      assert.equal((await sessionPOST()).status, 401);
+      await User.updateOne({ _id: cashier._id }, { $inc: { authVersion: -1 } });
+
+      // A logout recorded before renewal existed still blocks that exact token.
+      const legacy = await tokenWith(owner, oneHour);
+      await mongoose.connection.db.collection("revokedsessions").insertOne({ _id: hash(legacy), expiresAt: new Date(Date.now() + 60000) });
+      useCookie(legacy); assert.equal(await getCurrentUser(), null);
+
+      // Waiter notifications follow the renewed session and stop when it is logged out.
+      const pushes = mongoose.connection.db.collection("waiterpushsubscriptions");
+      const waiterToken = await tokenWith(waiter, oneHour); useCookie(waiterToken);
+      const identity = await notificationSessionIdentity();
+      await pushes.insertMany([
+        { _id: "current", userId: waiter._id, ...identity },
+        { _id: "older", userId: waiter._id, sessionHash: hash(waiterToken), expiresAt: identity.expiresAt },
+        { _id: "other", userId: cashier._id, sessionHash: identity.sessionHash, expiresAt: identity.expiresAt },
+      ]);
+      near(await secondsIn(await sessionPOST()), twelveHours);
+      for (const _id of ["current", "older"]) { const row = await pushes.findOne({ _id }); assert.equal(row.sessionHash, identity.sessionHash); near((row.expiresAt - Date.now()) / 1000, twelveHours); }
+      assert.equal((await pushes.findOne({ _id: "other" })).expiresAt.getTime(), identity.expiresAt.getTime());
+      assert.equal((await notificationSessionIdentity()).sessionHash, identity.sessionHash);
+      await deleteSession();
+      assert.ok(await mongoose.connection.db.collection("revokedsessions").findOne({ _id: identity.sessionHash }));
     });
   } finally {
     jar.clear(); delete globalThis.mongooseConnection;

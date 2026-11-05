@@ -10,35 +10,51 @@ const items = [
   { name: "Family Deal", unitPrice: 125000, quantity: 12 },
 ];
 
-test("80 mm receipts print # | Item | Price | Qty | Amount in aligned columns", () => {
+test("80 mm receipts print # | Price | Qty | Amount with the item name across the full row below", () => {
   const rows = receiptItemRows(items, 42, money).map(row => row.text);
   assert.ok(rows.every(row => row.length <= 42), JSON.stringify(rows));
-  assert.equal(rows[1].length, 42);
-  assert.ok(rows.every(row => !/dd{3},/.test(row.replace(/d{1,3}(,d{3})*.dd/g, "#"))), "figures must not run together");
+  assert.equal(rows[0].length, 42);
   assert.deepEqual(rows, [
-    "#  Item              Price  Qty     Amount",
-    "1  Mutton Karahi  2,400.00    2   4,800.00",
-    "   (500 g)",
-    "2  Naan              50.00   10     500.00",
+    "#                    Price  Qty     Amount",
+    "Item",
+    "1                 2,400.00    2   4,800.00",
+    "Mutton Karahi (500 g)",
+    "2                    50.00   10     500.00",
+    "Naan",
     "   Note: Extra crispy",
-    "3  Mutton Karahi 15,648.00    1  15,648.00",
-    "   (3.26 KG)",
-    // Too wide for the table: the figures drop to their own line, still spaced and uncut.
-    "4  Family Deal",
-    "              125,000.00   12 1,500,000.00",
+    "3                15,648.00    1  15,648.00",
+    "Mutton Karahi (3.26 KG)",
+    "4             125,000.00   12 1,500,000.00",
+    "Family Deal",
   ]);
   assert.equal(receiptItemRows(items, 42, money)[0].bold, true);
+  assert.equal(receiptItemRows(items, 42, money)[1].bold, true);
 });
 
-test("58 mm receipts put the item on its own line and the figures under the column headings", () => {
+test("a long item name uses the whole paper width before it wraps", () => {
+  const name = "Special Chicken Karahi With Extra Butter Sauce";
+  const rows = receiptItemRows([{ name, unitPrice: 100, quantity: 1 }], 42, money).map(row => row.text);
+  assert.deepEqual(rows.slice(3), ["Special Chicken Karahi With Extra Butter", "Sauce"]);
+});
+
+test("58 mm receipts use the same layout, under the same column headings", () => {
   const rows = receiptItemRows(items.slice(0, 1), 30, money).map(row => row.text);
   assert.ok(rows.every(row => row.length <= 30), JSON.stringify(rows));
   assert.deepEqual(rows, [
-    "#  Item",
-    "         Price  Qty     Amount",
-    "1  Mutton Karahi (500 g)",
-    "      2,400.00    2   4,800.00",
+    "#        Price  Qty     Amount",
+    "Item",
+    "1     2,400.00    2   4,800.00",
+    "Mutton Karahi (500 g)",
   ]);
+});
+
+test("figures too wide for the paper close up and wrap instead of being cut off", () => {
+  // Large print on 80 mm paper leaves 21 columns, fewer than the spaced figures need.
+  const rows = receiptItemRows(items.slice(0, 1), 21, money).map(row => row.text);
+  assert.deepEqual(rows, ["# Price Qty Amount", "Item", "1 2,400.00 2 4,800.00", "Mutton Karahi (500 g)"]);
+  const huge = receiptItemRows([items[3]], 15, money).map(row => row.text);
+  assert.ok(huge.every(row => row.length <= 15), JSON.stringify(huge));
+  for (const figure of ["125,000.00", "12", "1,500,000.00"]) assert.ok(huge.some(row => row.includes(figure)), figure);
 });
 
 test("received rows name the payment method and list split payments per method", () => {
@@ -51,13 +67,13 @@ test("received rows name the payment method and list split payments per method",
 });
 
 test("kitchen tickets use the same table, with only Qty when prices are hidden", () => {
-  const kitchen = [{ name: "Family Deal", unitPrice: 2499, quantity: 1, components: ["2x Zinger Burger", "1x Fries"], notes: "No ice" }, { name: "Garlic Naan", unitPrice: 60, quantity: 4 }];
+  const kitchen = [{ name: "Family Deal", unitPrice: 2499, quantity: 1, components: ["Zinger Burger - Qty 2", "Fries - Qty 1"], notes: "No ice" }, { name: "Garlic Naan", unitPrice: 60, quantity: 4 }];
   const rows = receiptItemRows(kitchen, 42, money, { prices: false });
   assert.deepEqual(rows.map(row => row.text), [
     "#  Item                                Qty",
     "1  Family Deal                           1",
-    "   > 2x Zinger Burger",
-    "   > 1x Fries",
+    "   > Zinger Burger - Qty 2",
+    "   > Fries - Qty 1",
     "   Note: No ice",
     "2  Garlic Naan                           4",
   ]);

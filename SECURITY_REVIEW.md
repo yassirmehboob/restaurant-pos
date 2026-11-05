@@ -11,7 +11,7 @@ orders, accounts, or financial records were changed by the tests.
 | --- | --- |
 | Critical/high dependency advisories: six affected packages, including Next.js | Upgraded Next.js and eslint-config-next from 16.3.0 to 16.4.3, Zod to 4.6.6, and patched transitive dependencies. Final online `npm audit` reports zero known vulnerabilities. |
 | Stored XSS through a counter name in the owner's close-counter popup | Use SweetAlert's `titleText` instead of its HTML-capable `title`. Order cancellation titles also use text. A malicious image/event-handler payload was checked in Chromium and remained literal text. |
-| Copied session cookies remained usable after logout | Give each login a unique JWT ID and persist a hash of logged-out tokens until their expiration. Session reads reject revoked tokens. |
+| Copied session cookies remained usable after logout | Give each login a unique JWT ID and persist a hash of that ID at logout, so it also covers earlier renewed tokens for that login. Session reads reject revoked tokens. |
 | Password resets and account security changes left older sessions valid | Atomically increment the account's authentication version on password, username, role, permission, and active-state changes. Other sessions are rejected immediately on their next authenticated request. |
 | Owner credential changes required only an existing session | Username/password changes now require the current password and, when enabled, an unused authenticator/recovery code. The current owner receives a renewed session; older sessions are invalidated. |
 | Registration accepted passwords that bcrypt silently truncates | Apply a shared 72-byte UTF-8 password limit across signup, login, account creation/reset, and 2FA password verification. |

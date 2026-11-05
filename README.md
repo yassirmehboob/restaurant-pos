@@ -32,8 +32,9 @@ The full feature specification is in [RESTAURANT_POS_CODEX_PLAN.md](RESTAURANT_P
 
 The local security review, fixes, test results, and deployment notes are documented in
 [SECURITY_REVIEW.md](SECURITY_REVIEW.md). Restart the application after installing dependency
-security updates. Logout revokes the current token; password/access changes revoke older
-sessions. Owner username/password changes require current credentials and 2FA when enabled.
+security updates. Sessions end after 12 hours without keyboard, click, touch or scroll activity;
+background polling does not count. Logout revokes the current login, including earlier renewed
+tokens; password/access changes revoke older sessions. Owner username/password changes require current credentials and 2FA when enabled.
 
 Production load-test results and before/after performance measurements are in
 [performance/REPORT.md](performance/REPORT.md). After `npm run build`, run
