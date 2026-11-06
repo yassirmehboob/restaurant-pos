@@ -5,6 +5,7 @@ export type SessionTotals = {
 };
 
 export const cents = (amount: number) => Math.round((amount + Number.EPSILON) * 100);
+export const uncollectedTotal = (orders: { dueAmount: number }[]) => orders.reduce((total, order) => total + cents(order.dueAmount), 0) / 100;
 export function calculateSessionTotals(openingBalance: number, payments: SessionEntry[], expenses: SessionEntry[]): SessionTotals {
   const sum = (rows: SessionEntry[], cashOnly = false) => rows.reduce((total, row) => total + ((!cashOnly || row.method === "CASH") ? cents(row.amount) : 0), 0);
   const sales = sum(payments), costs = sum(expenses), cashSales = sum(payments, true), cashExpenses = sum(expenses, true);

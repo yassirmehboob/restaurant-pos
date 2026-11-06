@@ -10,7 +10,7 @@ import { Business } from "@/models/Business";
 import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 import { paymentPricing,type PaymentMethod } from "@/lib/tax";
-import { businessDiscountTypes,resolveInvoiceDiscount,type AppliedDiscount,type DiscountInput } from "@/lib/invoice-discount";
+import { storedDiscount,type StoredDiscount } from "@/lib/invoice-discount";
 import { queueDiscountSms } from "@/lib/discount-sms";
 import { connectToDatabase } from "@/lib/db";
 import { paymentPrefillDue } from "@/lib/payment-settings";
@@ -21,28 +21,24 @@ import { queueOrderStageSms } from "@/lib/order-stage-sms.mjs";
 import mongoose from "mongoose";
 import { autoIssueCoupons,redeemOrderCoupon } from "@/lib/coupon-service";
 
-const schema=paymentInputSchema.extend({orderId:z.string().regex(/^[a-f\d]{24}$/i)});
+// A saved order carries the discount chosen at Review & send, so payment takes none.
+const schema=paymentInputSchema.omit({discount:true}).extend({orderId:z.string().regex(/^[a-f\d]{24}$/i)});
 
-// Prices an invoice for payment: the base quote, then the invoice discount (if any) on the pre-tax amount after the coupon.
-function priceWithDiscount(order:Parameters<typeof paymentPricing>[0],method:PaymentMethod,types:ReturnType<typeof businessDiscountTypes>,input:DiscountInput|undefined,requireRemarks:boolean){
- const base=paymentPricing(order,method);
- if(!input)return{base,priced:base,discount:null as AppliedDiscount|null};
- const discount=resolveInvoiceDiscount(types,input,Math.max(0,base.subtotal-base.discountAmount),{requireRemarks});
- return{base,priced:paymentPricing(order,method,discount.amount),discount};
+// Prices an invoice for payment with the discount saved on it. Tax can change with the method, so it is priced from the coupon-only amount.
+function priceForPayment(order:Parameters<typeof paymentPricing>[0]&{invoiceDiscount?:StoredDiscount|null},method:PaymentMethod){
+ const discount=storedDiscount(order.invoiceDiscount);
+ if(!discount)return{priced:paymentPricing(order,method),discount};
+ return{priced:paymentPricing({...order,discountAmount:Math.max(0,(order.discountAmount??0)-discount.amount)},method,discount.amount),discount};
 }
 
-export async function previewPaymentTax(orderId:string,method:PaymentMethod,discountInput?:DiscountInput){
+export async function previewPaymentTax(orderId:string,method:PaymentMethod){
  const user=await requirePermission("payments");
  if(!/^[a-f\d]{24}$/i.test(orderId)||!["CASH","CARD","BANK","OTHER"].includes(method))return{ok:false as const,message:"Invalid payment details."};
- await connectToDatabase();const [order,prefillDue,business]=await Promise.all([Order.findOne({_id:orderId,businessId:user.businessId,status:{$ne:"CANCELLED"},paymentStatus:{$ne:"PAID"}}).lean(),paymentPrefillDue(user.businessId),Business.findOne({_id:user.businessId,isActive:true}).select("invoiceDiscountEnabled discountTypes couponOnPayment").lean()]);
+ await connectToDatabase();const [order,prefillDue,business]=await Promise.all([Order.findOne({_id:orderId,businessId:user.businessId,status:{$ne:"CANCELLED"},paymentStatus:{$ne:"PAID"}}).lean(),paymentPrefillDue(user.businessId),Business.findOne({_id:user.businessId,isActive:true}).select("couponOnPayment").lean()]);
  if(!order)return{ok:false as const,message:"This order is already paid or unavailable."};
- const discountTypes=business?businessDiscountTypes(business):[];
  try{
-  let result=priceWithDiscount(order,method,discountTypes,undefined,false),discountError="";
-  // A discount that cannot apply leaves the undiscounted totals and explains why.
-  if(discountInput)try{result=priceWithDiscount(order,method,discountTypes,discountInput,false)}catch(error){discountError=error instanceof Error?error.message:"Could not apply this discount."}
-  const {priced,discount}=result;
-  return{ok:true as const,subtotal:priced.subtotal,discountAmount:priced.discountAmount,coupon:order.couponCode?{code:String(order.couponCode),batchName:String(order.couponSnapshot?.batchName??"")}:null,customerId:order.customerId?String(order.customerId):"",taxAmount:priced.taxAmount,grandTotal:priced.grandTotal,dueAmount:priced.dueAmount,taxRate:priced.taxRate,method:priced.method,prefillDue,discountTypes,invoiceDiscount:discount,discountError,couponOnPayment:business?.couponOnPayment!==false}
+  const {priced,discount}=priceForPayment(order,method);
+  return{ok:true as const,subtotal:priced.subtotal,discountAmount:priced.discountAmount,coupon:order.couponCode?{code:String(order.couponCode),batchName:String(order.couponSnapshot?.batchName??"")}:null,customerId:order.customerId?String(order.customerId):"",taxAmount:priced.taxAmount,grandTotal:priced.grandTotal,dueAmount:priced.dueAmount,taxRate:priced.taxRate,method:priced.method,prefillDue,invoiceDiscount:discount,couponOnPayment:business?.couponOnPayment!==false}
  }catch(error){return{ok:false as const,message:error instanceof Error?error.message:"Could not calculate invoice tax."}}
 }
 
@@ -59,8 +55,7 @@ async function recordOrderPayment(input:z.infer<typeof schema>,completeDelivery:
       if(!order)throw new Error("This order is already paid or cannot accept payment.");
       if(completeDelivery&&(order.orderType!=="DELIVERY"||order.status!=="SERVED"||(order.deliveryStatus&&order.deliveryStatus!=="OUT_FOR_DELIVERY")))throw new Error("Only an out-for-delivery order can be paid and marked delivered.");
       if(order.orderType==="DELIVERY"&&order.deliveryStatus!=="DELIVERED"&&!completeDelivery)throw new Error("Use Mark delivered to receive payment and confirm this delivery together.");
-      const business=await Business.findOne({_id:user.businessId,isActive:true}).select("invoiceDiscountEnabled discountTypes").session(transaction).lean();
-      const {base,priced:quote,discount}=priceWithDiscount(order,parsed.data.method,business?businessDiscountTypes(business):[],parsed.data.discount,true);
+      const {priced:quote,discount}=priceForPayment(order,parsed.data.method);
       if(Math.abs(quote.grandTotal-parsed.data.expectedGrandTotal)>0.005)throw new Error("The invoice changed. Refresh its payment calculation before receiving payment.");
       const due=quote.dueAmount,tendered=Math.round(parsed.data.tenderedAmount*100)/100;
       if(parsed.data.method==="CASH"&&tendered<due)throw new Error(`Cash received must be at least Rs ${due.toLocaleString()}.`);
@@ -71,13 +66,13 @@ async function recordOrderPayment(input:z.infer<typeof schema>,completeDelivery:
       const deliveryCompleted=completeDelivery||(order.orderType==="DELIVERY"&&order.deliveryStatus==="DELIVERED");
       const completeOrder=order.orderType==="DINE_IN"||deliveryCompleted;
       const sendToKitchen=order.orderType==="TAKEAWAY"&&["DRAFT","CONFIRMED"].includes(order.status);
-      const paid=await Order.findOneAndUpdate({_id:order._id,businessId:user.businessId,status:{$ne:"CANCELLED"},paymentStatus:{$ne:"PAID"}},{$set:{...(completeOrder?{status:"COMPLETED",completedAt:order.completedAt??payment.paidAt}:{}),...(completeDelivery?{deliveryStatus:"DELIVERED",deliveredAt:payment.paidAt,lastUpdatedByUserId:user.id}:{}),...(sendToKitchen?{status:"SENT_TO_KITCHEN",kitchenSentAt:new Date(),kitchenStatusSource:"MANUAL"}:{}),items:quote.items,discountAmount:quote.discountAmount,...(discount?{invoiceDiscount:{...discount,amountBefore:base.grandTotal,appliedByUserId:user.id,appliedByName:user.fullName}}:{}),taxAmount:quote.taxAmount,grandTotal:quote.grandTotal,taxRateSnapshot:quote.taxRate,taxPaymentMethod:parsed.data.method,paidAmount:quote.grandTotal,dueAmount:0,paymentStatus:"PAID",saleDate:order.saleDate||sale.saleDate,collectedInSessionId:sale._id}},{returnDocument:"after",session:transaction});
+      const paid=await Order.findOneAndUpdate({_id:order._id,businessId:user.businessId,status:{$ne:"CANCELLED"},paymentStatus:{$ne:"PAID"}},{$set:{...(completeOrder?{status:"COMPLETED",completedAt:order.completedAt??payment.paidAt}:{}),...(completeDelivery?{deliveryStatus:"DELIVERED",deliveredAt:payment.paidAt,lastUpdatedByUserId:user.id}:{}),...(sendToKitchen?{status:"SENT_TO_KITCHEN",kitchenSentAt:new Date(),kitchenStatusSource:"MANUAL"}:{}),items:quote.items,discountAmount:quote.discountAmount,...(discount?{invoiceDiscount:{...order.invoiceDiscount,amountBefore:quote.amountBefore}}:{}),taxAmount:quote.taxAmount,grandTotal:quote.grandTotal,taxRateSnapshot:quote.taxRate,taxPaymentMethod:parsed.data.method,paidAmount:quote.grandTotal,dueAmount:0,paymentStatus:"PAID",saleDate:order.saleDate||sale.saleDate,collectedInSessionId:sale._id}},{returnDocument:"after",session:transaction});
       if(!paid)throw new Error("Another payment completed this order first.");
       const issued=await autoIssueCoupons(paid.toObject(),order.saleDate||sale.saleDate,transaction);
       if(deliveryCompleted)await queueDeliverySms(paid.toObject(),"DELIVERY_DELIVERED",payment.paidAt,transaction);
       else await queuePaymentSms(paid.toObject(),payment.paidAt,transaction);
       if(completeOrder&&!deliveryCompleted)await queueOrderStageSms(mongoose.connection.db!,paid.toObject(),"ORDER_COMPLETED",payment.paidAt,transaction);
-      if(discount)await queueDiscountSms(paid.toObject(),{amountBefore:base.grandTotal,discount,amountAfter:quote.grandTotal,cashier:user.fullName},transaction);
+      if(discount)await queueDiscountSms(paid.toObject(),{amountBefore:quote.amountBefore,discount,amountAfter:quote.grandTotal,cashier:order.invoiceDiscount?.appliedByName??user.fullName},transaction);
       return {completed:completeOrder,deliveryCompleted:completeDelivery,sentToKitchen:sendToKitchen,change,taxRate:quote.taxRate,taxAmount:quote.taxAmount,previousGrandTotal:order.grandTotal,grandTotal:quote.grandTotal,saleDate:order.saleDate||sale.saleDate,orderNumber:order.orderNumber,orderId:String(order._id),paymentId:String(payment._id),amount:due,issued,couponCode:order.couponCode?String(order.couponCode):null,discountAmount:order.discountAmount??0,discount};
     });
   } catch(error) { return {ok:false as const,message:saleSessionError(error)}; }

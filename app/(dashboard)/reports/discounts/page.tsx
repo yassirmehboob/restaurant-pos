@@ -18,7 +18,7 @@ export default async function DiscountReportPage({searchParams}:{searchParams:Pr
  const sale=await activeSaleSession(user),[report,business]=await Promise.all([buildDiscountReport(user.businessId,{...businessDateQuery(query,sale?.saleDate),type:query.type}),Business.findOne({_id:user.businessId}).select("discountTypes").lean()]);
  const typeNames=[...new Set([...(business?.discountTypes??[]).map((type:{name:string})=>type.name),...report.invoices.map(row=>row.name)])];
  return <main className="master-page reports-page">
-  <MasterHeader eyebrow="Paid sales" title="Discounted Invoices" description="Paid invoices that received a discount at payment, with who gave it and why."/>
+  <MasterHeader eyebrow="Paid sales" title="Discounted Invoices" description="Paid invoices that received a discount, with who gave it and why."/>
   <form className="report-range discount-range" method="get">
    <div className="range-presets">{[["TODAY","Today"],["YESTERDAY","Yesterday"],["WEEK","This Week"],["MONTH","This Month"],["CUSTOM","Custom"]].map(([value,label])=><button name="range" value={value} className={report.range.preset===value?"active":""} key={value}>{label}</button>)}</div>
    <label>From<DatePicker name="from" label="From" key={`from:${report.range.fromText}`} defaultValue={report.range.fromText}/></label>

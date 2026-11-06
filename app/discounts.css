@@ -19,21 +19,19 @@
 .discount-confirm-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,260px));gap:10px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:900px){.discount-type-row{grid-template-columns:1fr 1fr}.discount-type-row .discount-name{grid-column:1/-1}}
-/* Payment dialog */
-.payment-invoice-discount{margin:10px 0;padding:10px;display:grid;gap:8px;background:#f8fafc;border:1px solid #e4e9f0;border-radius:11px}
-.payment-discount-label{color:#475467;font-size:11px;font-weight:750}
-.payment-discount-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
-.payment-discount-cards button{min-height:54px;padding:7px 10px;display:grid;align-content:center;gap:2px;text-align:left;color:#273244;background:#fff;border:1px solid #d8dee7;border-radius:10px;cursor:pointer}
-.payment-discount-cards button strong{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
-.payment-discount-cards button small{color:#667085;font-size:11px}
-.payment-discount-cards button:hover{border-color:#86efac;background:#f0fdf4}
-.payment-discount-cards button.active{color:#065f46;background:#ecfdf5;border-color:#059669;box-shadow:0 0 0 1px #059669}
-.payment-discount-cards button.active small{color:#047857}
-.payment-discount-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:8px}
-.payment-discount-fields label:only-child{grid-column:1/-1}
-.payment-invoice-discount label{display:grid;gap:4px}
-.payment-invoice-discount small{color:#475467;font-size:12px}
-.payment-invoice-discount .payment-discount-error{color:#b42318}
+/* Review & send dialog */
+.review-discount{margin:10px 0;padding:10px;display:grid;gap:8px;background:#f8fafc;border:1px solid #e4e9f0;border-radius:11px}
+.review-discount-label{color:#475467;font-size:11px;font-weight:750}
+.review-discount-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.review-discount-cards button{min-height:54px;padding:7px 10px;display:grid;align-content:center;gap:2px;text-align:left;color:#273244;background:#fff;border:1px solid #d8dee7;border-radius:10px;cursor:pointer}
+.review-discount-cards button strong{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
+.review-discount-cards button small{color:#667085;font-size:11px}
+.review-discount-cards button:hover{border-color:#86efac;background:#f0fdf4}
+.review-discount-cards button.active{color:#065f46;background:#ecfdf5;border-color:#059669;box-shadow:0 0 0 1px #059669}
+.review-discount-cards button.active small{color:#047857}
+.review-discount-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:8px}
+.review-discount-fields label:only-child{grid-column:1/-1}
+.review-discount small{color:#475467;font-size:12px}
 /* Discounted invoices report. Doubled class beats the shared .sms-log-table rules (min-width, padding). */
 .sms-log-table.discount-report-table td small{display:block;color:#667085}
 .sms-log-table.discount-report-table{min-width:0}

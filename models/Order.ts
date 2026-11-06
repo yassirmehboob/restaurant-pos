@@ -8,7 +8,7 @@ const issuedCouponSchema=new Schema({couponId:Schema.Types.ObjectId,code:String,
 schema.add({couponId:Schema.Types.ObjectId,couponCode:String,couponSnapshot:couponSnapshotSchema,issuedCoupons:{type:[issuedCouponSchema],default:undefined}});
 schema.add({deliveryStatus:{type:String,enum:["PLACED","OUT_FOR_DELIVERY","DELIVERED"]},deliveryPlacedAt:Date,outForDeliveryAt:Date,deliveredAt:Date});
 schema.add({cashierNameSnapshot:String});
-// The invoice discount given at payment; discountAmount holds it plus any coupon discount.
+// The invoice discount chosen at Review & send; discountAmount holds it plus any coupon discount.
 schema.add({invoiceDiscount:new Schema({typeId:String,name:String,mode:String,percent:Number,capAmount:Number,amount:Number,amountBefore:Number,remarks:String,appliedByUserId:Schema.Types.ObjectId,appliedByName:String},{_id:false})});
 // Where the order came from: the counter, a waiter tablet, or a guest scanning the table QR code.
 schema.add({orderSource:{type:String,enum:["POS","WAITER","QR"]}});

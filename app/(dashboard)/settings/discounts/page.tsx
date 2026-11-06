@@ -13,7 +13,7 @@ export default async function DiscountSettingsPage(){
  const[business,account]=await Promise.all([Business.findOne({_id:user.businessId,isActive:true}).select("invoiceDiscountEnabled couponOnPayment discountTypes discountSmsNumbers smsEnabled").lean(),User.findById(user.id).select("twoFactorEnabled").lean()]);
  if(!business)return null;
  return <main className="master-page business-profile-page">
-  <MasterHeader eyebrow="Business settings" title="Discounts" description="Choose which discounts cashiers can give when receiving payment, and who is told about them."/>
+  <MasterHeader eyebrow="Business settings" title="Discounts" description="Choose which discounts cashiers can give at Review & send, and who is told about them."/>
   <DiscountSettings initial={{enabled:business.invoiceDiscountEnabled===true,couponOnPayment:business.couponOnPayment!==false,types:businessDiscountTypes({...business,invoiceDiscountEnabled:true}),smsNumbers:business.discountSmsNumbers??[]}} twoFactorEnabled={account?.twoFactorEnabled===true} smsEnabled={business.smsEnabled===true}/>
  </main>;
 }

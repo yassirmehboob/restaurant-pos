@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { normalizeSmsPhone } from "@/lib/sms-template";
 
-// OPEN: the cashier types the percentage at payment. FIXED: the owner's percentage is always used.
+// OPEN: the cashier types the percentage at Review & send. FIXED: the owner's percentage is always used.
 export const DISCOUNT_MODES=["OPEN","FIXED"] as const;
 export type DiscountMode=(typeof DISCOUNT_MODES)[number];
 export type DiscountType={id:string;name:string;mode:DiscountMode;percent:number|null;capAmount:number|null;remarksRequired:boolean};
@@ -32,7 +32,7 @@ export const discountSettingsSchema=z.object({
   value.smsNumbers.forEach((phone,index)=>{if(!normalizeSmsPhone(phone))ctx.addIssue({code:"custom",path:["smsNumbers",index],message:`${phone||"A blank number"} is not a valid mobile number.`})});
 });
 
-export const discountInputSchema=z.object({typeId:z.string().regex(/^[a-f\d]{24}$/i,"Choose a discount type."),percent:z.number().min(0).max(100).optional(),remarks:z.string().trim().max(300).default("")});
+export const discountInputSchema=z.object({typeId:z.string().regex(/^[a-f\d]{24}$/i,"Choose a discount type."),percent:z.number().min(0,"Enter a discount percentage from 0.01 to 100.").max(100,"Enter a discount percentage from 0.01 to 100.").optional(),remarks:z.string().trim().max(300).default("")});
 export type DiscountInput=z.input<typeof discountInputSchema>;
 
 type StoredType={_id:unknown;name:string;mode?:string|null;percent?:number|null;capAmount?:number|null;remarksRequired?:boolean|null};
@@ -41,16 +41,40 @@ export function businessDiscountTypes(business:{invoiceDiscountEnabled?:boolean|
   return (business.discountTypes??[]).map(type=>({id:String(type._id),name:type.name,mode:type.mode==="FIXED"?"FIXED":"OPEN",percent:type.percent??null,capAmount:type.capAmount??null,remarksRequired:type.remarksRequired===true}));
 }
 
+const discountAmount=(base:number,percent:number,cap:number|null)=>Math.max(0,Math.min(Math.round(base*percent/100),cap??Infinity,Math.floor(base)));
+
 // The discount is a percentage of the pre-tax amount after any coupon, rounded to the whole rupee and held to the cap.
 export function resolveInvoiceDiscount(types:DiscountType[],raw:DiscountInput,base:number,{requireRemarks=true}={}):AppliedDiscount{
-  const input=discountInputSchema.parse(raw),type=types.find(item=>item.id===input.typeId);
+  const parsed=discountInputSchema.safeParse(raw);
+  if(!parsed.success)throw new Error(parsed.error.issues[0]?.message??"Check the discount details.");
+  const input=parsed.data,type=types.find(item=>item.id===input.typeId);
   if(!type)throw new Error("This discount type is no longer available. Refresh and choose again.");
   const rate=type.mode==="FIXED"?type.percent:input.percent;
   if(!rate||rate<0.01||rate>100)throw new Error("Enter a discount percentage from 0.01 to 100.");
   if(requireRemarks&&type.remarksRequired&&!input.remarks)throw new Error(`Enter remarks for ${type.name}.`);
-  const percent=Math.round(rate*100)/100,amount=Math.max(0,Math.min(Math.round(base*percent/100),type.capAmount??Infinity,Math.floor(base)));
+  const percent=Math.round(rate*100)/100,amount=discountAmount(base,percent,type.capAmount);
   if(amount<=0)throw new Error("This discount comes to Rs 0 on this invoice.");
   return{typeId:type.id,name:type.name,mode:type.mode,percent,capAmount:type.capAmount,amount,remarks:input.remarks};
+}
+
+// The discount saved on an unpaid order, as plain values (it also holds ObjectIds that cannot reach the browser).
+export type StoredDiscount={typeId?:string|null;name?:string|null;mode?:string|null;percent?:number|null;capAmount?:number|null;amount?:number|null;remarks?:string|null};
+export function storedDiscount(stored:StoredDiscount|null|undefined):AppliedDiscount|null{
+  if(!stored?.typeId||!stored.amount)return null;
+  return{typeId:String(stored.typeId),name:String(stored.name??"Discount"),mode:stored.mode==="FIXED"?"FIXED":"OPEN",percent:stored.percent??0,capAmount:stored.capAmount??null,amount:stored.amount,remarks:stored.remarks??""};
+}
+// An order keeps its discount when edited, even if the owner has since removed that type.
+export function withStoredDiscountType(types:DiscountType[],stored:StoredDiscount|null|undefined):DiscountType[]{
+  const discount=storedDiscount(stored);
+  if(!discount||types.some(type=>type.id===discount.typeId))return types;
+  return[...types,{id:discount.typeId,name:discount.name,mode:discount.mode,percent:discount.percent,capAmount:discount.capAmount,remarksRequired:Boolean(discount.remarks)}];
+}
+// Re-works a saved discount when the amount under it changes (a coupon added or removed). Null when it comes to nothing.
+export function rescaleDiscount(stored:StoredDiscount|null|undefined,base:number):AppliedDiscount|null{
+  const discount=storedDiscount(stored);
+  if(!discount)return null;
+  const amount=discountAmount(base,discount.percent,discount.capAmount);
+  return amount>0?{...discount,amount}:null;
 }
 
 export function discountLabel(discount:{name:string;percent:number}){return `${discount.name} (${discount.percent}%)`}

@@ -8,6 +8,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { orderWithDiscount } from "@/lib/tax";
 import { allowAuthAttempt } from "@/lib/auth/two-factor";
 import { couponDescription, couponProblem } from "@/lib/coupons";
+import { rescaleDiscount, type StoredDiscount } from "@/lib/invoice-discount";
 import { claimCoupon, couponBusinessDate, couponsAllowed, COUPONS_OFF_MESSAGE, releaseOrderCoupon, resolveCoupon } from "@/lib/coupon-service";
 import { Coupon } from "@/models/Coupon";
 import { CouponBatch } from "@/models/CouponBatch";
@@ -16,6 +17,18 @@ import { Order } from "@/models/Order";
 const id = z.string().regex(/^[a-f\d]{24}$/i);
 const message = (error: unknown, fallback: string) => error instanceof Error && error.constructor === Error ? error.message : fallback;
 const refresh = (orderId: string) => { for (const path of ["/orders", `/orders/${orderId}`, "/coupons"]) revalidatePath(path); };
+
+// A coupon changes the amount an invoice discount is worked on, so the two are always priced together.
+function priceCoupon(order: Parameters<typeof orderWithDiscount>[0] & { invoiceDiscount?: StoredDiscount | null }, coupon: number) {
+  const withCoupon = orderWithDiscount(order, coupon), couponDiscount = withCoupon.discountAmount;
+  const discount = rescaleDiscount(order.invoiceDiscount, Math.max(0, order.subtotal - couponDiscount));
+  return {
+    couponDiscount,
+    totals: discount ? orderWithDiscount(order, couponDiscount + discount.amount) : withCoupon,
+    invoiceDiscount: discount ? { invoiceDiscount: { ...order.invoiceDiscount, ...discount, amountBefore: withCoupon.grandTotal } } : {},
+    dropDiscount: order.invoiceDiscount && !discount ? { $unset: { invoiceDiscount: "" } } : {},
+  };
+}
 
 // Applies (or replaces) a coupon on an unpaid order. The coupon is held until payment or removal.
 export async function applyOrderCoupon(orderId: string, code: string) {
@@ -30,14 +43,14 @@ export async function applyOrderCoupon(orderId: string, code: string) {
       if (!order) throw new Error("This order is paid or unavailable.");
       const resolved = await resolveCoupon({ businessId: user.businessId, code, customerId: order.customerId, saleDate: order.saleDate || await couponBusinessDate(user), subtotal: order.subtotal, session: transaction, currentOrderId: orderId });
       const same = order.couponId && String(order.couponId) === String(resolved.coupon._id);
-      const totals = orderWithDiscount(order, resolved.discountAmount);
+      const { couponDiscount, totals, invoiceDiscount, dropDiscount } = priceCoupon(order, resolved.discountAmount);
       if (!same) {
         if (order.couponId) await releaseOrderCoupon(user.businessId, order._id, transaction);
-        await claimCoupon(resolved.coupon._id, { orderId: order._id, orderNumber: order.orderNumber, status: "APPLIED", discountAmount: totals.discountAmount }, transaction);
+        await claimCoupon(resolved.coupon._id, { orderId: order._id, orderNumber: order.orderNumber, status: "APPLIED", discountAmount: couponDiscount }, transaction);
       }
-      const updated = await Order.updateOne({ _id: order._id, paymentStatus: "UNPAID" }, { $set: { ...totals, discountType: resolved.batch.discountType, discountValue: resolved.batch.discountValue, couponId: resolved.coupon._id, couponCode: resolved.coupon.code, couponSnapshot: resolved.snapshot, lastUpdatedByUserId: user.id } }, { session: transaction });
+      const updated = await Order.updateOne({ _id: order._id, paymentStatus: "UNPAID" }, { $set: { ...totals, ...invoiceDiscount, discountType: resolved.batch.discountType, discountValue: resolved.batch.discountValue, couponId: resolved.coupon._id, couponCode: resolved.coupon.code, couponSnapshot: resolved.snapshot, lastUpdatedByUserId: user.id }, ...dropDiscount }, { session: transaction });
       if (!updated.modifiedCount && !same) throw new Error("The order changed. Refresh and try again.");
-      return { orderNumber: order.orderNumber, code: String(resolved.coupon.code), batchName: resolved.batch.name, discountAmount: totals.discountAmount, description: resolved.description };
+      return { orderNumber: order.orderNumber, code: String(resolved.coupon.code), batchName: resolved.batch.name, discountAmount: couponDiscount, description: resolved.description };
     });
     await writeAuditLog({ businessId: user.businessId, userId: user.id, userName: user.fullName, action: "APPLY_COUPON", entityType: "Order", entityId: orderId, description: `Applied coupon ${result.code} (${result.batchName}) to ${result.orderNumber}`, metadata: { couponCode: result.code, discountAmount: result.discountAmount } });
     refresh(orderId);
@@ -54,7 +67,8 @@ export async function removeOrderCoupon(orderId: string) {
       const order = await Order.findOne({ _id: orderId, businessId: user.businessId, status: { $ne: "CANCELLED" }, paymentStatus: "UNPAID", paidAmount: 0, couponId: { $ne: null } }).session(transaction).lean();
       if (!order) throw new Error("This order has no removable coupon.");
       await releaseOrderCoupon(user.businessId, order._id, transaction);
-      await Order.updateOne({ _id: order._id }, { $set: { ...orderWithDiscount(order, 0), discountType: "NONE", discountValue: 0, lastUpdatedByUserId: user.id }, $unset: { couponId: "", couponCode: "", couponSnapshot: "" } }, { session: transaction });
+      const { totals, invoiceDiscount } = priceCoupon(order, 0);
+      await Order.updateOne({ _id: order._id }, { $set: { ...totals, ...invoiceDiscount, discountType: "NONE", discountValue: 0, lastUpdatedByUserId: user.id }, $unset: { couponId: "", couponCode: "", couponSnapshot: "" } }, { session: transaction });
       return { orderNumber: order.orderNumber, code: String(order.couponCode) };
     });
     await writeAuditLog({ businessId: user.businessId, userId: user.id, userName: user.fullName, action: "REMOVE_COUPON", entityType: "Order", entityId: orderId, description: `Removed coupon ${result.code} from ${result.orderNumber}; it can be used again`, metadata: { couponCode: result.code } });

@@ -1,6 +1,10 @@
 "use server";
 
 import { requirePermission } from "@/data/auth";
+import { can } from "@/lib/permissions";
+import { resolveCoupon } from "@/lib/coupon-service";
+import { businessDiscountTypes,rescaleDiscount,resolveInvoiceDiscount,withStoredDiscountType,type AppliedDiscount,type DiscountInput } from "@/lib/invoice-discount";
+import { Order } from "@/models/Order";
 import { writeAuditLog } from "@/lib/audit";
 import { calculateOrderPreview } from "@/lib/order-calculation";
 import { Business } from "@/models/Business";
@@ -19,7 +23,7 @@ type PosCustomerInput=z.infer<typeof posCustomerSchema>;
 
 export async function savePosCustomer(id:string|undefined,input:PosCustomerInput){const user=await requirePermission("customers");if(id&&!/^[a-f\d]{24}$/i.test(id))return{ok:false as const,message:"Invalid customer."};const parsed=posCustomerSchema.safeParse(input);if(!parsed.success)return{ok:false as const,message:parsed.error.issues[0]?.message??"Check the customer details."};await connectToDatabase();const values={name:parsed.data.name,phone:parsed.data.phone,address:parsed.data.address,area:parsed.data.area};const row=id?await Customer.findOneAndUpdate({_id:id,businessId:user.businessId,isActive:true},{$set:values},{returnDocument:"after"}):await Customer.create({...values,businessId:user.businessId});if(!row)return{ok:false as const,message:"Customer not found."};await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:id?"UPDATE_CUSTOMER":"CREATE_CUSTOMER",entityType:"Customer",entityId:String(row._id),description:`${id?"Updated":"Created"} customer ${row.name}`});revalidatePath("/pos");revalidatePath("/customers");return{ok:true as const,customer:{id:String(row._id),name:row.name,phone:row.phone??"",address:row.address??"",area:row.area??""}}}
 
-export async function previewPosTotals(input:PosPreviewInput){
+export async function previewPosTotals(input:PosPreviewInput,options:{discount?:DiscountInput;orderId?:string;customerId?:string}={}){
   const user=await requirePermission("pos");
   const parsed=posPreviewSchema.safeParse(input);
   if(!parsed.success)return{ok:false as const,message:"The cart contains invalid values."};
@@ -37,5 +41,16 @@ export async function previewPosTotals(input:PosPreviewInput){
   const business=await Business.findOne({_id:user.businessId,isActive:true}).lean();
   if(!business)return{ok:false as const,message:"Business unavailable."};
   const rate=businessTaxRates(business)?.[parsed.data.paymentMethod];
-  return{ok:true as const,taxRate:rate,...calculateOrderPreview(priced,parsed.data.deliveryCharge,rate)};
+  // When editing, totals also carry the order's coupon and its saved discount, exactly as saving will price them.
+  const editing=options.orderId&&/^[a-f\d]{24}$/i.test(options.orderId)?await Order.findOne({_id:options.orderId,businessId:user.businessId,paymentStatus:"UNPAID"}).select("invoiceDiscount couponCode saleDate").lean():null;
+  const before=calculateOrderPreview(priced,parsed.data.deliveryCharge,rate);
+  let couponDiscount=0;
+  if(editing?.couponCode)try{couponDiscount=(await resolveCoupon({businessId:user.businessId,code:editing.couponCode,customerId:options.customerId||null,saleDate:String(editing.saleDate??""),subtotal:before.subtotal,currentOrderId:String(editing._id)})).discountAmount}catch{/* The edited order no longer qualifies, so saving will release the coupon. */}
+  const withCoupon=calculateOrderPreview(priced,parsed.data.deliveryCharge,rate,couponDiscount),base=Math.max(0,withCoupon.subtotal-withCoupon.discountAmount),allowed=can(user,"payments");
+  const discountTypes=allowed?withStoredDiscountType(businessDiscountTypes(business),editing?.invoiceDiscount):[];
+  let invoiceDiscount:AppliedDiscount|null=allowed?null:rescaleDiscount(editing?.invoiceDiscount,base),discountError="";
+  // A discount that cannot apply leaves the totals without it and explains why.
+  if(allowed&&options.discount)try{invoiceDiscount=resolveInvoiceDiscount(discountTypes,options.discount,base,{requireRemarks:false})}catch(error){discountError=error instanceof Error?error.message:"Could not apply this discount."}
+  const totals=calculateOrderPreview(priced,parsed.data.deliveryCharge,rate,withCoupon.discountAmount+(invoiceDiscount?.amount??0));
+  return{ok:true as const,taxRate:rate,...totals,discountTypes,invoiceDiscount,discountError};
 }

@@ -32,11 +32,11 @@ export function DiscountSettings({initial,twoFactorEnabled,smsEnabled}:{initial:
    <header className="waiter-settings-header">
     <span className="waiter-settings-icon" aria-hidden="true"><BadgePercent size={20} strokeWidth={1.7}/></span>
     <h2 id={`${id}-title`}>Invoice discounts</h2>
-    <p>When allowed, a Discount box appears when receiving payment. The discount is a percentage of the bill before tax.</p>
+    <p>When allowed, a Discount box appears at Review &amp; send. The discount is a percentage of the bill before tax.</p>
    </header>
    <div className="waiter-settings-body">
     <div className="waiter-visibility-option">
-     <div className="waiter-visibility-copy"><label htmlFor={`${id}-enabled`}>Allow discount on invoice</label><p>Cashiers choose one of the discounts below when receiving payment.</p></div>
+     <div className="waiter-visibility-copy"><label htmlFor={`${id}-enabled`}>Allow discount on invoice</label><p>Cashiers choose one of the discounts below at Review &amp; send.</p></div>
      <label className="waiter-settings-toggle" htmlFor={`${id}-enabled`}><input id={`${id}-enabled`} type="checkbox" role="switch" checked={enabled} disabled={pending} onChange={event=>toggle(event.target.checked)}/><span aria-hidden="true"><i/></span></label>
     </div>
     <div className="waiter-visibility-option">

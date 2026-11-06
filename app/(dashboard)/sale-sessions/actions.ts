@@ -5,7 +5,7 @@ import { startSaleSchema } from "@/lib/validation/sale-session";
 import { requirePermission } from "@/data/auth";
 import { connectToDatabase } from "@/lib/db";
 import { SaleSession } from "@/models/SaleSession";
-import { requireSaleSessionDatabase, saleSessionError, sessionTotals, withSaleSession } from "@/lib/sale-sessions";
+import { requireNoUnpaidOrders, requireSaleSessionDatabase, saleSessionError, sessionTotals, withSaleSession } from "@/lib/sale-sessions";
 import type { MasterState } from "@/app/(dashboard)/master-actions";
 import bcrypt from "bcryptjs";
 import { requireOwner } from "@/data/auth";
@@ -28,7 +28,7 @@ export async function ownerCloseCounter(id:string,password:string){
     const sale=await closeCounterAsOwner(owner,id);
     await writeAuditLog({businessId:owner.businessId,userId:owner.id,userName:owner.fullName,action:"OWNER_CLOSE_COUNTER",entityType:"SaleSession",entityId:id,description:`Owner closed ${sale.counterName} for ${sale.saleDate}`});
     refresh();return {ok:true as const,message:`${sale.counterName} closed successfully.`};
-  }catch(error){return {ok:false as const,message:saleSessionError(error)}}
+  }catch(error){refresh();return {ok:false as const,message:saleSessionError(error)}}
 }
 
 export async function startSale(_state: MasterState, data: FormData): Promise<MasterState> {
@@ -58,6 +58,7 @@ export async function closeSale(id: string, _state: MasterState, data: FormData)
   try {
     const closed=await withSaleSession(user, async (sale, transaction) => {
       if (String(sale._id) !== id) throw new Error("This sale session is already closed. Refresh the page.");
+      await requireNoUnpaidOrders(user.businessId, id, transaction);
       const totals = await sessionTotals(user.businessId, id, sale.openingBalance, transaction);
       await SaleSession.updateOne({ _id: sale._id, businessId: user.businessId, status: "OPEN" },
         { $set: { status: "CLOSED", closedAt: new Date(), closingTotals: totals } }, { session: transaction });
@@ -66,5 +67,5 @@ export async function closeSale(id: string, _state: MasterState, data: FormData)
     refresh();
     await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"CLOSE_SALE",entityType:"SaleSession",entityId:id,description:"Closed sale at "+closed.counterName,metadata:{saleDate:closed.saleDate,closingTotals:closed.totals}});
     return { ok: true, message: "Sale closed. You can start another shift on the same sale date." };
-  } catch (error) { return { message: saleSessionError(error) }; }
+  } catch (error) { refresh(); return { message: saleSessionError(error) }; }
 }

@@ -61,7 +61,7 @@ export async function releaseOrderCoupon(businessId: Id, orderId: Id, session: C
   await Coupon.updateOne({ businessId, orderId, status: "APPLIED" }, { $set: { status: "ACTIVE" }, $unset: { orderId: "", orderNumber: "", appliedAt: "", discountAmount: "" } }, { session });
 }
 
-type PaidOrder = { _id: Types.ObjectId; businessId: Types.ObjectId; orderNumber: string; couponId?: Types.ObjectId | null; customerId?: Types.ObjectId | null; customerSnapshot?: { name?: string; phone?: string } | null; discountAmount?: number; grandTotal: number };
+type PaidOrder = { _id: Types.ObjectId; businessId: Types.ObjectId; orderNumber: string; couponId?: Types.ObjectId | null; customerId?: Types.ObjectId | null; customerSnapshot?: { name?: string; phone?: string } | null; discountAmount?: number; invoiceDiscount?: { amount?: number | null } | null; grandTotal: number };
 
 // Final, single use: runs in the payment transaction, so a failed payment leaves the coupon applied.
 export async function redeemOrderCoupon(order: PaidOrder, saleDate: string, session: ClientSession) {
@@ -70,7 +70,7 @@ export async function redeemOrderCoupon(order: PaidOrder, saleDate: string, sess
   const batch = coupon ? await CouponBatch.findOne({ _id: coupon.batchId, businessId: order.businessId }).session(session).lean() as Batch | null : null;
   const problem = !coupon || !batch ? "The coupon on this order is no longer valid." : couponProblem({ ...coupon, status: "ACTIVE" }, batch, { customerId: order.customerId ? String(order.customerId) : null, saleDate });
   if (problem) throw new Error(`${problem} Remove the coupon before receiving payment.`);
-  await Coupon.updateOne({ _id: coupon!._id, status: "APPLIED" }, { $set: { status: "REDEEMED", redeemedAt: new Date(), discountAmount: order.discountAmount ?? 0 } }, { session });
+  await Coupon.updateOne({ _id: coupon!._id, status: "APPLIED" }, { $set: { status: "REDEEMED", redeemedAt: new Date(), discountAmount: Math.max(0, (order.discountAmount ?? 0) - (order.invoiceDiscount?.amount ?? 0)) } }, { session });
 }
 
 // Gives a paying customer one unassigned coupon from each offer whose spend rule they met.

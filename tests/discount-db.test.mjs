@@ -34,6 +34,7 @@ test("invoice discounts: owner settings, payment, receipt, SMS alerts and report
     const { createSession } = await import("../lib/auth/session.ts");
     const { saveDiscountSettings } = await import("../app/(dashboard)/settings/discounts/actions.ts");
     const { saveOrder, completeTakeawayPayment, previewTakeawayPayment } = await import("../app/(dashboard)/orders/actions.ts");
+    const { previewPosTotals } = await import("../app/(dashboard)/pos/actions.ts");
     const { previewPaymentTax, completeOrderPayment } = await import("../app/(dashboard)/payments/actions.ts");
     const { buildPrintJob } = await import("../lib/receipt-print.ts");
     const { buildDiscountReport } = await import("../lib/discount-report.ts");
@@ -70,20 +71,35 @@ test("invoice discounts: owner settings, payment, receipt, SMS alerts and report
       assert.deepEqual(stored.discountTypes.map(type => [type.name, type.mode, type.percent, type.capAmount]), [["Discount", "OPEN", null, null], ["Special Relation Discount", "FIXED", 20, 300]]);
     });
 
-    await t.test("a cashier gives an open 10% discount when receiving payment", async () => {
+    await t.test("a cashier gives an open 10% discount at Review & send and it is kept through payment", async () => {
       await signIn(cashier);
-      const created = await saveOrder(order("DINE_IN", 2));
+      // The review shows the choices and the discounted totals before anything is saved.
+      const review = await previewPosTotals({ paymentMethod: "CASH", lines: lines(2), deliveryCharge: 0 }, { discount: { typeId: types[0].id, percent: 10 } });
+      assert.equal(review.ok, true, review.message);
+      assert.equal(review.discountTypes.length, 2);
+      assert.deepEqual([review.subtotal, review.discountAmount, review.taxAmount, review.grandTotal, review.invoiceDiscount.amount], [2000, 200, 270, 2070, 200]);
+      assert.equal((await previewPosTotals({ paymentMethod: "CASH", lines: lines(2), deliveryCharge: 0 }, { discount: { typeId: types[1].id } })).invoiceDiscount.amount, 300);
+      // Too high a percentage explains itself instead of failing the preview.
+      assert.match((await previewPosTotals({ paymentMethod: "CASH", lines: lines(2), deliveryCharge: 0 }, { discount: { typeId: types[0].id, percent: 150 } })).discountError, /from 0\.01 to 100/);
+      // Remarks are required for the special discount; saving is refused without them.
+      const noRemarks = await saveOrder(order("DINE_IN", 2), undefined, { typeId: types[1].id, remarks: "" });
+      assert.equal(noRemarks.ok, false);
+      assert.match(noRemarks.message, /remarks/i);
+      const created = await saveOrder(order("DINE_IN", 2), undefined, { typeId: types[0].id, percent: 10, remarks: "Regular guest" });
       assert.equal(created.ok, true, created.message);
-      const preview = await previewPaymentTax(created.orderId, "CASH", { typeId: types[0].id, percent: 10 });
+      assert.equal(created.grandTotal, 2070);
+      const unpaid = await Order.findById(created.orderId).lean();
+      assert.deepEqual([unpaid.discountAmount, unpaid.taxAmount, unpaid.grandTotal, unpaid.dueAmount, unpaid.invoiceDiscount.amount, unpaid.invoiceDiscount.amountBefore, unpaid.paymentStatus], [200, 270, 2070, 2070, 200, 2300, "UNPAID"]);
+      assert.equal(await SmsMessage.countDocuments({ orderId: unpaid._id, messageType: /^DISCOUNT_ALERT_/ }), 0, "the owner is told when the discounted invoice is paid");
+      const preview = await previewPaymentTax(created.orderId, "CASH");
       assert.equal(preview.ok, true, preview.message);
       assert.deepEqual([preview.subtotal, preview.discountAmount, preview.taxAmount, preview.grandTotal, preview.invoiceDiscount.amount], [2000, 200, 270, 2070, 200]);
-      assert.equal(preview.discountTypes.length, 2);
+      assert.equal(preview.discountTypes, undefined);
       const payment = { orderId: created.orderId, method: "CASH", expectedGrandTotal: 2070, tenderedAmount: 2100, reference: "", notes: "" };
-      // Remarks are required for the special discount; the payment is refused without them.
-      const special = await previewPaymentTax(created.orderId, "CASH", { typeId: types[1].id });
-      assert.equal(special.invoiceDiscount.amount, 300);
-      assert.equal((await completeOrderPayment({ ...payment, idempotencyKey: randomUUID(), expectedGrandTotal: special.grandTotal, discount: { typeId: types[1].id, remarks: "" } })).ok, false);
-      const paid = await completeOrderPayment({ ...payment, idempotencyKey: randomUUID(), discount: { typeId: types[0].id, percent: 10, remarks: "Regular guest" } });
+      // Payment cannot add or change a discount.
+      const changed = await completeOrderPayment({ ...payment, idempotencyKey: randomUUID(), expectedGrandTotal: 1725, tenderedAmount: 2100, discount: { typeId: types[1].id, remarks: "Friend" } });
+      assert.equal(changed.ok, false);
+      const paid = await completeOrderPayment({ ...payment, idempotencyKey: randomUUID() });
       assert.equal(paid.ok, true, paid.message);
       assert.equal(paid.change, 30);
       const saved = await Order.findById(created.orderId).lean();
@@ -98,6 +114,70 @@ test("invoice discounts: owner settings, payment, receipt, SMS alerts and report
       const printed = job.parts.filter(part => part.type === "command").map(part => Buffer.from(part.base64, "base64").toString("latin1")).join("").replace(/\x1b@|\x1b[taEd][\s\S]|\x1d![\s\S]/g, "").split("\n").map(row => row.trimEnd());
       assert.ok(!printed.some(row => row.includes("Regular guest")), "remarks must not print on the invoice");
       for (const row of ["Subtotal".padEnd(34) + "2,000.00", "Discount (10%)".padEnd(35) + "-200.00", "Tax (15%)".padEnd(36) + "270.00", "Received - Cash".padEnd(34) + "2,100.00"]) assert.ok(printed.includes(row), `receipt should contain "${row}"\n${printed.join("\n")}`);
+    });
+
+    await t.test("a saved discount stays right through edits, tax changes, coupons and limited staff", async () => {
+      const { applyOrderCoupon, removeOrderCoupon } = await import("../app/(dashboard)/payments/coupon-actions.ts");
+      const { Coupon } = await import("../models/Coupon.ts");
+      const { CouponBatch } = await import("../models/CouponBatch.ts");
+      const created = await saveOrder(order("DINE_IN", 2), undefined, { typeId: types[0].id, percent: 10, remarks: "" });
+      assert.equal(created.ok, true, created.message);
+      // A different payment method re-prices the tax on the discounted amount.
+      await Business.updateOne({ _id: business._id }, { $set: { paymentTaxRates: { CASH: 15, CARD: 5, BANK: 15, OTHER: 15 } } });
+      const edited = await saveOrder(order("DINE_IN", 3), created.orderId, { typeId: types[0].id, percent: 10, remarks: "" });
+      assert.equal(edited.ok, true, edited.message);
+      let row = await Order.findById(created.orderId).lean();
+      assert.deepEqual([row.subtotal, row.discountAmount, row.grandTotal, row.invoiceDiscount.amount, row.invoiceDiscount.amountBefore], [3000, 300, 3105, 300, 3450]);
+      assert.deepEqual((({ discountAmount, taxAmount, grandTotal }) => [discountAmount, taxAmount, grandTotal])(await previewPaymentTax(created.orderId, "CARD")), [300, 135, 2835]);
+
+      // A coupon reduces the amount under the discount, and is recorded on its own.
+      const batch = await CouponBatch.create({ businessId: business._id, name: "Rs 500 off", discountType: "FIXED", discountValue: 500, usage: "INSTANT", quantity: 1, createdByUserId: owner._id });
+      const coupon = await Coupon.create({ businessId: business._id, batchId: batch._id, code: "1234567891", status: "ACTIVE" });
+      const applied = await applyOrderCoupon(created.orderId, "1234567891");
+      assert.equal(applied.ok, true, applied.message);
+      assert.equal(applied.discountAmount, 500);
+      row = await Order.findById(created.orderId).lean();
+      assert.deepEqual([row.discountAmount, row.invoiceDiscount.amount, row.grandTotal, row.invoiceDiscount.amountBefore], [750, 250, 2587.5, 2875]);
+      assert.equal((await Coupon.findById(coupon._id).lean()).discountAmount, 500);
+      // Editing prices coupon and discount the same way in the review and on save.
+      const editReview = await previewPosTotals({ paymentMethod: "CASH", lines: lines(3), deliveryCharge: 0 }, { discount: { typeId: types[0].id, percent: 10 }, orderId: created.orderId });
+      assert.deepEqual([editReview.discountAmount, editReview.grandTotal], [750, 2587.5]);
+      assert.equal((await removeOrderCoupon(created.orderId)).ok, true);
+      row = await Order.findById(created.orderId).lean();
+      assert.deepEqual([row.discountAmount, row.invoiceDiscount.amount, row.grandTotal], [300, 300, 3105]);
+      assert.equal((await applyOrderCoupon(created.orderId, "1234567891")).ok, true);
+
+      // Staff who cannot take payments cannot give a discount, and their edits keep the existing one.
+      const limited = await User.create({ businessId: business._id, fullName: "Order Taker", phone: "03001234569", username: "discount.taker", role: "CASHIER", privileges: ["pos", "orders", "edit_orders"], passwordHash });
+      await SaleSession.create({ businessId: business._id, userId: limited._id, userNameSnapshot: limited.fullName, counterName: limited.username, counterKey: limited.username, saleDate: "2026-11-02", openingBalance: 0 });
+      await signIn(limited);
+      const hidden = await previewPosTotals({ paymentMethod: "CASH", lines: lines(3), deliveryCharge: 0 }, { discount: { typeId: types[0].id, percent: 50 }, orderId: created.orderId });
+      assert.deepEqual([hidden.discountTypes, hidden.invoiceDiscount.amount, hidden.discountAmount], [[], 250, 750]);
+      assert.equal((await saveOrder(order("DINE_IN", 3), undefined, { typeId: types[0].id, percent: 50 })).ok, false);
+      assert.equal((await saveOrder(order("DINE_IN", 4), created.orderId)).ok, true);
+      row = await Order.findById(created.orderId).lean();
+      assert.deepEqual([row.subtotal, row.discountAmount, row.invoiceDiscount.amount, row.invoiceDiscount.percent, row.invoiceDiscount.appliedByName], [4000, 850, 350, 10, "Cashier Ali"]);
+
+      // Paying records the coupon alone on the coupon, and the discount alone on the discount.
+      await signIn(cashier);
+      const quote = await previewPaymentTax(created.orderId, "CARD");
+      const paid = await completeOrderPayment({ orderId: created.orderId, idempotencyKey: randomUUID(), method: "CARD", expectedGrandTotal: quote.grandTotal, tenderedAmount: quote.grandTotal, reference: "", notes: "" });
+      assert.equal(paid.ok, true, paid.message);
+      row = await Order.findById(created.orderId).lean();
+      // 4,000 less 500 coupon less 350 discount = 3,150; before the discount 3,500; both at the 5% card rate.
+      assert.deepEqual([row.grandTotal, row.discountAmount, row.invoiceDiscount.amount, row.invoiceDiscount.amountBefore, row.taxPaymentMethod, row.paymentStatus], [3307.5, 850, 350, 3675, "CARD", "PAID"]);
+      const redeemed = await Coupon.findById(coupon._id).lean();
+      assert.deepEqual([redeemed.status, redeemed.discountAmount], ["REDEEMED", 500]);
+      await Business.updateOne({ _id: business._id }, { $unset: { paymentTaxRates: "" } });
+      await Order.deleteOne({ _id: created.orderId });
+      await SmsMessage.deleteMany({ orderId: row._id });
+
+      // Choosing "No discount" on an edit removes it.
+      const removable = await saveOrder(order("DINE_IN", 1), undefined, { typeId: types[0].id, percent: 10, remarks: "" });
+      assert.equal((await saveOrder(order("DINE_IN", 1), removable.orderId)).ok, true);
+      row = await Order.findById(removable.orderId).lean();
+      assert.deepEqual([row.invoiceDiscount, row.discountAmount, row.grandTotal], [undefined, 0, 1150]);
+      await Order.deleteOne({ _id: removable.orderId });
     });
 
     await t.test("a takeaway gets the fixed special discount, held to its cap", async () => {
@@ -142,16 +222,14 @@ test("invoice discounts: owner settings, payment, receipt, SMS alerts and report
       assert.equal((await previewPaymentTax(created.orderId, "CASH")).couponOnPayment, true);
     });
 
-    await t.test("with discounts turned off, a payment carrying a discount is refused", async () => {
+    await t.test("with discounts turned off, an order carrying a discount is refused", async () => {
       await signIn(owner);
       assert.equal((await saveDiscountSettings({ ...settings, enabled: false, currentPassword: password })).ok, true);
       await signIn(cashier);
-      const created = await saveOrder(order("DINE_IN", 1));
-      const preview = await previewPaymentTax(created.orderId, "CASH");
-      assert.deepEqual(preview.discountTypes, []);
-      const paid = await completeOrderPayment({ orderId: created.orderId, idempotencyKey: randomUUID(), method: "CASH", expectedGrandTotal: 1035, tenderedAmount: 1035, reference: "", notes: "", discount: { typeId: types[0].id, percent: 10 } });
-      assert.equal(paid.ok, false);
-      assert.match(paid.message, /no longer available/);
+      assert.deepEqual((await previewPosTotals({ paymentMethod: "CASH", lines: lines(1), deliveryCharge: 0 })).discountTypes, []);
+      const refused = await saveOrder(order("DINE_IN", 1), undefined, { typeId: types[0].id, percent: 10 });
+      assert.equal(refused.ok, false);
+      assert.match(refused.message, /no longer available/);
     });
   } finally {
     try { await mongoose.connection.dropDatabase(); } finally { await mongoose.disconnect(); }
