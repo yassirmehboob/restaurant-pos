@@ -7,7 +7,7 @@ import { decodeEscPos,nativeCommand,rasterBlocks } from "@/lib/receipt-raster";
 import type { PrinterAdapter,PrintResult,ReceiptKind } from "./types";
 
 type Qz=typeof qzTray;
-type PrintPart={type:"command";base64:string}|{type:"logo";url:string};
+type PrintPart={type:"command";base64:string}|{type:"logo";url:string;width?:number};
 type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
 export type StationPrinters=Partial<Record<ReceiptKind,PrinterTarget>>;
 
@@ -39,12 +39,15 @@ export async function connectQz(){
 export async function listQzPrinters(){const found=await (await connectQz()).printers.find();return Array.isArray(found)?found:[found]}
 
 const message=(error:unknown)=>error instanceof Error?error.message:String(error);
-// QZ Tray rasterises PNG/JPEG only, so the logo is redrawn as a white-backed PNG first.
-async function logoBase64(url:string){
+// QZ Tray rasterises PNG/JPEG only, so the image is redrawn as a white-backed PNG first.
+// A logo shrinks to at most 256 dots; an image with a width (the payment QR code) is scaled to exactly that width,
+// and enlarged without smoothing, so the QR modules stay sharp black squares a phone can scan.
+async function logoBase64(url:string,width?:number){
   const response=await fetch(url,{cache:"force-cache"});if(!response.ok)return null;
-  const bitmap=await createImageBitmap(await response.blob()),scale=Math.min(1,256/bitmap.width),canvas=document.createElement("canvas");
+  const bitmap=await createImageBitmap(await response.blob()),scale=width?width/bitmap.width:Math.min(1,256/bitmap.width),canvas=document.createElement("canvas");
   canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
   const context=canvas.getContext("2d");if(!context)return null;
+  context.imageSmoothingEnabled=scale<1;
   context.fillStyle="#fff";context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);
   return canvas.toDataURL("image/png").split(",")[1]??null;
 }
@@ -56,7 +59,7 @@ async function rasterParts(parts:PrintPart[],paper:PaperWidth,family:ReceiptFami
   await loadLocalFont();await document.fonts?.ready;
   const data:Parameters<Qz["print"]>[1]=[{type:"raw",format:"command",flavor:"base64",data:btoa("\x1b@")}];
   for(const part of parts){
-    if(part.type==="logo"){const logo=await logoBase64(part.url).catch(()=>null);if(logo)data.push(image(logo));continue}
+    if(part.type==="logo"){const logo=await logoBase64(part.url,part.width).catch(()=>null);if(logo)data.push(image(logo));continue}
     for(const block of rasterBlocks(decodeEscPos(part.base64),paper,family))data.push(block.kind==="image"?image(pngBase64(block.canvas)):{type:"raw",format:"command",flavor:"base64",data:nativeCommand(block)});
   }
   return data;
@@ -70,7 +73,7 @@ export async function sendToPrinter(target:PrinterTarget,parts:PrintPart[],copie
   const data:Parameters<Qz["print"]>[1]=style&&style.family!=="PRINTER"?await rasterParts(parts,style.paper,style.family):[];
   if(!data.length)for(const part of parts){
     if(part.type==="command"){data.push({type:"raw",format:"command",flavor:"base64",data:part.base64});continue}
-    const logo=await logoBase64(part.url).catch(()=>null);
+    const logo=await logoBase64(part.url,part.width).catch(()=>null);
     if(logo)data.push({type:"raw",format:"image",flavor:"base64",data:logo,options:{language:"ESCPOS",dotDensity:"double"}});
   }
   try{for(let copy=0;copy<Math.max(1,copies);copy++)await qz.print(qz.configs.create(printer),data)}

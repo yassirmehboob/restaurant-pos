@@ -4,11 +4,11 @@ import { columnsFor } from "@/lib/escpos";
 import { readyTimeMessage } from "@/lib/preparation-time";
 import { loadLocalFont,type ReceiptFamily } from "@/lib/receipt-fonts";
 import { paperWidth,renderReceipt,type ReceiptBusiness,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
-import { decodeEscPos,rasterBlocks,type ReceiptRow } from "@/lib/receipt-raster";
+import { decodeEscPos,rasterBlocks,rasterWidth,type ReceiptRow } from "@/lib/receipt-raster";
 import { kitchenLanguage,localLanguageOf,type LocalLanguage,type TranslationMap } from "@/lib/kitchen-language";
 import "./receipt-preview.css";
 
-type Row=ReceiptRow|{kind:"logo";url:string};
+type Row=ReceiptRow|{kind:"logo";url:string;width?:number};
 type Shown=Row|{kind:"image";src:string};
 const noop=()=>()=>{};
 
@@ -47,7 +47,7 @@ export function ReceiptPreview({kind,family,business,readyTime,off}:{kind:Receip
     const rows:Row[]=[];
     const local=kind==="kitchen"?localLanguageOf(kitchenLanguage(business.kitchenReceiptLanguage)):null;
     for(const part of renderReceipt(kind,business,SAMPLE_ORDER,{payments:SAMPLE_PAYMENTS,cashier:"Counter 1",readyMessage:readyTimeMessage(readyTime,25),translations:local?SAMPLE_TRANSLATIONS[local]:{}})){
-      if(part.type==="logo")rows.push({kind:"logo",url:part.url});else rows.push(...decodeEscPos(part.base64));
+      if(part.type==="logo")rows.push({kind:"logo",url:part.url,width:part.width});else rows.push(...decodeEscPos(part.base64));
     }
     return rows;
   },[kind,business,readyTime]);
@@ -68,6 +68,9 @@ export function ReceiptPreview({kind,family,business,readyTime,off}:{kind:Receip
     <div className="receipt-preview-paper" style={{width:`calc(${columns}ch + 28px)`}} aria-label={`${kind==="customer"?"Customer receipt":"Kitchen ticket"} preview`} role="img">
       {shown.map((row,index)=>{
         // Business logo from uploads and canvas snapshots, shown at printer size.
+        // A sized image (the payment QR code) previews at its printed share of the paper width.
+        // eslint-disable-next-line @next/next/no-img-element
+        if(row.kind==="logo"&&row.width)return <img key={index} className="receipt-preview-qr" src={row.url} alt="" style={{width:`${Math.min(100,row.width/rasterWidth(paper)*100)}%`}}/>;
         // eslint-disable-next-line @next/next/no-img-element
         if(row.kind==="logo"||row.kind==="image")return <img key={index} className={row.kind==="logo"?"receipt-preview-logo":"receipt-preview-raster"} src={row.kind==="logo"?row.url:row.src} alt=""/>;
         if(row.kind==="barcode")return <Barcode key={index} value={row.value}/>;

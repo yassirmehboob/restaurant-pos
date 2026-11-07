@@ -22,7 +22,7 @@ export type PrintingValues={
   customerPrintingEnabled:boolean;kitchenPrintingEnabled:boolean;autoPrintCustomerOnPayment:boolean;autoPrintUnpaidDineIn:boolean;unpaidDineInReceiptCopies:number;
   customerReceiptCopies:number;kitchenReceiptCopies:number;customerStyle:ReceiptStyle;kitchenStyle:ReceiptStyle;customerFamily:ReceiptFamily;kitchenFamily:ReceiptFamily;kitchenLanguage:KitchenLanguage;kitchenTicketPerCategory:boolean;cashDrawerOpenOn:CashDrawerOpenOn;cashDrawerPin:CashDrawerPin;customer:PrinterTarget;kitchen:PrinterTarget;
 };
-type PreviewBusiness={name:string;address:string;phone:string;taxNumber:string;logoUrl:string};
+type PreviewBusiness={name:string;address:string;phone:string;taxNumber:string;logoUrl:string;paymentQrUrl:string;paymentQrCaption:string;paymentQrShowOn:string};
 const fontOptions:Option[]=[{value:"STANDARD",label:"Standard (Font A)"},{value:"COMPACT",label:"Compact (Font B)"},{value:"BOLD",label:"Bold"}];
 const familyOptions:Option[]=RECEIPT_FAMILIES.map(value=>({value,label:FAMILY_FONTS[value].label}));
 const languageOptions:Option[]=KITCHEN_LANGUAGES.map(value=>({value,label:KITCHEN_LANGUAGE_LABELS[value]}));

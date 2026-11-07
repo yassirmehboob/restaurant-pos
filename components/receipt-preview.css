@@ -13,3 +13,4 @@
 
 /* Reverse print (GS B): the order number and kitchen counter bands. */
 .receipt-preview-line.is-inverted{color:#fff;background:#000}
+.receipt-preview-qr{display:block;height:auto;margin:4px auto 6px;image-rendering:pixelated}

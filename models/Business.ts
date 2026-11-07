@@ -9,7 +9,10 @@ const businessSchema = new Schema({
   address: { type: String, trim: true }, city: { type: String, trim: true },
   country: { type: String, trim: true, default: "Pakistan" }, currency: { type: String, required: true, default: "PKR" },
   timezone: { type: String, required: true, default: "Asia/Karachi" }, taxNumber: { type: String, trim: true },
-  logoUrl: String, receiptPaperWidth: { type: String, enum:["58","80"], default:"80" },
+  logoUrl: String,
+  // QR code customers scan to pay (bank, Raast, JazzCash...), printed after the bill summary on customer receipts.
+  paymentQrUrl:String, paymentQrCaption:{type:String,trim:true,maxlength:80}, paymentQrShowOn:{type:String,enum:["UNPAID","ALL","NEVER"],default:"UNPAID"},
+  receiptPaperWidth: { type: String, enum:["58","80"], default:"80" },
   showOrderReadyTime:{type:Boolean,default:false}, receiptHeader: String, receiptFooter: { type:String, default:"Thank you!" }, showLogoOnCustomerReceipt:{type:Boolean,default:true}, showPricesOnKitchenReceipt:{type:Boolean,default:false},
   printerMode:{type:String,enum:["BROWSER","QZ"],default:"BROWSER"}, onePrinterMode:{type:Boolean,default:true}, customerPrinterName:String, kitchenPrinterName:String,
   customerPrinterConnection:{type:String,enum:["USB","LAN"],default:"USB"}, customerPrinterHost:String, customerPrinterPort:{type:Number,default:9100,min:1,max:65535},
@@ -45,6 +48,6 @@ const businessSchema = new Schema({
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
-if(models.Business&&(!models.Business.schema.path("kitchenReceiptLanguage")||!models.Business.schema.path("kitchenTicketPerCategory")||!models.Business.schema.path("cashDrawerOpenOn")))deleteModel("Business");
+if(models.Business&&(!models.Business.schema.path("kitchenReceiptLanguage")||!models.Business.schema.path("kitchenTicketPerCategory")||!models.Business.schema.path("paymentQrShowOn")||!models.Business.schema.path("cashDrawerOpenOn")))deleteModel("Business");
 if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")||!models.Business.schema.path("smsOrderMessages.served")||!models.Business.schema.path("qrPhoneVerification")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);

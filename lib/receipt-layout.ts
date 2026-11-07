@@ -7,8 +7,9 @@ import { kitchenTickets,type TicketCategory } from "@/lib/kitchen-tickets";
 
 // Pure receipt layout: the printer job and the settings preview both render through here, so they always match.
 export type ReceiptKind="customer"|"kitchen";
-// "logo" marks where the client inserts the logo image; QZ Tray rasterises it between the command parts.
-export type PrintPart={type:"command";base64:string}|{type:"logo";url:string};
+// "logo" marks where the client inserts an image (the logo, the payment QR code); QZ Tray rasterises it between the command parts.
+// width: the image is scaled to exactly this many printer dots (a QR code must stay large enough to scan); without it, logo size.
+export type PrintPart={type:"command";base64:string}|{type:"logo";url:string;width?:number};
 export type ReceiptBusiness={
   name:string;address?:string|null;phone?:string|null;taxNumber?:string|null;receiptHeader?:string|null;receiptFooter?:string|null;logoUrl?:string|null;
   showLogoOnCustomerReceipt?:boolean|null;showPricesOnKitchenReceipt?:boolean|null;receiptPaperWidth?:string|null;
@@ -16,6 +17,7 @@ export type ReceiptBusiness={
   customerReceiptFamily?:string|null;kitchenReceiptFamily?:string|null;kitchenReceiptLanguage?:string|null;
   // One kitchen ticket per menu category, for restaurants with separate kitchen counters.
   kitchenTicketPerCategory?:boolean|null;
+  paymentQrUrl?:string|null;paymentQrCaption?:string|null;paymentQrShowOn?:string|null;
 };
 // Category fields are filled in by lib/kitchen-categories.ts when the business prints a ticket per category.
 type Line=TicketCategory&{quantity:number;nameSnapshot:string;unitPrice:number;notes?:string;dealItemsSnapshot?:(TicketCategory&{name:string;quantity:number})[]};
@@ -44,6 +46,18 @@ export const unpaidLabel=(order:Pick<ReceiptOrder,"paymentStatus">)=>order.payme
 
 // Each printed slip ends with the developer credit and a cut.
 const footer=(p:EscPos)=>p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
+
+export const PAYMENT_QR_SHOW_ON=["UNPAID","ALL","NEVER"] as const;
+export type PaymentQrShowOn=(typeof PAYMENT_QR_SHOW_ON)[number];
+export const paymentQrShowOn=(value:unknown):PaymentQrShowOn=>PAYMENT_QR_SHOW_ON.includes(value as PaymentQrShowOn)?value as PaymentQrShowOn:"UNPAID";
+// The payment QR code prints on unpaid (and part-paid) bills, or on every customer receipt, as the business chose.
+export function showPaymentQr(business:Pick<ReceiptBusiness,"paymentQrUrl"|"paymentQrShowOn">,order:Pick<ReceiptOrder,"paymentStatus">){
+  const showOn=paymentQrShowOn(business.paymentQrShowOn);
+  return Boolean(business.paymentQrUrl)&&(showOn==="ALL"||showOn==="UNPAID"&&order.paymentStatus!=="PAID");
+}
+export const PAYMENT_QR_CAPTION="Scan to pay";
+// About 60% of the paper (the receipt image is 504 dots wide on 80 mm, 360 on 58 mm).
+export const paymentQrWidth=(paper:PaperWidth)=>paper==="58"?224:304;
 
 export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:ReceiptOrder,extras:ReceiptExtras={}):PrintPart[]{
   const paper=paperWidth(business),style=receiptStyle(business,kind),p=new EscPos(columnsFor(paper,style.font),style),parts:PrintPart[]=[];
@@ -80,6 +94,11 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     p.row("Paid",money(order.paidAmount));
     if(payments.length){for(const row of receivedRows(payments))p.row(row.label,money(row.amount));p.row("Change",money(payments.reduce((sum,payment)=>sum+(payment.changeAmount??0),0)))}
     p.row("Balance",money(order.dueAmount));
+    if(showPaymentQr(business,order)&&business.paymentQrUrl){
+      p.divider().align("center").bold(true).text(business.paymentQrCaption||PAYMENT_QR_CAPTION).bold(false);
+      parts.push({type:"command",base64:p.toBase64()},{type:"logo",url:business.paymentQrUrl,width:paymentQrWidth(paper)});p.reset();
+      p.align("left");
+    }
     const coupons=order.issuedCoupons??[];
     if(coupons.length){
       p.divider().align("center").bold(true).text("Your coupon for next time").bold(false);

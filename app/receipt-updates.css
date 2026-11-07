@@ -29,3 +29,9 @@
 .kitchen-meta-strong{font-size:1.35em;font-weight:800}
 .kitchen-ticket+.kitchen-ticket{margin-top:18px}
 @media print{.kitchen-ticket{break-after:page}.kitchen-ticket:last-child{break-after:auto}.kitchen-ticket+.kitchen-ticket{margin-top:0}}
+/* Payment QR code after the bill summary: about 60% of the paper, kept sharp so phones can scan it. */
+.receipt-payment-qr{margin-top:12px;padding-top:10px;border-top:1px dashed #111;text-align:center}
+.receipt-payment-qr p{margin:0 0 6px;font-weight:800}
+.receipt-payment-qr img{display:block;width:60%;height:auto;margin:0 auto;image-rendering:pixelated}
+/* The global reset makes images block-level, so text-align cannot centre the logo; auto margins do. */
+.receipt header img{display:block;margin:0 auto 4px}
