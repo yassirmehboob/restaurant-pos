@@ -8,7 +8,7 @@ test("closing balances distinguish total receipts from physical cash", () => {
   const totals = calculateSessionTotals(1000,
     [{ amount: 500, method: "CASH" }, { amount: 750, method: "CARD" }],
     [{ amount: 100, method: "CASH" }, { amount: 50, method: "BANK" }]);
-  assert.deepEqual(totals, { sales: 1250, expenses: 150, cashSales: 500, cashExpenses: 100, balance: 2100, expectedCash: 1400, paymentCount: 2, expenseCount: 2 });
+  assert.deepEqual(totals, { sales: 1250, expenses: 150, cashSales: 500, cashExpenses: 100, balance: 2100, expectedCash: 1400, paymentCount: 2, expenseCount: 2, reversals: 0, cashReversals: 0, reversalCount: 0 });
 });
 
 test("empty shifts preserve opening cash and zero-opening shifts are valid", () => {
@@ -37,4 +37,10 @@ test("reports filter session sales by business date and legacy sales by timestam
   assert.deepEqual(filter.$or[1].saleDate, { $exists: false });
   assert.equal(filter.$or[1].completedAt.$gte.toISOString(), "2026-10-15T19:00:00.000Z");
   assert.equal(filter.$or[1].completedAt.$lte.toISOString(), "2026-10-16T18:59:59.999Z");
+});
+
+test("reversals come off sales, balance and drawer cash; card reversals leave the drawer alone", () => {
+  const totals = calculateSessionTotals(1000, [{ amount: 500, method: "CASH" }, { amount: 300, method: "CARD" }], [], [{ amount: 500, method: "CASH" }, { amount: 300, method: "CARD" }]);
+  assert.deepEqual([totals.sales, totals.cashSales, totals.balance, totals.expectedCash, totals.reversals, totals.cashReversals, totals.reversalCount], [0, 0, 1000, 1000, 800, 500, 2]);
+  assert.equal(calculateSessionTotals(0, [], [], [{ amount: 200, method: "CARD" }]).expectedCash, 0);
 });

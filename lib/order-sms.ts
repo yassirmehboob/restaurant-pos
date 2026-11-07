@@ -18,7 +18,7 @@ export async function queueOrderSms(order:SmsOrder,type:"PAYMENT_RECEIPT"|Delive
  if(!to)failureCode="NO_VALID_CUSTOMER_PHONE";
  else try{
   const date=(value:Date)=>new Intl.DateTimeFormat("en-GB",{timeZone:business.timezone||"Asia/Karachi",dateStyle:"short",timeStyle:"short",hour12:true}).format(value);
-  const payment=stage&&order.paymentStatus==="PAID"?await Payment.findOne({businessId:order.businessId,orderId:order._id}).select("paidAt").sort({paidAt:-1}).session(session).lean():null;
+  const payment=stage&&order.paymentStatus==="PAID"?await Payment.findOne({businessId:order.businessId,orderId:order._id,reversal:null}).select("paidAt").sort({paidAt:-1}).session(session).lean():null;
   body=renderPaymentSms(config.template||(stage?.template??DEFAULT_PAYMENT_SMS),{
    customer_name:order.customerSnapshot?.name||"Customer",business_name:business.name,business_phone:business.phone||"",order_number:order.orderNumber,currency:business.currency||"PKR",
    amount_paid:order.paidAmount.toFixed(2),order_total:order.grandTotal.toFixed(2),payment_method:order.taxPaymentMethod||"CASH",customer_phone:to,table_name:order.tableNameSnapshot||"Not applicable",

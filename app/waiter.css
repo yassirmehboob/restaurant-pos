@@ -55,3 +55,5 @@
 
 .waiter-assign{flex:1 1 100%;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#52647e}
 .waiter-assign select{flex:1;min-height:40px;padding:0 10px;border:1px solid #dce4ef;border-radius:9px;background:#fff;font:inherit;font-weight:600}
+.waiter-cart-message{margin:0;padding:11px 13px;color:#1e6b4f;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;font-size:13px;line-height:1.4}
+.waiter-cart-message.is-error{color:#b42318;background:#fef3f2;border-color:#fecdca}

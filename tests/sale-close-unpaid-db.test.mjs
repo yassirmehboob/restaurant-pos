@@ -74,6 +74,29 @@ test("a sale cannot close while its invoices are unpaid", { skip: !process.env.M
       assert.equal(totals.balance, 1000);
     });
 
+    await t.test("the POS order list shows only the signed-in counter's open sale", async () => {
+      const { loadPosOrders } = await import("../app/(dashboard)/pos/order-browser-actions.ts");
+      const list = () => loadPosOrders({ search: "", payment: "ALL", status: "ALL", orderType: "ALL" });
+      const mine = await list();
+      assert.deepEqual(mine.orders.map(order => order.number).sort(), [first.orderNumber, second.orderNumber].sort());
+      assert.deepEqual([mine.saleDate, mine.counterName], ["2026-11-06", cashier.username]);
+      // The owner's counter has the same sale date but none of these orders.
+      await signIn(owner);
+      assert.equal((await list()).total, 0);
+      // An older order from a closed sale on this date is not listed either.
+      const old = await SaleSession.create({ businessId: business._id, userId: cashier._id, userNameSnapshot: "Cashier", counterName: "old", counterKey: "old", saleDate: "2026-11-06", openingBalance: 0, status: "CLOSED" });
+      await Order.updateOne({ _id: first.orderId }, { $set: { saleSessionId: old._id } });
+      await signIn(cashier);
+      assert.deepEqual((await list()).orders.map(order => order.number), [second.orderNumber]);
+      await Order.updateOne({ _id: first.orderId }, { $set: { saleSessionId: cashierSale._id } });
+      // Without an open sale there is nothing to list.
+      const { User } = await import("../models/User.ts");
+      const idle = await User.create({ businessId: business._id, fullName: "Idle", phone: "03001234569", username: "close.idle", role: "CASHIER", passwordHash: "x" });
+      await signIn(idle);
+      assert.deepEqual([(await list()).total, (await list()).saleDate], [0, ""]);
+      await signIn(cashier);
+    });
+
     await t.test("the cashier cannot close, and the sale stays open and usable", async () => {
       const before = await SaleSession.findById(cashierId).lean();
       const blocked = await close(cashierId);

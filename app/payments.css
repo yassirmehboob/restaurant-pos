@@ -21,3 +21,10 @@
 .payment-dialog .payment-tax-summary button{min-height:36px}
 .payment-dialog .payment-coupon{padding:10px 12px}
 @media(min-width:760px){.payment-dialog{width:min(880px,calc(100% - 32px))}.payment-dialog form{padding:18px 22px;gap:12px}.payment-columns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}.payment-dialog footer{bottom:-18px;padding-top:4px}}
+
+.payment-history article.is-reversed b{color:#98a2b3;text-decoration:line-through}
+.payment-reversal{margin:6px 0 0;padding:7px 9px;color:#b42318;font-size:12px;line-height:1.4;background:#fef3f2;border-radius:7px}
+.payment-reversal span{display:block;color:#475467;overflow-wrap:anywhere}
+.reverse-payment-trigger{height:38px;padding:0 12px;display:flex;gap:7px;align-items:center;color:#b42318;background:#fff;border:1px solid #fda29b;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer}
+.reverse-payment-trigger:hover:not(:disabled){background:#fef3f2}
+.reverse-payment-trigger:disabled{opacity:.6;cursor:default}

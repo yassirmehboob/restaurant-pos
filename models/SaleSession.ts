@@ -1,8 +1,9 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, deleteModel, model, models } from "mongoose";
 
 const totalsSchema = new Schema({
   sales: Number, expenses: Number, cashSales: Number, cashExpenses: Number,
   balance: Number, expectedCash: Number, paymentCount: Number, expenseCount: Number,
+  reversals: Number, cashReversals: Number, reversalCount: Number,
 }, { _id: false });
 
 const schema = new Schema({
@@ -26,4 +27,6 @@ const schema = new Schema({
 schema.index({ businessId: 1, userId: 1 }, { unique: true, partialFilterExpression: { status: "OPEN" } });
 schema.index({ businessId: 1, counterKey: 1 }, { unique: true, partialFilterExpression: { status: "OPEN" } });
 schema.index({ businessId: 1, saleDate: -1, openedAt: -1 });
+const cachedTotals = models.SaleSession?.schema.path("closingTotals") as { schema?: Schema } | undefined;
+if (cachedTotals?.schema && !cachedTotals.schema.path("reversals")) deleteModel("SaleSession");
 export const SaleSession = models.SaleSession ?? model("SaleSession", schema);

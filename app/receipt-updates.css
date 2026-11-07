@@ -12,11 +12,11 @@
 .receipt-item-table .receipt-item-tax{font-weight:700}
 .paper-58 .receipt-item-table{font-size:.82em}
 .receipt-item-table th:nth-child(n+3),.receipt-item-table td:nth-child(n+3){padding-left:10px}
-/* Priced tables: # and the figures share a row, and the item name takes the full row below them. */
+/* Priced tables: the item name takes the full row, and # and the figures share the row below it. */
 .receipt-item-stacked :is(th,td):first-child{width:100%}
 .receipt-item-stacked :is(th,td):nth-child(2){width:auto;padding-left:10px;text-align:right;white-space:nowrap}
-.receipt-item-stacked .receipt-item-numbers :is(th,td){padding-bottom:0;border-bottom:0}
-.receipt-item-stacked .receipt-item-name{padding-top:1px;white-space:normal;overflow-wrap:anywhere}
+.receipt-item-stacked .receipt-item-numbers :is(th,td){padding-top:1px}
+.receipt-item-stacked .receipt-item-name{padding-bottom:0;border-bottom:0;white-space:normal;overflow-wrap:anywhere}
 /* Kitchen ticket: same table as the customer receipt, with names and notes in bold for the cook. */
 .kitchen-item-table td{font-weight:800}
 .kitchen-item-table td small.kitchen-deal-item{font-weight:400}

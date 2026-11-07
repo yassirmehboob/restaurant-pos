@@ -1,6 +1,6 @@
 import { Schema,model,models } from "mongoose";
 
-// ACTIVE -> APPLIED (held by an unpaid order; released if removed or cancelled) -> REDEEMED (final).
+// ACTIVE -> APPLIED (held by an unpaid order; released if removed or cancelled) -> REDEEMED (final unless the payment is reversed, which returns it to APPLIED).
 // Coupons are never deleted, so a 10-digit code can never be issued or used twice.
 const schema=new Schema({
  businessId:{type:Schema.Types.ObjectId,ref:"Business",required:true},

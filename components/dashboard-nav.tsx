@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText,MessageSquare,MessageSquareText,ShieldCheck,ScrollText,ChevronDown,BadgePercent,TicketPercent,Monitor,BarChart3,ChefHat,ClipboardList,LayoutDashboard,PackageOpen,Printer,ReceiptText,Settings,ShoppingCart,SlidersHorizontal,TableProperties,TrendingUp,UserRound,UsersRound,WalletCards } from "lucide-react";
+import { FileText,Undo2,MessageSquare,MessageSquareText,ShieldCheck,ScrollText,ChevronDown,BadgePercent,TicketPercent,Monitor,BarChart3,ChefHat,ClipboardList,LayoutDashboard,PackageOpen,Printer,ReceiptText,Settings,ShoppingCart,SlidersHorizontal,TableProperties,TrendingUp,UserRound,UsersRound,WalletCards } from "lucide-react";
 import { COUNTER_ROLES,type UserRole } from "@/lib/roles";
 import { can,routePrivilege,type Privilege } from "@/lib/permissions";
 
@@ -17,6 +17,7 @@ const links=[
   ["/reports","Sales Report",FileText],
   ["/sales","Sale History",ReceiptText],
   ["/reports/discounts","Discounted Invoices",BadgePercent],
+  ["/reports/reversals","Reversed Payments",Undo2],
   ["/reports/profit-loss","Profit & Loss",TrendingUp],
   ["/expenses","Expenses",WalletCards],
   ["/products","Items",PackageOpen],
@@ -40,7 +41,7 @@ const links=[
 export function DashboardNav({role,privileges}:{role:UserRole;privileges:Privilege[]}){
   const pathname=usePathname();
   const visible=links.filter(([href])=>{if((href==="/waiter"||href==="/waiter/my-orders")&&role!=="WAITER")return false;if(href==="/waiter-requests"&&!COUNTER_ROLES.includes(role))return false;if(href==="/settings/kitchen"&&role!=="OWNER")return false;if(href==="/sale-sessions"&&pathname.startsWith("/kitchen"))return false;const permission=routePrivilege(href);return permission==="owner"?role==="OWNER":!permission||can({role,privileges},permission)});
-  const setupPaths=["/products","/deals","/staff","/users","/tables","/settings/backups","/settings/sms","/settings/signage"],settingsPaths=["/settings/business","/settings/discounts","/settings/sms-messaging","/settings/printing","/settings/kitchen","/audit"],reportPaths=["/reports","/sales","/reports/discounts","/reports/profit-loss"],groupedPaths=[...setupPaths,...settingsPaths,...reportPaths];
+  const setupPaths=["/products","/deals","/staff","/users","/tables","/settings/backups","/settings/sms","/settings/signage"],settingsPaths=["/settings/business","/settings/discounts","/settings/sms-messaging","/settings/printing","/settings/kitchen","/audit"],reportPaths=["/reports","/sales","/reports/discounts","/reports/reversals","/reports/profit-loss"],groupedPaths=[...setupPaths,...settingsPaths,...reportPaths];
   const firstReport=visible.find(([href])=>reportPaths.includes(href))?.[0];
   const renderLink=([href,label,Icon]:(typeof links)[number])=><Link className={`nav-link ${pathname===href||(!["/reports","/waiter"].includes(href)&&pathname.startsWith(href+"/"))?"active":""}`} href={href} key={href}><Icon size={19}/><span>{label}</span></Link>;
   const renderGroup=(label:string,Icon:typeof Settings,paths:string[])=>{const items=visible.filter(([href])=>paths.includes(href));return items.length>0&&<details className="setup-nav" key={label} open={paths.some(path=>pathname===path||pathname.startsWith(path+"/"))}><summary><Icon size={19}/><span>{label}</span><ChevronDown size={17}/></summary><div className="setup-links">{items.map(renderLink)}</div></details>};

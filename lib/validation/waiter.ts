@@ -7,6 +7,7 @@ export const waiterRequestSchema = z.object({
   submissionKey: z.string().uuid(),
   input: orderInputSchema,
 }).superRefine(({ input }, ctx) => {
-  if (input.orderType !== "DINE_IN" || !input.tableId)
-    ctx.addIssue({ code: "custom", path: ["input", "tableId"], message: "Select a table for this order." });
+  // Waiter orders are dine-in; the table is optional (for example a guest waiting at the counter).
+  if (input.orderType !== "DINE_IN")
+    ctx.addIssue({ code: "custom", path: ["input", "orderType"], message: "Waiter orders are dine-in only." });
 });

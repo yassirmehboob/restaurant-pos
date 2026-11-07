@@ -4,7 +4,7 @@ export type ReceiptItem={name:string;unitPrice:number;quantity:number;notes?:str
 // "item" rows carry the item name, "detail" rows a deal component, "note" rows the line note.
 type Row={text:string;bold?:boolean;kind:"head"|"item"|"detail"|"note"};
 
-// Thermal item table. With prices, each item prints # | Price | Qty | Amount on one row and its name across the full row below, so long names fit on one line.
+// Thermal item table. With prices, each item prints its name across the full row, so long names fit on one line, with # | Price | Qty | Amount on the row below.
 // Without prices (kitchen tickets) there is room for # | Item | Qty on one row, which keeps the quantity beside the name for the cook.
 // Qty and Amount columns are wider than their values so the figures keep a clear gap between them.
 const NO=3,PRICE=9,QTY=5,AMOUNT=11;
@@ -18,13 +18,13 @@ export function receiptItemRows(items:ReceiptItem[],columns:number,money:(value:
     const numbers=figures(price,qty,amount);
     return no.length+numbers.length<=columns?[no+numbers.padStart(columns-no.length)]:wrap([no,...(prices?[price,qty,amount]:[qty])].join(" "),columns);
   };
-  if(stacked)rows.push(...numberRow("#".padEnd(NO),"Price","Qty","Amount").map(text=>({text,bold:true,kind:"head" as const})),{text:"Item",bold:true,kind:"head"});
+  if(stacked)rows.push({text:"Item",bold:true,kind:"head"},...numberRow("#".padEnd(NO),"Price","Qty","Amount").map(text=>({text,bold:true,kind:"head" as const})));
   else rows.push({text:"#".padEnd(NO)+"Item".padEnd(itemWidth)+" "+figures("Price","Qty","Amount"),bold:true,kind:"head"});
   items.forEach((item,index)=>{
     const no=String(index+1).padEnd(NO),price=money(item.unitPrice),qty=String(item.quantity),amount=money(item.unitPrice*item.quantity),numbers=figures(price,qty,amount);
     if(stacked||NO+itemWidth+1+numbers.length>columns){
-      for(const text of numberRow(no,price,qty,amount))rows.push({text,kind:"item"});
       for(const text of wrap(item.name,columns))rows.push({text,kind:"item"});
+      for(const text of numberRow(no,price,qty,amount))rows.push({text,kind:"item"});
     }
     else wrap(item.name,itemWidth).forEach((part,line)=>rows.push({text:line?"".padEnd(NO)+part:no+part.padEnd(itemWidth)+" "+numbers,kind:"item"}));
     for(const component of item.components??[])for(const part of wrap(`> ${component}`,columns-NO))rows.push({text:"".padEnd(NO)+part,kind:"detail"});

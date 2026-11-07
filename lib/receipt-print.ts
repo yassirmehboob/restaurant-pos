@@ -17,7 +17,7 @@ export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;co
 const target=(business:Record<string,unknown>,role:ReceiptKind):PrinterTarget=>({connection:business[`${role}PrinterConnection`]==="LAN"?"LAN":"USB",name:String(business[`${role}PrinterName`]??""),host:String(business[`${role}PrinterHost`]??""),port:Number(business[`${role}PrinterPort`]??9100)||9100});
 
 async function customerExtras(businessId:string,order:{_id:unknown}&Parameters<typeof orderCashierName>[0]&Parameters<typeof receiptPreparationMinutes>[1],business:{showOrderReadyTime?:boolean|null}):Promise<ReceiptExtras>{
-  const[payments,cashier]=await Promise.all([Payment.find({orderId:order._id,businessId}).select("method amount tenderedAmount changeAmount").sort({paidAt:1}).lean(),orderCashierName(order)]);
+  const[payments,cashier]=await Promise.all([Payment.find({orderId:order._id,businessId,reversal:null}).select("method amount tenderedAmount changeAmount").sort({paidAt:1}).lean(),orderCashierName(order)]);
   const readyMessage=readyTimeMessage(Boolean(business.showOrderReadyTime),business.showOrderReadyTime?await receiptPreparationMinutes(businessId,order):null);
   return{payments,cashier,readyMessage};
 }

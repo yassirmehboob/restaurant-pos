@@ -42,9 +42,11 @@ export async function sessionTotals(businessId: string, sessionId: string, openi
   // operations within a transaction.
   const payments = await Payment.find({ businessId, saleSessionId: sessionId }).session(transaction ?? null).lean();
   const expenses = await Expense.find({ businessId, saleSessionId: sessionId, isActive: true }).session(transaction ?? null).lean();
+  const reversed = await Payment.find({ businessId, "reversal.saleSessionId": sessionId }).session(transaction ?? null).lean();
   return calculateSessionTotals(openingBalance,
     payments.map(row => ({ amount: row.amount, method: row.method })),
-    expenses.map(row => ({ amount: row.amount, method: row.paymentMethod })));
+    expenses.map(row => ({ amount: row.amount, method: row.paymentMethod })),
+    reversed.map(row => ({ amount: row.amount, method: row.method })));
 }
 
 // An order with nothing left to collect (for example a fully discounted one) cannot take a payment, so it never holds a shift open.

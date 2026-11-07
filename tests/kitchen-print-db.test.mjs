@@ -143,6 +143,25 @@ test("one-printer mode prints the kitchen ticket from the counter", { skip: !pro
       assert.deepEqual([confirmed.printKitchen, confirmed.printBill, confirmed.printerMode], [true, true, "QZ"]);
       assert.equal((await Order.findById(confirmed.orderId).lean()).paymentStatus, "UNPAID");
     });
+
+    await t.test("a waiter can send an order without a table, and the cashier sees it as No table", async () => {
+      const { GET } = await import("../app/api/pos/waiter-requests/route.ts");
+      const waiter = await User.findOne({ username: "print.waiter" });
+      jar.clear();
+      await createSession({ userId: String(waiter._id), businessId: String(business._id), role: "WAITER", authVersion: 0 });
+      const sent = await saveWaiterRequest({ submissionKey: randomUUID(), revision: 0, input: { ...order("DINE_IN"), tableId: "" } });
+      assert.equal(sent.ok, true, JSON.stringify(sent));
+      const takeaway = await saveWaiterRequest({ submissionKey: randomUUID(), revision: 0, input: { ...order("TAKEAWAY"), tableId: "" } });
+      assert.equal(takeaway.ok, false, "waiter orders stay dine-in");
+      jar.clear();
+      await createSession({ userId: String(cashier._id), businessId: String(business._id), role: "CASHIER", authVersion: 0 });
+      const queue = await (await GET()).json();
+      assert.equal(queue.requests.find(request => request.id === sent.id)?.tableName, "No table");
+      const confirmed = await confirmWaiterRequest(sent.id, 0);
+      assert.equal(confirmed.ok, true, confirmed.message);
+      const placed = await Order.findById(confirmed.orderId).lean();
+      assert.deepEqual([placed.orderType, placed.tableId, placed.tableNameSnapshot, placed.status], ["DINE_IN", undefined, undefined, "SENT_TO_KITCHEN"]);
+    });
   } finally {
     try { await mongoose.connection.dropDatabase(); } finally { await mongoose.disconnect(); }
   }

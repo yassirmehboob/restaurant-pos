@@ -34,6 +34,12 @@ test("manager, supervisor and chef roles get their default access and can be sav
  for(const role of ["MANAGER","SUPERVISOR","CHEF"])assert.equal(userAccountSchema.safeParse({...valid,role}).success,true);
  assert.equal(userAccountSchema.safeParse({...valid,role:"CLEANER"}).success,false);
 });
+test("reversing payments is owner-granted, never a role default",()=>{
+ assert.equal(can({role:"OWNER",privileges:[]},"reverse_payments"),true);
+ for(const role of ["ADMIN","MANAGER","SUPERVISOR","CASHIER","WAITER","KITCHEN","CHEF"])assert.equal(can({role},"reverse_payments"),false,role);
+ assert.equal(can({role:"CASHIER",privileges:["reverse_payments"]},"reverse_payments"),true);
+ assert.equal(routePrivilege("/reports/reversals"),"reverse_payments");assert.equal(routePrivilege("/reports/discounts"),"reports");
+});
 test("staff CNIC, address and remarks are optional and CNIC is normalized",async()=>{
  const{staffSchema}=await import("../lib/validation/master-data.ts");
  const base={fullName:"Ali Khan",role:"CLEANER",phone:"",cnic:"",address:"",remarks:""};

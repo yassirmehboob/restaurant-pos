@@ -78,7 +78,7 @@ test("KG items are priced, saved and reported by weight", { skip: !process.env.M
       const printed = job.parts.filter(part => part.type === "command").map(part => Buffer.from(part.base64, "base64").toString("latin1")).join("");
       // Strip ESC/POS formatting (init, code page, align, bold, size, feed) to compare the visible text.
       const lines = printed.replace(/\x1b@|\x1b[taEd][\s\S]|\x1d![\s\S]/g, "").split("\n").map(row => row.trimEnd());
-      for (const row of ["Cashier".padEnd(37) + "Owner", "#  Item              Price  Qty     Amount", "1  Mutton Karahi  2,400.00    2   4,800.00", "   (500 g)", "2  Mutton Karahi  7,200.00    2  14,400.00", "   (1.5 KG)", "3  Mutton Karahi 15,648.00    1  15,648.00", "   (3.26 KG)", "Received - Card".padEnd(33) + "30,000.00", "Received - Cash".padEnd(33) + "10,100.00", "Change".padEnd(37) + "24.80"])
+      for (const row of ["Cashier".padEnd(37) + "Owner", "Item", "#                    Price  Qty     Amount", "Mutton Karahi (500 g)", "1                 2,400.00    2   4,800.00", "Mutton Karahi (1.5 KG)", "2                 7,200.00    2  14,400.00", "Mutton Karahi (3.26 KG)", "3                15,648.00    1  15,648.00", "Received - Card".padEnd(33) + "30,000.00", "Received - Cash".padEnd(33) + "10,100.00", "Change".padEnd(37) + "24.80"])
         assert.ok(lines.includes(row), `receipt should contain "${row}"\n${lines.join("\n")}`);
       for (const [label, amount] of [["Subtotal", "34,848.00"], ["TOTAL", "40,075.20"]])
         assert.ok(new RegExp(`${label} +${amount}`).test(printed), `${label} should print ${amount}`);

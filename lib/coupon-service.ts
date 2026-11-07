@@ -73,6 +73,18 @@ export async function redeemOrderCoupon(order: PaidOrder, saleDate: string, sess
   await Coupon.updateOne({ _id: coupon!._id, status: "APPLIED" }, { $set: { status: "REDEEMED", redeemedAt: new Date(), discountAmount: Math.max(0, (order.discountAmount ?? 0) - (order.invoiceDiscount?.amount ?? 0)) } }, { session });
 }
 
+// A reversed payment puts the order back to unpaid: its coupon goes back to being held by the order, and reward
+// coupons the payment earned are taken back unless already used, so paying again cannot collect a second set.
+export async function undoOrderCoupons(order: { _id: unknown; businessId: unknown; couponId?: unknown; issuedCoupons?: { couponId?: unknown }[] | null }, session: ClientSession) {
+  if (order.couponId) await Coupon.updateOne({ _id: order.couponId, businessId: order.businessId, orderId: order._id, status: "REDEEMED" }, { $set: { status: "APPLIED" }, $unset: { redeemedAt: "" } }, { session });
+  if (!order.issuedCoupons?.length) return;
+  const unused = { businessId: order.businessId, issuedOrderId: order._id, assignmentSource: "AUTO", status: "ACTIVE" };
+  const takenBack = new Set((await Coupon.find(unused).select("_id").session(session).lean()).map(row => String(row._id)));
+  await Coupon.updateMany(unused, { $unset: { customerId: "", customerNameSnapshot: "", customerPhoneSnapshot: "", assignmentSource: "", assignedAt: "", issuedSaleDate: "", issuedOrderId: "", issuedOrderNumber: "" } }, { session });
+  const kept = order.issuedCoupons.filter(item => !takenBack.has(String(item.couponId)));
+  await Order.updateOne({ _id: order._id }, kept.length ? { $set: { issuedCoupons: kept } } : { $unset: { issuedCoupons: "" } }, { session });
+}
+
 // Gives a paying customer one unassigned coupon from each offer whose spend rule they met.
 export async function autoIssueCoupons(order: PaidOrder, saleDate: string, session: ClientSession): Promise<IssuedCoupon[]> {
   if (!order.customerId) return [];

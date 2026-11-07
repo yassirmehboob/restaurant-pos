@@ -9,9 +9,11 @@ import { notifyWaiterOrder } from "../lib/waiter-push.mjs";
 
 const id="0123456789abcdef01234567";
 const input={orderType:"DINE_IN",tableId:id,paymentMethod:"CASH",deliveryCharge:0,deliveryAddress:"",deliveryArea:"",deliveryNotes:"",lines:[{kind:"PRODUCT",id,quantity:2,note:"No salt"}]};
-test("waiter orders require a table and valid quantities, revisions and item IDs",()=>{
+test("waiter orders are dine-in with valid quantities, revisions and item IDs; the table is optional",()=>{
  assert.ok(waiterRequestSchema.safeParse({submissionKey:"12345678-1234-4234-8234-123456789abc",revision:0,input}).success);
- for(const change of [{orderType:"TAKEAWAY"},{tableId:""},{lines:[]},{lines:[{...input.lines[0],quantity:0}]},{lines:[{...input.lines[0],id:"invalid"}]}])assert.equal(waiterRequestSchema.safeParse({revision:0,input:{...input,...change}}).success,false);
+ const key="12345678-1234-4234-8234-123456789abc";
+ for(const tableId of ["",undefined])assert.ok(waiterRequestSchema.safeParse({submissionKey:key,revision:0,input:{...input,tableId}}).success);
+ for(const change of [{orderType:"TAKEAWAY"},{orderType:"DELIVERY"},{tableId:"not-an-id"},{lines:[]},{lines:[{...input.lines[0],quantity:0}]},{lines:[{...input.lines[0],id:"invalid"}]}])assert.equal(waiterRequestSchema.safeParse({submissionKey:key,revision:0,input:{...input,...change}}).success,false,JSON.stringify(change));
  assert.equal(waiterRequestSchema.safeParse({submissionKey:"12345678-1234-4234-8234-123456789abc",revision:-1,input}).success,false);
 });
 test("waiter workspace access cannot be broadened to expose bills or bypass approval",()=>{
