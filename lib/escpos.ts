@@ -2,6 +2,8 @@
 // Output is plain bytes, so the same job prints over USB (Windows queue) or LAN (raw port 9100).
 
 const ESC=0x1b,GS=0x1d;
+// ESC ~ is not an ESC/POS command; it marks right-to-left text for the counter PC to draw (EscPos.local).
+export const LOCAL_TEXT=0x7e;
 export type PaperWidth="58"|"80";
 export const RECEIPT_FONTS=["STANDARD","COMPACT","BOLD"] as const;
 export const RECEIPT_SIZES=["NORMAL","TALL","LARGE"] as const;
@@ -58,6 +60,15 @@ export class EscPos{
   reset(){this.bytes=[];return this.applyStyle()}
   align(value:"left"|"center"|"right"){return this.raw(ESC,0x61,value==="left"?0:value==="center"?1:2)}
   bold(on:boolean){return this.raw(ESC,0x45,on||this.baseBold?1:0)}
+  // Reverse print (white on black), GS B.
+  invert(on:boolean){return this.raw(GS,0x42,on?1:0)}
+  // A full-width white-on-black band, centred, for what the reader must spot first (order number, kitchen counter).
+  band(value:string,size:Size="large"){
+    const width=this.columnsAt(size);
+    this.align("left").bold(true).size(size).invert(true);
+    for(const line of wrap(value,width)){const left=Math.floor((width-line.length)/2);this.bytes.push(...encode((" ".repeat(left)+line).padEnd(width)),0x0a)}
+    return this.invert(false).size("normal").bold(false);
+  }
   private effective(value:Size){return sizes[Math.max(sizeRank[value],sizeRank[this.baseSize])]}
   // Double width halves the usable columns, so callers wrap against columnsAt(size).
   size(value:Size){const size=this.effective(value);return this.raw(GS,0x21,size==="normal"?0:size==="tall"?0x01:0x11)}
@@ -72,6 +83,15 @@ export class EscPos{
   // Prints pre-aligned text (tables) as is: spacing is kept, nothing wraps, and overflow is cut at the paper width.
   line(value:string){this.bytes.push(...encode(value.slice(0,this.columns)),0x0a);return this}
   divider(char="-"){this.bytes.push(...encode(char.repeat(this.columns)),0x0a);return this}
+  // Right-to-left text (Sindhi, Urdu) that printers cannot draw from their code pages. It travels as a private
+  // ESC ~ <length> <UTF-8> record that only the counter PC reads, and is drawn into the receipt image there
+  // (lib/receipt-raster.ts). A ticket carrying it is therefore always printed as an image, never raw.
+  local(value:string){
+    const utf8=new TextEncoder().encode(value.trim()).slice(0,0xffff);
+    this.raw(ESC,LOCAL_TEXT,utf8.length&0xff,utf8.length>>8);for(const byte of utf8)this.bytes.push(byte);
+    this.bytes.push(0x0a);this.localText=true;return this;
+  }
+  localText=false;
   feed(lines=1){return this.raw(ESC,0x64,Math.min(255,Math.max(0,lines)))}
   barcode(value:string){
     const data=encode("{B"+value.slice(0,40));

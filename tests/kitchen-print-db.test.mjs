@@ -162,6 +162,52 @@ test("one-printer mode prints the kitchen ticket from the counter", { skip: !pro
       const placed = await Order.findById(confirmed.orderId).lean();
       assert.deepEqual([placed.orderType, placed.tableId, placed.tableNameSnapshot, placed.status], ["DINE_IN", undefined, undefined, "SENT_TO_KITCHEN"]);
     });
+
+    await t.test("a ticket per category sends each kitchen counter only its items, deals split by item", async () => {
+      const { Deal } = await import("../models/Deal.ts");
+      const { updatePrintingSettings } = await import("../app/(dashboard)/settings/printing/actions.ts");
+      const { decodeEscPos } = await import("../lib/receipt-raster.ts");
+      const owner = await User.findOne({ username: "print.owner" });
+      jar.clear();
+      await createSession({ userId: String(owner._id), businessId: String(business._id), role: "OWNER", authVersion: 0 });
+      const form = new FormData();
+      for (const [name, value] of Object.entries({ receiptPaperWidth: "80", showOrderReadyTime: "NO", showLogoOnCustomerReceipt: "NO", showPricesOnKitchenReceipt: "NO", printerMode: "QZ", onePrinterMode: "NO", customerPrinterConnection: "LAN", customerPrinterHost: "192.168.1.50", customerPrinterPort: "9100", kitchenPrinterConnection: "LAN", kitchenPrinterHost: "192.168.1.60", kitchenPrinterPort: "9100", customerPrintingEnabled: "YES", kitchenPrintingEnabled: "YES", autoPrintCustomerOnPayment: "NO", autoPrintUnpaidDineIn: "NO", unpaidDineInReceiptCopies: "1", customerReceiptCopies: "1", kitchenReceiptCopies: "1", customerReceiptFont: "STANDARD", customerReceiptSize: "NORMAL", kitchenReceiptFont: "STANDARD", kitchenReceiptSize: "NORMAL", customerReceiptFamily: "PRINTER", kitchenReceiptFamily: "PRINTER", kitchenTicketPerCategory: "YES" })) form.set(name, value);
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await Business.findById(business._id).lean()).kitchenTicketPerCategory, true);
+      // A form without the field (older settings page) keeps the saved choice.
+      form.delete("kitchenTicketPerCategory");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await Business.findById(business._id).lean()).kitchenTicketPerCategory, true);
+
+      const [bbq, drinks] = await Category.create([{ businessId: business._id, name: "BBQ", sortOrder: 2 }, { businessId: business._id, name: "Drinks", sortOrder: 3 }]);
+      const tikka = await Product.create({ businessId: business._id, categoryId: bbq._id, name: "Chicken Tikka", salePrice: 500, costPrice: 300 });
+      const cola = await Product.create({ businessId: business._id, categoryId: drinks._id, name: "Cola", salePrice: 100, costPrice: 50 });
+      const deal = await Deal.create({ businessId: business._id, name: "Tikka Deal", salePrice: 550, items: [{ productId: tikka._id, quantity: 1 }, { productId: cola._id, quantity: 1 }] });
+      const table = await RestaurantTable.findOne({ businessId: business._id, name: "Table 9" });
+      const { Staff } = await import("../models/Staff.ts");
+      const staff = await Staff.create({ businessId: business._id, fullName: "Bilal", role: "WAITER" });
+      jar.clear();
+      await createSession({ userId: String(cashier._id), businessId: String(business._id), role: "CASHIER", authVersion: 0 });
+      const lines = [{ kind: "PRODUCT", id: String(karahi._id), quantity: 1, note: "" }, { kind: "PRODUCT", id: String(tikka._id), quantity: 2, note: "Well done" }, { kind: "DEAL", id: String(deal._id), quantity: 1, note: "" }];
+      const created = await saveOrder({ ...order("DINE_IN"), tableId: String(table._id), waiterId: String(staff._id), lines });
+      assert.equal(created.ok, true, created.message);
+      const job = await buildPrintJob(String(business._id), created.orderId, "kitchen");
+      assert.deepEqual([job.role, job.printer.host], ["kitchen", "192.168.1.60"]);
+      const rows = job.parts.flatMap(part => decodeEscPos(part.base64)), tickets = [[]];
+      for (const row of rows) { if (row.kind === "cut") tickets.push([]); else tickets.at(-1).push(row); }
+      const printed = tickets.filter(ticket => ticket.length).map(ticket => ({ bands: ticket.filter(row => row.style?.invert).map(row => row.text.trim()), text: ticket.map(row => row.text ?? "").join("\n") }));
+      const number = (await Order.findById(created.orderId).lean()).orderNumber;
+      // Mains (sort 0) first, then BBQ and Drinks; the deal appears at both BBQ and Drinks with only that counter's item.
+      assert.deepEqual(printed.map(ticket => ticket.bands), [[number, "MAINS"], [number, "BBQ"], [number, "DRINKS"]]);
+      assert.ok(printed.every(ticket => /Table +Table 9/.test(ticket.text) && /Waiter +Bilal/.test(ticket.text)), printed[0].text);
+      assert.ok(printed[0].text.includes("Chicken Karahi") && !printed[0].text.includes("Tikka"));
+      assert.ok(printed[1].text.includes("Chicken Tikka") && printed[1].text.includes("Well done") && printed[1].text.includes("> Chicken Tikka - Qty 1") && !printed[1].text.includes("Cola"));
+      assert.ok(printed[2].text.includes("Tikka Deal") && printed[2].text.includes("> Cola - Qty 1") && !printed[2].text.includes("> Chicken Tikka"));
+      assert.ok(printed[2].text.includes("Ticket 3 of 3"));
+      await settings({ kitchenTicketPerCategory: false });
+      const single = await buildPrintJob(String(business._id), created.orderId, "kitchen");
+      assert.equal(single.parts.flatMap(part => decodeEscPos(part.base64)).filter(row => row.kind === "cut").length, 1);
+    });
   } finally {
     try { await mongoose.connection.dropDatabase(); } finally { await mongoose.disconnect(); }
   }

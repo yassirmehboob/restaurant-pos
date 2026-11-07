@@ -1,4 +1,5 @@
 import { RECEIPT_FAMILIES } from "@/lib/receipt-fonts";
+import { KITCHEN_LANGUAGES } from "@/lib/kitchen-language";
 import { Schema, model, models, deleteModel, type InferSchemaType } from "mongoose";
 const deliveryMessageSchema=new Schema({enabled:{type:Boolean,default:false},includeOptOut:{type:Boolean,default:true},template:String},{_id:false});
 const orderMessageSchema=new Schema({enabled:{type:Boolean,default:false},includeOptOut:{type:Boolean,default:true},template:String,dineIn:{type:Boolean,default:true},takeaway:{type:Boolean,default:true}},{_id:false});
@@ -17,8 +18,12 @@ const businessSchema = new Schema({
   customerReceiptFont:{type:String,enum:["STANDARD","COMPACT","BOLD"],default:"STANDARD"}, customerReceiptSize:{type:String,enum:["NORMAL","TALL","LARGE"],default:"NORMAL"},
   kitchenReceiptFont:{type:String,enum:["STANDARD","COMPACT","BOLD"],default:"STANDARD"}, kitchenReceiptSize:{type:String,enum:["NORMAL","TALL","LARGE"],default:"NORMAL"},
   autoPrintUnpaidDineIn:{type:Boolean,default:false}, unpaidDineInReceiptCopies:{type:Number,default:1,min:1,max:5},
-  customerReceiptFamily:{type:String,enum:RECEIPT_FAMILIES,default:"PRINTER"}, kitchenReceiptFamily:{type:String,enum:RECEIPT_FAMILIES,default:"PRINTER"},
+  customerReceiptFamily:{type:String,enum:RECEIPT_FAMILIES,default:"PRINTER"}, kitchenReceiptFamily:{type:String,enum:RECEIPT_FAMILIES,default:"PRINTER"}, kitchenReceiptLanguage:{type:String,enum:KITCHEN_LANGUAGES,default:"EN"},
+  // Prints one kitchen ticket per menu category, for kitchens with a separate counter per category.
+  kitchenTicketPerCategory:{type:Boolean,default:false},
   autoPrintCustomerOnPayment:{type:Boolean,default:false},
+  // Cash drawer on the customer receipt printer (QZ Tray only): opened after cash payments, every payment, or never.
+  cashDrawerOpenOn:{type:String,enum:["NEVER","CASH","ALL"],default:"NEVER"}, cashDrawerPin:{type:String,enum:["PIN2","PIN5"],default:"PIN2"},
   waiterShowBillSummary:{type:Boolean,default:false},
   paymentPrefillDueAmount:{type:Boolean,default:true},
   smsEnabled:{type:Boolean,default:false},smsPaymentReceiptEnabled:{type:Boolean,default:false},smsIncludeOptOut:{type:Boolean,default:true},smsTokenEncrypted:{type:String,select:false},smsPaymentTemplate:String,smsEvidenceReference:{type:String,default:"customer-acknowledgement"},
@@ -40,5 +45,6 @@ const businessSchema = new Schema({
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
+if(models.Business&&(!models.Business.schema.path("kitchenReceiptLanguage")||!models.Business.schema.path("kitchenTicketPerCategory")||!models.Business.schema.path("cashDrawerOpenOn")))deleteModel("Business");
 if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")||!models.Business.schema.path("smsOrderMessages.served")||!models.Business.schema.path("qrPhoneVerification")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);

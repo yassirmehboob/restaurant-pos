@@ -15,4 +15,12 @@ export const FAMILY_FONTS:Record<ReceiptFamily,{label:string;css:string}>={
   CONSOLAS:{label:"Consolas",css:`Consolas,"Lucida Console",monospace`},
 };
 
+// Sindhi and Urdu item names on kitchen tickets. Noto Naskh Arabic ships with the app (@fontsource), so it
+// works offline and covers the extra Sindhi letters; system fonts are only a fallback.
+export const LOCAL_FONT_CSS=`"Noto Naskh Arabic","Segoe UI",Tahoma,sans-serif`;
+// Web fonts load only when text uses them, so a canvas drawing Sindhi or Urdu must ask for them first.
+export async function loadLocalFont(){
+  try{await Promise.all([document.fonts.load(`400 24px "Noto Naskh Arabic"`,"ڪڙاهي"),document.fonts.load(`700 24px "Noto Naskh Arabic"`,"ڪڙاهي")])}catch{/* Falls back to the system fonts in LOCAL_FONT_CSS. */}
+}
+
 export const receiptFamily=(value:unknown):ReceiptFamily=>RECEIPT_FAMILIES.includes(value as ReceiptFamily)?value as ReceiptFamily:"PRINTER";

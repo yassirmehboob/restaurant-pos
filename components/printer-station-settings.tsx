@@ -1,9 +1,10 @@
 "use client";
 import { useId,useState,useSyncExternalStore } from "react";
-import { Cable,Check,LoaderCircle,Monitor,Printer,RefreshCw,Wifi } from "lucide-react";
+import { Banknote,Cable,Check,LoaderCircle,Monitor,Printer,RefreshCw,Wifi } from "lucide-react";
 import { describePrinter,printerTargetSchema,type PrinterTarget } from "@/lib/printer-target";
 import type { PaperWidth } from "@/lib/escpos";
-import { listQzPrinters,parseStationPrinters,printTestPage,saveStationPrinters,stationPrintersRaw,type StationPrinters } from "@/lib/printers/qz-tray";
+import type { CashDrawerPin } from "@/lib/cash-drawer";
+import { listQzPrinters,openCashDrawer,parseStationPrinters,printTestPage,saveStationPrinters,stationPrintersRaw,type StationPrinters } from "@/lib/printers/qz-tray";
 import "./printer-station-settings.css";
 
 type Role="customer"|"kitchen";
@@ -11,7 +12,7 @@ type Draft={mode:"BUSINESS"|"USB"|"LAN";name:string;host:string;port:string};
 const subscribe=(onChange:()=>void)=>{window.addEventListener("storage",onChange);return()=>window.removeEventListener("storage",onChange)};
 const toDraft=(target?:PrinterTarget):Draft=>target?{mode:target.connection,name:target.name,host:target.host,port:String(target.port||9100)}:{mode:"BUSINESS",name:"",host:"",port:"9100"};
 
-export function PrinterStationSettings({customer,kitchen,onePrinter,paper}:{customer:PrinterTarget;kitchen:PrinterTarget;onePrinter:boolean;paper:PaperWidth}){
+export function PrinterStationSettings({customer,kitchen,onePrinter,paper,drawerPin}:{customer:PrinterTarget;kitchen:PrinterTarget;onePrinter:boolean;paper:PaperWidth;drawerPin:CashDrawerPin}){
   const id=useId(),roles:Role[]=onePrinter?["customer"]:["customer","kitchen"],business={customer,kitchen};
   // Saved choices live in this browser; unsaved edits override them until saved.
   const saved=parseStationPrinters(useSyncExternalStore(subscribe,stationPrintersRaw,()=>null));
@@ -32,6 +33,8 @@ export function PrinterStationSettings({customer,kitchen,onePrinter,paper}:{cust
     saveStationPrinters(next);setEdits({});return"Saved for this computer only.";
   });
   const test=(role:Role)=>run(`test-${role}`,async()=>{const result=resolve(role);if(!result.target)throw new Error(result.error);await printTestPage(result.target,paper,role==="customer"?"Customer receipt printer":"Kitchen printer");return`Test page sent to ${describePrinter(result.target)}.`});
+  // Uses the printer chosen above (saved or not) and the saved drawer connector.
+  const drawer=()=>run("drawer",async()=>{const result=resolve("customer");if(!result.target)throw new Error(result.error);const opened=await openCashDrawer(result.target,drawerPin,{useStation:false});if(!opened.ok)throw new Error(opened.message);return opened.message});
   const update=(role:Role,patch:Partial<Draft>)=>setEdits(current=>({...current,[role]:{...drafts[role],...current[role],...patch}}));
 
   return <section className="printer-station" aria-labelledby={`${id}-title`}>
@@ -45,6 +48,7 @@ export function PrinterStationSettings({customer,kitchen,onePrinter,paper}:{cust
       {draft.mode==="USB"&&<label className="printer-station-field">Windows printer name<input list={`${id}-printers`} value={draft.name} placeholder="Leave empty for the Windows default printer" onChange={event=>update(role,{name:event.target.value})}/></label>}
       {draft.mode==="LAN"&&<div className="printer-station-lan"><label className="printer-station-field">Printer IP address<input inputMode="decimal" value={draft.host} placeholder="192.168.1.50" onChange={event=>update(role,{host:event.target.value})}/></label><label className="printer-station-field">Port<input inputMode="numeric" value={draft.port} onChange={event=>update(role,{port:event.target.value})}/></label></div>}
       <button type="button" className="printer-station-test" onClick={()=>test(role)} disabled={busy!==null}>{busy===`test-${role}`?<LoaderCircle className="printer-station-spin" size={15}/>:<Printer size={15}/>}Print test page</button>
+      {role==="customer"&&<button type="button" className="printer-station-test" onClick={drawer} disabled={busy!==null}>{busy==="drawer"?<LoaderCircle className="printer-station-spin" size={15}/>:<Banknote size={15}/>}Open cash drawer</button>}
     </fieldset>})}</div>
     <datalist id={`${id}-printers`}>{printers.map(name=><option key={name} value={name}/>)}</datalist>
     <footer><p role="status" aria-live="polite" className={status&&!status.ok?"is-error":""}>{status?.message??"Install QZ Tray on this PC, then use Find printers to check the connection."}</p><button type="button" onClick={save} disabled={busy!==null}>{busy==="save"?<LoaderCircle className="printer-station-spin" size={16}/>:<Check size={16}/>}Save for this computer</button></footer>

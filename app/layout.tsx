@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// Sindhi and Urdu on kitchen tickets (lib/receipt-fonts.ts LOCAL_FONT_CSS); bundled so printing works offline.
+import "@fontsource/noto-naskh-arabic/arabic-400.css";
+import "@fontsource/noto-naskh-arabic/arabic-700.css";
 import "./audit.css";
 import "./user-accounts.css";
 import "./quick-edit.css";

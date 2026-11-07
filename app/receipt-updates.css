@@ -21,3 +21,11 @@
 .kitchen-item-table td{font-weight:800}
 .kitchen-item-table td small.kitchen-deal-item{font-weight:400}
 .receipt-unpaid{margin:12px 0 0;padding:6px 0;border:2px solid #111;text-align:center;font-size:1.3em;font-weight:800;letter-spacing:.04em}
+.receipt-local{display:block;direction:rtl;text-align:right;font-size:1.15em;line-height:1.7}
+.kitchen-deal-item .receipt-local{font-size:1.05em}
+/* Kitchen ticket: order number and kitchen counter as white-on-black bands, table and waiter enlarged. */
+.kitchen-band{margin:6px 0;padding:4px 6px;color:#fff;background:#000;font-weight:800;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow-wrap:anywhere}
+.kitchen-category{margin-top:8px}
+.kitchen-meta-strong{font-size:1.35em;font-weight:800}
+.kitchen-ticket+.kitchen-ticket{margin-top:18px}
+@media print{.kitchen-ticket{break-after:page}.kitchen-ticket:last-child{break-after:auto}.kitchen-ticket+.kitchen-ticket{margin-top:0}}

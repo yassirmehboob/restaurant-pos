@@ -1,7 +1,8 @@
 import type qzTray from "qz-tray";
 import { EscPos,columnsFor,type PaperWidth } from "@/lib/escpos";
 import { describePrinter,type PrinterTarget } from "@/lib/printer-target";
-import type { ReceiptFamily } from "@/lib/receipt-fonts";
+import { drawerKickBase64,type CashDrawerPin } from "@/lib/cash-drawer";
+import { loadLocalFont,type ReceiptFamily } from "@/lib/receipt-fonts";
 import { decodeEscPos,nativeCommand,rasterBlocks } from "@/lib/receipt-raster";
 import type { PrinterAdapter,PrintResult,ReceiptKind } from "./types";
 
@@ -52,7 +53,7 @@ const pngBase64=(canvas:HTMLCanvasElement)=>canvas.toDataURL("image/png").split(
 const image=(data:string):Parameters<Qz["print"]>[1][number]=>({type:"raw",format:"image",flavor:"base64",data,options:{language:"ESCPOS",dotDensity:"double"}});
 // Desktop font families: the text is drawn on this PC and printed as images; barcodes and the cut stay printer commands.
 async function rasterParts(parts:PrintPart[],paper:PaperWidth,family:ReceiptFamily){
-  await document.fonts?.ready;
+  await loadLocalFont();await document.fonts?.ready;
   const data:Parameters<Qz["print"]>[1]=[{type:"raw",format:"command",flavor:"base64",data:btoa("\x1b@")}];
   for(const part of parts){
     if(part.type==="logo"){const logo=await logoBase64(part.url).catch(()=>null);if(logo)data.push(image(logo));continue}
@@ -80,6 +81,13 @@ export async function printTestPage(target:PrinterTarget,paper:PaperWidth,label:
   const page=new EscPos(columnsFor(paper)).align("center").bold(true).size("tall").text("PRINTER TEST").size("normal").bold(false)
     .text(label).text(describePrinter(target)).text(new Date().toLocaleString()).align("left").divider().row("Item","Amount").row("1x Sample item","100.00").divider().feed(2).cut();
   await sendToPrinter(target,[{type:"command",base64:page.toBase64()}]);
+}
+
+// Opens the cash drawer plugged into the receipt printer. This PC's own receipt printer wins over the business one.
+export async function openCashDrawer(printer:PrinterTarget,pin:CashDrawerPin,{useStation=true}={}):Promise<PrintResult>{
+  const target=(useStation?readStationPrinters().customer:undefined)??printer;
+  try{await sendToPrinter(target,[{type:"command",base64:drawerKickBase64(pin)}]);return{ok:true,confirmed:true,message:`Cash drawer opened on ${describePrinter(target)}.`}}
+  catch(error){return{ok:false,confirmed:false,message:message(error)}}
 }
 
 export async function printQzQrSlip(requestId:string):Promise<PrintResult>{

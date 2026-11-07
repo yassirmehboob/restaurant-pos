@@ -2,6 +2,8 @@ import { formatDate,formatDateTime } from "@/lib/dates";
 import { EscPos,columnsFor,RECEIPT_FONTS,RECEIPT_SIZES,type PaperWidth,type ReceiptStyle } from "@/lib/escpos";
 import { receiptFamily,type ReceiptFamily } from "@/lib/receipt-fonts";
 import { receiptItemRows,receivedRows } from "@/lib/receipt-lines";
+import { kitchenLanguage,localName,nameViewOf,type TranslationMap } from "@/lib/kitchen-language";
+import { kitchenTickets,type TicketCategory } from "@/lib/kitchen-tickets";
 
 // Pure receipt layout: the printer job and the settings preview both render through here, so they always match.
 export type ReceiptKind="customer"|"kitchen";
@@ -11,9 +13,12 @@ export type ReceiptBusiness={
   name:string;address?:string|null;phone?:string|null;taxNumber?:string|null;receiptHeader?:string|null;receiptFooter?:string|null;logoUrl?:string|null;
   showLogoOnCustomerReceipt?:boolean|null;showPricesOnKitchenReceipt?:boolean|null;receiptPaperWidth?:string|null;
   customerReceiptFont?:string|null;customerReceiptSize?:string|null;kitchenReceiptFont?:string|null;kitchenReceiptSize?:string|null;
-  customerReceiptFamily?:string|null;kitchenReceiptFamily?:string|null;
+  customerReceiptFamily?:string|null;kitchenReceiptFamily?:string|null;kitchenReceiptLanguage?:string|null;
+  // One kitchen ticket per menu category, for restaurants with separate kitchen counters.
+  kitchenTicketPerCategory?:boolean|null;
 };
-type Line={quantity:number;nameSnapshot:string;unitPrice:number;notes?:string;dealItemsSnapshot?:{name:string;quantity:number}[]};
+// Category fields are filled in by lib/kitchen-categories.ts when the business prints a ticket per category.
+type Line=TicketCategory&{quantity:number;nameSnapshot:string;unitPrice:number;notes?:string;dealItemsSnapshot?:(TicketCategory&{name:string;quantity:number})[]};
 type IssuedCoupon={code:string;batchName:string;description:string;expiresOn?:string;usage?:string};
 export type ReceiptOrder={
   orderNumber:string;createdAt:Date|string;saleDate?:string|null;orderType:string;tableNameSnapshot?:string|null;waiterNameSnapshot?:string|null;
@@ -21,7 +26,8 @@ export type ReceiptOrder={
   subtotal:number;discountAmount?:number|null;couponCode?:string|null;invoiceDiscount?:{name:string;percent:number;amount:number}|null;
   taxAmount:number;taxRateSnapshot?:number|null;deliveryChargeAmount?:number|null;grandTotal:number;paidAmount:number;dueAmount:number;issuedCoupons?:IssuedCoupon[]|null;
 };
-export type ReceiptExtras={payments?:{method?:string;amount:number;tenderedAmount?:number|null;changeAmount?:number|null}[];cashier?:string|null;readyMessage?:string|null};
+// translations: English item name -> Sindhi or Urdu, for the kitchen ticket's language (lib/kitchen-language.ts).
+export type ReceiptExtras={payments?:{method?:string;amount:number;tenderedAmount?:number|null;changeAmount?:number|null}[];cashier?:string|null;readyMessage?:string|null;translations?:TranslationMap};
 
 const money=(value:number)=>(value??0).toLocaleString("en-PK",{minimumFractionDigits:2,maximumFractionDigits:2});
 const pick=<T extends string>(values:readonly T[],value:unknown,fallback:T)=>values.includes(value as T)?value as T:fallback;
@@ -35,6 +41,9 @@ export const styleClass=(style:ReceiptStyle)=>`font-${style.font.toLowerCase()} 
 
 // Bills printed before payment say so plainly, so they are never mistaken for a paid receipt.
 export const unpaidLabel=(order:Pick<ReceiptOrder,"paymentStatus">)=>order.paymentStatus==="PAID"?null:order.paymentStatus==="PARTIAL"?"PARTIALLY PAID BILL":"UNPAID BILL";
+
+// Each printed slip ends with the developer credit and a cut.
+const footer=(p:EscPos)=>p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
 
 export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:ReceiptOrder,extras:ReceiptExtras={}):PrintPart[]{
   const paper=paperWidth(business),style=receiptStyle(business,kind),p=new EscPos(columnsFor(paper,style.font),style),parts:PrintPart[]=[];
@@ -79,21 +88,33 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     }
     p.feed(1).align("center").barcode(order.orderNumber).text(business.receiptFooter||"Thank you!");
     if(extras.readyMessage)p.bold(true).text(extras.readyMessage).bold(false);
+    footer(p);
   }else{
-    p.align("center").bold(true).size("tall").text(business.name).size("normal").text("KITCHEN ORDER").size("large").text(order.orderNumber,p.columnsAt("large")).size("normal").bold(false);
-    p.barcode(order.orderNumber).align("left").divider();
-    if(order.saleDate)meta("Sale date",formatDate(order.saleDate));
-    meta("Created",formatDateTime(order.createdAt));meta("Type",order.orderType.replace("_","-"));
-    if(order.tableNameSnapshot)meta("Table",order.tableNameSnapshot);
-    if(order.waiterNameSnapshot)meta("Waiter",order.waiterNameSnapshot);
-    if(order.orderSource==="QR")meta("Source","QR code order");
-    p.divider();
-    // Same item table as the customer receipt; the cook reads item names and notes in bold.
-    const items=order.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes,components:(line.dealItemsSnapshot??[]).map(item=>`${item.name} - Qty ${item.quantity}`)}));
-    for(const row of receiptItemRows(items,p.columnsAt("normal"),money,{prices:Boolean(business.showPricesOnKitchenReceipt)}))p.bold(row.kind!=="detail").line(row.text).bold(false);
-    if(order.notes)p.divider().bold(true).text("ORDER NOTE").bold(false).text(order.notes);
+    // Item names can also print in Sindhi or Urdu; a name with no translation yet prints in English.
+    const names=nameViewOf(kitchenLanguage(business.kitchenReceiptLanguage)),translations=extras.translations??{};
+    const split=Boolean(business.kitchenTicketPerCategory)&&order.items.length>0,tickets=split?kitchenTickets(order.items):[{category:"",items:order.items}];
+    tickets.forEach((ticket,index)=>{
+      // Order number and kitchen counter print white on black, so the cook spots them at a glance.
+      p.align("center").bold(true).size("tall").text(business.name).size("normal").text("KITCHEN ORDER").bold(false);
+      p.band(order.orderNumber);
+      if(split){p.feed(1).band(ticket.category.toUpperCase());if(tickets.length>1)p.align("center").bold(true).text(`Ticket ${index+1} of ${tickets.length}`).bold(false)}
+      p.align("center").barcode(order.orderNumber).align("left").divider();
+      // Table and waiter tell the counter where the dish goes, so they print tall.
+      if(order.tableNameSnapshot)p.bold(true).size("tall").row("Table",order.tableNameSnapshot).size("normal").bold(false);
+      if(order.waiterNameSnapshot)p.bold(true).size("tall").row("Waiter",order.waiterNameSnapshot).size("normal").bold(false);
+      if(order.saleDate)meta("Sale date",formatDate(order.saleDate));
+      meta("Created",formatDateTime(order.createdAt));meta("Type",order.orderType.replace("_","-"));
+      if(order.orderSource==="QR")meta("Source","QR code order");
+      p.divider();
+      // Same item table as the customer receipt; the cook reads item names and notes in bold.
+      const items=ticket.items.map(line=>({name:line.nameSnapshot,unitPrice:line.unitPrice,quantity:line.quantity,notes:line.notes,components:(line.dealItemsSnapshot??[]).map(item=>`${item.name} - Qty ${item.quantity}`),
+        ...(names==="EN"?{}:{local:localName(line.nameSnapshot,translations),localComponents:(line.dealItemsSnapshot??[]).map(item=>{const local=localName(item.name,translations);return local?`${local} × ${item.quantity}`:undefined})})}));
+      for(const row of receiptItemRows(items,p.columnsAt("normal"),money,{prices:Boolean(business.showPricesOnKitchenReceipt),names})){p.bold(row.kind!=="detail");if(row.rtl)p.local(row.text);else p.line(row.text);p.bold(false)}
+      // The order note applies to the whole order, so every counter gets it.
+      if(order.notes)p.divider().bold(true).text("ORDER NOTE").bold(false).text(order.notes);
+      footer(p);
+    });
   }
-  p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
   parts.push({type:"command",base64:p.toBase64()});
   return parts;
 }
@@ -109,6 +130,6 @@ export function renderQrSlip(business:ReceiptBusiness,slip:QrSlip,prices:boolean
   for(const row of receiptItemRows(items,p.columnsAt("normal"),money,{prices}))p.bold(row.kind!=="detail").line(row.text).bold(false);
   if(prices&&slip.grandTotal!=null)p.divider().bold(true).row("Estimated total",money(slip.grandTotal)).bold(false);
   p.divider().feed(1).text("Confirmed with guest: ____________").feed(1).text("Waiter: __________________").feed(1).align("center").text("This is not a bill.");
-  p.feed(1).align("center").text("Software developed by: Cubedevsys.com").text("Contact 03113809764").cut();
+  footer(p);
   return[{type:"command",base64:p.toBase64()}];
 }

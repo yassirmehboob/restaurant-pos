@@ -10,3 +10,6 @@
 .receipt-preview-barcode span{font-size:11px}
 .receipt-preview-cut{height:0;margin:10px -14px 0;border-top:2px dashed #b5bdc9}
 .receipt-preview-raster{display:block;width:100%;height:auto;image-rendering:auto}
+
+/* Reverse print (GS B): the order number and kitchen counter bands. */
+.receipt-preview-line.is-inverted{color:#fff;background:#000}

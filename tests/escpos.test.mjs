@@ -140,5 +140,5 @@ test("kitchen tickets start with the restaurant name", async () => {
   const { decodeEscPos } = await import("../lib/receipt-raster.ts");
   const order = { orderNumber: "ORD-1", createdAt: "2026-11-02T08:00:00Z", orderType: "DINE_IN", paymentStatus: "PAID", items: [], subtotal: 0, taxAmount: 0, grandTotal: 0, paidAmount: 0, dueAmount: 0 };
   const lines = renderReceipt("kitchen", { name: "Karachi Grill" }, order).flatMap(part => decodeEscPos(part.base64)).map(row => row.text);
-  assert.deepEqual(lines.slice(0, 3), ["Karachi Grill", "KITCHEN ORDER", "ORD-1"]);
+  assert.deepEqual(lines.slice(0, 3).map(line => line.trim()), ["Karachi Grill", "KITCHEN ORDER", "ORD-1"]);
 });

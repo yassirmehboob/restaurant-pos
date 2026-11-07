@@ -9,7 +9,7 @@ import { completeOrderPayment,completeDeliveryPayment,previewPaymentTax } from "
 import { applyOrderCoupon,customerCoupons,removeOrderCoupon } from "@/app/(dashboard)/payments/coupon-actions";
 import { completeTakeawayPayment,previewTakeawayPayment } from "@/app/(dashboard)/orders/actions";
 import type { OrderInput } from "@/lib/validation/order";
-import { createPrinterAdapter } from "@/lib/printers";
+import { createPrinterAdapter,openCashDrawer } from "@/lib/printers";
 import { PAYMENT_METHODS,type PaymentMethod } from "@/lib/tax";
 import { DecimalInput } from "@/components/decimal-input";
 import type { AppliedDiscount,DiscountInput,DiscountType } from "@/lib/invoice-discount";
@@ -58,9 +58,12 @@ export function PaymentModal({orderId,dueAmount,autoOpen=false,initialMethod="CA
   catch{setCouponMessage("Could not remove the coupon. Please try again.")}finally{setCouponBusy(false)}
  };
  const submit=(event:React.FormEvent<HTMLFormElement>)=>{event.preventDefault();if(!ready||!quote)return;if(quote.discountError){setError(quote.discountError);return}if(choice&&choiceType?.remarksRequired&&!choice.remarks.trim()){setError("Enter remarks for "+choiceType.name+".");return}const data=new FormData(event.currentTarget),key=attempt||randomId();if(!attempt)setAttempt(key);startTransition(async()=>{try{const paymentInput={orderId,idempotencyKey:key,method,expectedGrandTotal:quote.grandTotal,tenderedAmount:amount,reference:String(data.get("reference")??""),notes:String(data.get("notes")??""),...(!draftOrder&&choice?{discount:discountRequest&&{...discountRequest,remarks:choice.remarks}}:{})};const result=await (draftOrder?completeTakeawayPayment({...draftOrder,couponCode:draftCoupon||undefined},{...paymentInput,discount:draftDiscount}):completeDelivery?completeDeliveryPayment(paymentInput):completeOrderPayment(paymentInput));if(!result.ok){setError(result.message);return}dialog.current?.close();
+  // The drawer opens straight away, while the cashier reads the change to give back.
+  const drawer=result.cashDrawer?openCashDrawer(result.cashDrawer.printer,result.cashDrawer.pin):null;
   const issued=result.issuedCoupons??[];
   const issuedHtml=issued.length?'<div class="payment-issued-coupons"><b>Coupon for the customer\'s next visit</b>'+issued.map(item=>'<p><strong>'+escape(item.code)+'</strong><span>'+escape(item.batchName)+' · '+escape(item.description)+'</span></p>').join("")+'</div>':"";
   await Swal.fire({target:document.querySelector<HTMLElement>(".pos-orders-dialog[open]")??document.body,icon:"success",title:completeDelivery?"Payment received & delivery confirmed":"Payment received",html:escape(result.orderNumber)+'<br/><strong>'+money(result.amount)+'</strong>'+(result.change>0?'<br/>Change: <strong>'+money(result.change)+'</strong>':'')+issuedHtml,timer:issued.length?undefined:1700,showConfirmButton:issued.length>0,confirmButtonText:"Done"});
+  const drawerResult=await drawer;if(drawerResult&&!drawerResult.ok)await Swal.fire({target:document.querySelector<HTMLElement>(".pos-orders-dialog[open]")??document.body,icon:"error",title:"Cash drawer did NOT open",text:drawerResult.message});
   if(result.printKitchen){const printed=await createPrinterAdapter(result.printerMode).printKitchenReceipt(result.orderId);if(!printed.ok)await Swal.fire({target:document.querySelector<HTMLElement>(".pos-orders-dialog[open]")??document.body,icon:"error",title:"Kitchen ticket was NOT printed",text:printed.message})}
   if(result.autoPrint){const printed=await createPrinterAdapter(result.printerMode).printCustomerReceipt(result.orderId);if(!printed.ok)await Swal.fire({target:document.querySelector<HTMLElement>(".pos-orders-dialog[open]")??document.body,icon:"error",title:"Customer receipt was NOT printed",text:printed.message})}onCompleted?.();if(completionHref)router.replace(completionHref);else router.refresh()}catch{setError("Payment could not be confirmed. Refresh the order before retrying.")}})};
  if(!allowed)return null;

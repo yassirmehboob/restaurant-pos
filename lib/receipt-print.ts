@@ -10,8 +10,13 @@ import { Business } from "@/models/Business";
 import { Order } from "@/models/Order";
 import { Payment } from "@/models/Payment";
 import { WaiterRequest } from "@/models/WaiterRequest";
+import { kitchenTranslations } from "@/lib/menu-translations";
+import { LOCAL_TEXT } from "@/lib/escpos";
+import { withKitchenCategories } from "@/lib/kitchen-categories";
 
 export type { PrintPart,ReceiptKind };
+// True when a part carries Sindhi or Urdu text (ESC ~, see EscPos.local).
+const hasLocalText=(parts:PrintPart[])=>parts.some(part=>part.type==="command"&&Buffer.from(part.base64,"base64").includes(Buffer.from([0x1b,LOCAL_TEXT])));
 export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
 
 const target=(business:Record<string,unknown>,role:ReceiptKind):PrinterTarget=>({connection:business[`${role}PrinterConnection`]==="LAN"?"LAN":"USB",name:String(business[`${role}PrinterName`]??""),host:String(business[`${role}PrinterHost`]??""),port:Number(business[`${role}PrinterPort`]??9100)||9100});
@@ -28,14 +33,18 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
   if(!order||!business)return{error:"Order not found."};
   if(kind==="customer"&&business.customerPrintingEnabled===false)return{error:"Customer printing is turned off in Printing settings."};
   if(kind==="kitchen"&&business.kitchenPrintingEnabled===false)return{error:"Kitchen printing is turned off in Printing settings."};
-  const extras=kind==="customer"?await customerExtras(businessId,order,business):{};
-  const settings=business as unknown as ReceiptBusiness,parts=renderReceipt(kind,settings,order as unknown as ReceiptOrder,extras);
+  const extras=kind==="customer"?await customerExtras(businessId,order,business):{translations:await kitchenTranslations(businessId,order,business)};
+  // A ticket per category needs each item's category; orders do not store it.
+  const printed=kind==="kitchen"&&business.kitchenTicketPerCategory?{...order,items:await withKitchenCategories(businessId,order.items)}:order;
+  const settings=business as unknown as ReceiptBusiness,parts=renderReceipt(kind,settings,printed as unknown as ReceiptOrder,extras);
+  // Sindhi and Urdu can only be drawn as an image, so a ticket carrying them never prints in the raw printer font.
+  const family=familyFor(settings,kind)==="PRINTER"&&hasLocalText(parts)?"TAHOMA":familyFor(settings,kind);
   // One-printer mode sends kitchen tickets to the customer printer.
   const role:ReceiptKind=kind==="kitchen"&&business.onePrinterMode===false?"kitchen":"customer";
   // An unpaid dine-in bill has its own copy count (often one for the table and one for the waiter).
   const unpaidDineIn=kind==="customer"&&order.orderType==="DINE_IN"&&order.paymentStatus!=="PAID";
   const copies=Math.min(5,Math.max(1,Number(kind==="kitchen"?business.kitchenReceiptCopies:unpaidDineIn?business.unpaidDineInReceiptCopies:business.customerReceiptCopies)||1));
-  return{kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,paper:paperWidth(settings),family:familyFor(settings,kind),parts};
+  return{kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,paper:paperWidth(settings),family,parts};
 }
 
 // QR guest order slip, printed on the customer (counter) printer before the order is approved.

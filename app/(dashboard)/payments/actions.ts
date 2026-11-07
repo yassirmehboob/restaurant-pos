@@ -1,4 +1,5 @@
 "use server";
+import { cashDrawerFor } from "@/lib/cash-drawer";
 import { can } from "@/lib/permissions";
 import { counterPrintsKitchen } from "@/lib/printer-target";
 import { revalidatePath } from "next/cache";
@@ -94,7 +95,7 @@ async function recordOrderPayment(input:z.infer<typeof schema>,completeDelivery:
   if(result.deliveryCompleted)await writeAuditLog({businessId:user.businessId,userId:user.id,userName:user.fullName,action:"DELIVERY_DELIVERED",entityType:"Order",entityId:result.orderId,description:`Received payment and confirmed delivery of ${result.orderNumber}`,metadata:{paymentId:result.paymentId}});
   const business=await Business.findOne({_id:user.businessId,isActive:true}).lean();
   for(const path of ["/orders","/kitchen",`/orders/${result.orderId}`,"/sale-sessions","/sales","/reports","/reports/profit-loss","/dashboard","/coupons","/reports/discounts"])revalidatePath(path);
-  return{ok:true as const,orderId:result.orderId,amount:result.amount,change:result.change,orderNumber:result.orderNumber,issuedCoupons:result.issued.map(item=>({code:item.code,batchName:item.batchName,description:item.description})),autoPrint:Boolean(can(user,"printing")&&business?.autoPrintCustomerOnPayment&&business.customerPrintingEnabled!==false),printKitchen:Boolean(result.sentToKitchen&&can(user,"printing")&&counterPrintsKitchen(business)),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
+  return{ok:true as const,orderId:result.orderId,amount:result.amount,change:result.change,orderNumber:result.orderNumber,issuedCoupons:result.issued.map(item=>({code:item.code,batchName:item.batchName,description:item.description})),autoPrint:Boolean(can(user,"printing")&&business?.autoPrintCustomerOnPayment&&business.customerPrintingEnabled!==false),printKitchen:Boolean(result.sentToKitchen&&can(user,"printing")&&counterPrintsKitchen(business)),cashDrawer:cashDrawerFor(business,parsed.data.method),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
 }
 
 export async function completeOrderPayment(input:z.infer<typeof schema>){return recordOrderPayment(input,false)}

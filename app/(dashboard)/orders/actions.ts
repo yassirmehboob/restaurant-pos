@@ -1,4 +1,5 @@
 "use server";
+import { cashDrawerFor } from "@/lib/cash-drawer";
 import { requirePermission } from "@/data/auth";
 
 import { withSaleSession,saleSessionError } from "@/lib/sale-sessions";
@@ -224,6 +225,6 @@ export async function completeTakeawayPayment(input:OrderInput,paymentInput:z.in
  await writeAuditLog({businessId:data.user.businessId,userId:data.user.id,userName:data.user.fullName,action:"COMPLETE_PAYMENT",entityType:"Order",entityId:String(order._id),description:"Created paid takeaway order "+order.orderNumber+" and sent to kitchen",metadata:{amount:total,method:payment.method,change,saleDate:order.saleDate,sentToKitchen:true,...(result.couponCode?{couponCode:result.couponCode,discountAmount:order.discountAmount}:{}),...(issued.length?{issuedCoupons:issued.map(item=>item.code)}:{}),...(result.discount?{invoiceDiscount:{name:result.discount.name,percent:result.discount.percent,amount:result.discount.amount,remarks:result.discount.remarks}}:{})}});
  const business=await Business.findOne({_id:data.user.businessId,isActive:true}).lean();
  for(const path of ["/orders","/kitchen","/sale-sessions","/sales","/reports","/reports/profit-loss","/dashboard","/coupons","/reports/discounts"])revalidatePath(path);
- return{ok:true as const,orderId:String(order._id),orderNumber:order.orderNumber,amount:total,change,issuedCoupons:issued.map(item=>({code:item.code,batchName:item.batchName,description:item.description})),autoPrint:Boolean(can(data.user,"printing")&&business?.autoPrintCustomerOnPayment&&business.customerPrintingEnabled!==false),printKitchen:Boolean(can(data.user,"printing")&&counterPrintsKitchen(business)),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
+ return{ok:true as const,orderId:String(order._id),orderNumber:order.orderNumber,amount:total,change,issuedCoupons:issued.map(item=>({code:item.code,batchName:item.batchName,description:item.description})),autoPrint:Boolean(can(data.user,"printing")&&business?.autoPrintCustomerOnPayment&&business.customerPrintingEnabled!==false),printKitchen:Boolean(can(data.user,"printing")&&counterPrintsKitchen(business)),cashDrawer:cashDrawerFor(business,payment.method),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
  }catch(error){return{ok:false as const,message:saleSessionError(error)}}
 }
