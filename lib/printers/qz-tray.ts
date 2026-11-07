@@ -8,7 +8,7 @@ import type { PrinterAdapter,PrintResult,ReceiptKind } from "./types";
 
 type Qz=typeof qzTray;
 type PrintPart={type:"command";base64:string}|{type:"logo";url:string;width?:number};
-type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
+type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[];also?:PrintJob[]};
 export type StationPrinters=Partial<Record<ReceiptKind,PrinterTarget>>;
 
 // Each counter PC can override the business printers (e.g. its own USB receipt printer).
@@ -113,6 +113,12 @@ export class QzTrayPrinterAdapter implements PrinterAdapter{
       if(!response.ok)return{ok:false,confirmed:false,message:job.message??"Could not prepare the receipt."};
       const target=readStationPrinters()[job.role]??job.printer;
       await sendToPrinter(target,job.parts,job.copies,{paper:job.paper,family:job.family});
+      // Further slips for other printers, such as the waiter copy on the counter printer.
+      for(const extra of job.also??[]){
+        const other=readStationPrinters()[extra.role]??extra.printer;
+        try{await sendToPrinter(other,extra.parts,extra.copies,{paper:extra.paper,family:extra.family})}
+        catch(error){return{ok:false,confirmed:false,message:`Kitchen ticket sent to ${describePrinter(target)}, but the waiter copy was NOT printed on ${describePrinter(other)}: ${message(error)}`}}
+      }
       return{ok:true,confirmed:true,message:`Sent to ${describePrinter(target)}.`};
     }catch(error){return{ok:false,confirmed:false,message:message(error)}}
   }

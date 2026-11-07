@@ -1,7 +1,7 @@
 "use client";
 import { useActionState,useMemo,useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Banknote,ChefHat,Eye,Languages,LoaderCircle,Printer,ReceiptText,Save as SaveIcon,Settings2 } from "lucide-react";
+import { Banknote,ChefHat,ClipboardList,Eye,Languages,LoaderCircle,Printer,ReceiptText,Save as SaveIcon,Settings2 } from "lucide-react";
 import Link from "next/link";
 import { KITCHEN_LANGUAGES,KITCHEN_LANGUAGE_LABELS,type KitchenLanguage } from "@/lib/kitchen-language";
 import type { MasterState } from "@/app/(dashboard)/master-actions";
@@ -20,7 +20,7 @@ export type PrintingValues={
   receiptPaperWidth:"58"|"80";printerMode:"BROWSER"|"QZ";onePrinterMode:boolean;
   receiptHeader:string;receiptFooter:string;showLogoOnCustomerReceipt:boolean;showOrderReadyTime:boolean;showPricesOnKitchenReceipt:boolean;
   customerPrintingEnabled:boolean;kitchenPrintingEnabled:boolean;autoPrintCustomerOnPayment:boolean;autoPrintUnpaidDineIn:boolean;unpaidDineInReceiptCopies:number;
-  customerReceiptCopies:number;kitchenReceiptCopies:number;customerStyle:ReceiptStyle;kitchenStyle:ReceiptStyle;customerFamily:ReceiptFamily;kitchenFamily:ReceiptFamily;kitchenLanguage:KitchenLanguage;kitchenTicketPerCategory:boolean;cashDrawerOpenOn:CashDrawerOpenOn;cashDrawerPin:CashDrawerPin;customer:PrinterTarget;kitchen:PrinterTarget;
+  customerReceiptCopies:number;kitchenReceiptCopies:number;customerStyle:ReceiptStyle;kitchenStyle:ReceiptStyle;customerFamily:ReceiptFamily;kitchenFamily:ReceiptFamily;kitchenLanguage:KitchenLanguage;kitchenTicketPerCategory:boolean;kitchenWaiterCopy:boolean;cashDrawerOpenOn:CashDrawerOpenOn;cashDrawerPin:CashDrawerPin;customer:PrinterTarget;kitchen:PrinterTarget;
 };
 type PreviewBusiness={name:string;address:string;phone:string;taxNumber:string;logoUrl:string;paymentQrUrl:string;paymentQrCaption:string;paymentQrShowOn:string};
 const fontOptions:Option[]=[{value:"STANDARD",label:"Standard (Font A)"},{value:"COMPACT",label:"Compact (Font B)"},{value:"BOLD",label:"Bold"}];
@@ -28,7 +28,7 @@ const familyOptions:Option[]=RECEIPT_FAMILIES.map(value=>({value,label:FAMILY_FO
 const languageOptions:Option[]=KITCHEN_LANGUAGES.map(value=>({value,label:KITCHEN_LANGUAGE_LABELS[value]}));
 const sizeOptions:Option[]=[{value:"NORMAL",label:"Normal"},{value:"TALL",label:"Tall (double height)"},{value:"LARGE",label:"Large (double size)"}];
 // Form fields the preview reads; everything else on the form does not change how a receipt looks.
-const PREVIEW_FIELDS=["receiptPaperWidth","receiptHeader","receiptFooter","showLogoOnCustomerReceipt","showOrderReadyTime","showPricesOnKitchenReceipt","customerReceiptFont","customerReceiptSize","kitchenReceiptFont","kitchenReceiptSize","customerReceiptFamily","kitchenReceiptFamily","kitchenReceiptLanguage","kitchenTicketPerCategory"] as const;
+const PREVIEW_FIELDS=["receiptPaperWidth","receiptHeader","receiptFooter","showLogoOnCustomerReceipt","showOrderReadyTime","showPricesOnKitchenReceipt","customerReceiptFont","customerReceiptSize","kitchenReceiptFont","kitchenReceiptSize","customerReceiptFamily","kitchenReceiptFamily","kitchenReceiptLanguage","kitchenTicketPerCategory","kitchenWaiterCopy"] as const;
 type Draft=Record<(typeof PREVIEW_FIELDS)[number],string>;
 const drawerOptions:Option[]=[{value:"NEVER",label:"Never"},{value:"CASH",label:"When cash is received"},{value:"ALL",label:"On every payment"}];
 const pinOptions:Option[]=[{value:"PIN2",label:"Pin 2 (most drawers)"},{value:"PIN5",label:"Pin 5"}];
@@ -43,9 +43,9 @@ export function PrintingSettingsForm({values,business}:{values:PrintingValues;bu
   const[mode,setMode]=useState(values.printerMode),[onePrinter,setOnePrinter]=useState(values.onePrinterMode);
   const[connection,setConnection]=useState<Record<Role,string>>({customer:values.customer.connection,kitchen:values.kitchen.connection});
   const[enabled,setEnabled]=useState<Record<Role,boolean>>({customer:values.customerPrintingEnabled,kitchen:values.kitchenPrintingEnabled});
-  const[draft,setDraft]=useState<Draft>({receiptPaperWidth:values.receiptPaperWidth,receiptHeader:values.receiptHeader,receiptFooter:values.receiptFooter,showLogoOnCustomerReceipt:yn(values.showLogoOnCustomerReceipt),showOrderReadyTime:yn(values.showOrderReadyTime),showPricesOnKitchenReceipt:yn(values.showPricesOnKitchenReceipt),customerReceiptFont:values.customerStyle.font,customerReceiptSize:values.customerStyle.size,kitchenReceiptFont:values.kitchenStyle.font,kitchenReceiptSize:values.kitchenStyle.size,customerReceiptFamily:values.customerFamily,kitchenReceiptFamily:values.kitchenFamily,kitchenReceiptLanguage:values.kitchenLanguage,kitchenTicketPerCategory:yn(values.kitchenTicketPerCategory)});
+  const[draft,setDraft]=useState<Draft>({receiptPaperWidth:values.receiptPaperWidth,receiptHeader:values.receiptHeader,receiptFooter:values.receiptFooter,showLogoOnCustomerReceipt:yn(values.showLogoOnCustomerReceipt),showOrderReadyTime:yn(values.showOrderReadyTime),showPricesOnKitchenReceipt:yn(values.showPricesOnKitchenReceipt),customerReceiptFont:values.customerStyle.font,customerReceiptSize:values.customerStyle.size,kitchenReceiptFont:values.kitchenStyle.font,kitchenReceiptSize:values.kitchenStyle.size,customerReceiptFamily:values.customerFamily,kitchenReceiptFamily:values.kitchenFamily,kitchenReceiptLanguage:values.kitchenLanguage,kitchenTicketPerCategory:yn(values.kitchenTicketPerCategory),kitchenWaiterCopy:yn(values.kitchenWaiterCopy)});
   const readDraft=(form:HTMLFormElement)=>{const data=new FormData(form);setDraft(current=>{const next={...current};for(const field of PREVIEW_FIELDS)next[field]=String(data.get(field)??current[field]);return PREVIEW_FIELDS.some(field=>next[field]!==current[field])?next:current})};
-  const preview=useMemo<ReceiptBusiness>(()=>({...business,...draft,showLogoOnCustomerReceipt:draft.showLogoOnCustomerReceipt==="YES",showPricesOnKitchenReceipt:draft.showPricesOnKitchenReceipt==="YES",kitchenTicketPerCategory:draft.kitchenTicketPerCategory==="YES"}),[business,draft]);
+  const preview=useMemo<ReceiptBusiness>(()=>({...business,...draft,showLogoOnCustomerReceipt:draft.showLogoOnCustomerReceipt==="YES",showPricesOnKitchenReceipt:draft.showPricesOnKitchenReceipt==="YES",kitchenTicketPerCategory:draft.kitchenTicketPerCategory==="YES",kitchenWaiterCopy:draft.kitchenWaiterCopy==="YES"}),[business,draft]);
   const errors=(name:string)=>state?.errors?.[name]?.map(error=><small className="field-error" key={error}>{error}</small>);
   const select=(name:string,label:string,value:string,options:Option[],onChange?:(value:string)=>void,hint?:string)=><div className="field"><label htmlFor={name}>{label}</label><select id={name} name={name} defaultValue={value} onChange={event=>onChange?.(event.target.value)}>{options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>{hint&&<small className="printing-hint">{hint}</small>}{errors(name)}</div>;
   const input=(name:string,label:string,value:string|number,props:React.InputHTMLAttributes<HTMLInputElement>={})=><div className="field"><label htmlFor={name}>{label}</label><input id={name} name={name} defaultValue={value} {...props}/>{errors(name)}</div>;
@@ -109,6 +109,9 @@ export function PrintingSettingsForm({values,business}:{values:PrintingValues;bu
             {select("autoPrintUnpaidDineIn","Auto-print unpaid dine-in receipt",yn(values.autoPrintUnpaidDineIn),yesNo,undefined,"Prints the bill when a dine-in order is placed.")}
             {input("unpaidDineInReceiptCopies","Copies",values.unpaidDineInReceiptCopies,{type:"number",min:1,max:5})}
           </div>
+          <div className="printing-fields printing-fields-2">
+            <div className="printing-span-2">{select("kitchenWaiterCopy","Waiter copy",yn(values.kitchenWaiterCopy),[{value:"NO",label:"No"},{value:"YES",label:"Print the whole order for the waiter"}],undefined,"Each time the kitchen ticket prints, this printer also prints a WAITER COPY with every item of the order, for the waiter to keep.")}</div>
+          </div>
         </fieldset>
         <fieldset className="printing-group">
           <legend><Banknote size={15}/>Cash drawer</legend>
@@ -146,6 +149,7 @@ export function PrintingSettingsForm({values,business}:{values:PrintingValues;bu
       <div className="printing-previews">
         <figure><figcaption><ReceiptText size={15}/>Customer receipt{!enabled.customer&&<small>Turned off</small>}</figcaption><ReceiptPreview kind="customer" family={draft.customerReceiptFamily as ReceiptFamily} business={preview} readyTime={draft.showOrderReadyTime==="YES"} off={!enabled.customer}/></figure>
         <figure><figcaption><ChefHat size={15}/>Kitchen ticket{!enabled.kitchen&&<small>Turned off</small>}</figcaption><ReceiptPreview kind="kitchen" family={draft.kitchenReceiptFamily as ReceiptFamily} business={preview} readyTime={false} off={!enabled.kitchen}/></figure>
+        {draft.kitchenWaiterCopy==="YES"&&<figure><figcaption><ClipboardList size={15}/>Waiter copy (counter printer){!enabled.customer&&<small>Turned off</small>}</figcaption><ReceiptPreview kind="kitchen" waiterCopy family={draft.kitchenReceiptFamily as ReceiptFamily} business={preview} readyTime={false} off={!enabled.customer}/></figure>}
       </div>
     </section>
 

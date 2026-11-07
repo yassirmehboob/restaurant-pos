@@ -2,7 +2,7 @@ import "server-only";
 import type { PrinterTarget } from "@/lib/printer-target";
 import type { PaperWidth } from "@/lib/escpos";
 import type { ReceiptFamily } from "@/lib/receipt-fonts";
-import { familyFor,paperWidth,renderQrSlip,renderReceipt,type PrintPart,type QrSlip,type ReceiptBusiness,type ReceiptExtras,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
+import { familyFor,paperWidth,renderQrSlip,renderReceipt,renderWaiterCopy,type PrintPart,type QrSlip,type ReceiptBusiness,type ReceiptExtras,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
 import { readyTimeMessage } from "@/lib/preparation-time";
 import { receiptPreparationMinutes } from "@/lib/receipt-preparation";
 import { orderCashierName } from "@/lib/order-cashier";
@@ -17,7 +17,8 @@ import { withKitchenCategories } from "@/lib/kitchen-categories";
 export type { PrintPart,ReceiptKind };
 // True when a part carries Sindhi or Urdu text (ESC ~, see EscPos.local).
 const hasLocalText=(parts:PrintPart[])=>parts.some(part=>part.type==="command"&&Buffer.from(part.base64,"base64").includes(Buffer.from([0x1b,LOCAL_TEXT])));
-export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[]};
+// also: further jobs printed with this one, each on its own printer (the waiter copy goes to the counter printer with the kitchen ticket).
+export type PrintJob={kind:ReceiptKind;role:ReceiptKind;printer:PrinterTarget;copies:number;paper:PaperWidth;family:ReceiptFamily;parts:PrintPart[];also?:PrintJob[]};
 
 const target=(business:Record<string,unknown>,role:ReceiptKind):PrinterTarget=>({connection:business[`${role}PrinterConnection`]==="LAN"?"LAN":"USB",name:String(business[`${role}PrinterName`]??""),host:String(business[`${role}PrinterHost`]??""),port:Number(business[`${role}PrinterPort`]??9100)||9100});
 
@@ -38,13 +39,20 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
   const printed=kind==="kitchen"&&business.kitchenTicketPerCategory?{...order,items:await withKitchenCategories(businessId,order.items)}:order;
   const settings=business as unknown as ReceiptBusiness,parts=renderReceipt(kind,settings,printed as unknown as ReceiptOrder,extras);
   // Sindhi and Urdu can only be drawn as an image, so a ticket carrying them never prints in the raw printer font.
-  const family=familyFor(settings,kind)==="PRINTER"&&hasLocalText(parts)?"TAHOMA":familyFor(settings,kind);
+  const familyOf=(parts:PrintPart[])=>familyFor(settings,"kitchen")==="PRINTER"&&hasLocalText(parts)?"TAHOMA":familyFor(settings,"kitchen");
+  const family=kind==="kitchen"?familyOf(parts):familyFor(settings,kind);
   // One-printer mode sends kitchen tickets to the customer printer.
   const role:ReceiptKind=kind==="kitchen"&&business.onePrinterMode===false?"kitchen":"customer";
   // An unpaid dine-in bill has its own copy count (often one for the table and one for the waiter).
   const unpaidDineIn=kind==="customer"&&order.orderType==="DINE_IN"&&order.paymentStatus!=="PAID";
   const copies=Math.min(5,Math.max(1,Number(kind==="kitchen"?business.kitchenReceiptCopies:unpaidDineIn?business.unpaidDineInReceiptCopies:business.customerReceiptCopies)||1));
-  return{kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,paper:paperWidth(settings),family,parts};
+  const job:PrintJob={kind,role,printer:target(business as unknown as Record<string,unknown>,role),copies,paper:paperWidth(settings),family,parts};
+  // The waiter copy of the whole order prints with the kitchen ticket, on the counter printer, unless counter printing is off.
+  if(kind==="kitchen"&&business.kitchenWaiterCopy&&business.customerPrintingEnabled!==false){
+    const copy=renderWaiterCopy(settings,order as unknown as ReceiptOrder,extras);
+    job.also=[{kind:"kitchen",role:"customer",printer:target(business as unknown as Record<string,unknown>,"customer"),copies:1,paper:paperWidth(settings),family:familyOf(copy),parts:copy}];
+  }
+  return job;
 }
 
 // QR guest order slip, printed on the customer (counter) printer before the order is approved.

@@ -15,7 +15,7 @@ import { kitchenLanguage,localName,nameViewOf } from "@/lib/kitchen-language";
 import { kitchenTranslations } from "@/lib/menu-translations";
 import { LOCAL_FONT_CSS } from "@/lib/receipt-fonts";
 import { withKitchenCategories } from "@/lib/kitchen-categories";
-import { kitchenTickets } from "@/lib/kitchen-tickets";
+import { orderTickets,WAITER_COPY } from "@/lib/kitchen-tickets";
 
 type Line={lineId:string;productId?:unknown;quantity:number;nameSnapshot:string;unitPrice:number;notes?:string;dealItemsSnapshot?:{productId?:unknown;name:string;quantity:number}[]};
 const money=(value:number)=>value.toLocaleString("en-PK",{maximumFractionDigits:2});
@@ -30,17 +30,20 @@ export default async function KitchenReceiptPage({params}:{params:Promise<{id:st
   const local=(english:string,className:string)=>{const text=view==="EN"?undefined:localName(english,translations);return text?<span className={`receipt-local ${className}`} dir="rtl" style={{fontFamily:LOCAL_FONT_CSS}}>{text}</span>:null};
   const itemName=(english:string)=>view==="LOCAL"&&local(english,"")?local(english,"is-only"):<>{english}{view==="BOTH"&&local(english,"")}</>;
   const componentName=(name:string,quantity:number)=>{const text=view==="EN"?undefined:localName(name,translations);return view==="LOCAL"&&text?<small className="kitchen-deal-item"><span className="receipt-local" dir="rtl" style={{fontFamily:LOCAL_FONT_CSS}}>{text} × {quantity}</span></small>:<><small className="kitchen-deal-item">&gt; {name} - Qty {quantity}</small>{view==="BOTH"&&text&&<small className="kitchen-deal-item"><span className="receipt-local" dir="rtl" style={{fontFamily:LOCAL_FONT_CSS}}>{text} × {quantity}</span></small>}</>};
-  // Same split as the QZ Tray job (lib/receipt-layout.ts): one ticket per category, each on its own page.
+  // Same split as the QZ Tray job (lib/receipt-layout.ts): one ticket per category, each on its own page. QZ Tray sends the
+  // waiter copy to the counter printer; the browser dialog cannot pick a printer per page, so it is the last page here.
   const items=order.items as Line[],split=Boolean(business.kitchenTicketPerCategory)&&items.length>0;
-  const tickets=split?kitchenTickets(await withKitchenCategories(user.businessId,items)):[{category:"",items}];
+  const tickets=orderTickets(split?await withKitchenCategories(user.businessId,items):items,{perCategory:split,waiterCopy:business.kitchenWaiterCopy&&business.customerPrintingEnabled!==false}),counters=tickets.filter(ticket=>!ticket.waiterCopy).length;
   return <main className={`receipt-page kitchen-receipt paper-${business.receiptPaperWidth??"80"} ${styleClass(receiptStyle(business,"kitchen"))}`} style={{"--receipt-family":FAMILY_FONTS[familyFor(business,"kitchen")].css} as React.CSSProperties}>
     <ReceiptToolbar orderId={id}/>
-    {tickets.map((ticket,index)=><article className="receipt kitchen-ticket" key={ticket.category||index}>
+    {tickets.map((ticket,index)=><article className="receipt kitchen-ticket" key={ticket.waiterCopy?"waiter-copy":ticket.category||index}>
       <header>
         <h1>{business.name}</h1><p><b>KITCHEN ORDER</b></p>
         <h2 className="kitchen-band">{order.orderNumber}</h2>
-        {split&&<h2 className="kitchen-band kitchen-category">{ticket.category.toUpperCase()}</h2>}
-        {split&&tickets.length>1&&<p><b>Ticket {index+1} of {tickets.length}</b></p>}
+        {ticket.waiterCopy?<><h2 className="kitchen-band kitchen-category">{WAITER_COPY.toUpperCase()}</h2><p><b>Full order</b></p></>:split&&<>
+          <h2 className="kitchen-band kitchen-category">{ticket.category.toUpperCase()}</h2>
+          {counters>1&&<p><b>Ticket {index+1} of {counters}</b></p>}
+        </>}
       </header>
       <OrderBarcode value={order.orderNumber}/>
       <section className="receipt-meta">

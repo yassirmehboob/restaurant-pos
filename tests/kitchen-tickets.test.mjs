@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { kitchenTickets, UNCATEGORISED } from "../lib/kitchen-tickets.ts";
-import { renderReceipt } from "../lib/receipt-layout.ts";
+import { renderReceipt, renderWaiterCopy } from "../lib/receipt-layout.ts";
 import { decodeEscPos } from "../lib/receipt-raster.ts";
 
 const order = items => ({ orderNumber: "ORD-77", createdAt: "2026-11-07T08:00:00Z", orderType: "DINE_IN", tableNameSnapshot: "Table 4", waiterNameSnapshot: "Ahmed", paymentStatus: "UNPAID", notes: "Less spicy", items, subtotal: 0, taxAmount: 0, grandTotal: 0, paidAmount: 0, dueAmount: 0 });
@@ -51,4 +51,21 @@ test("without the setting the kitchen gets one ticket and no category band", () 
   assert.deepEqual(printed[0].filter(row => row.style?.invert).map(row => row.text.trim()), ["ORD-77"]);
   // An order with no items still prints a ticket in per-category mode.
   assert.equal(tickets(rows({ kitchenTicketPerCategory: true }, order([]))).length, 1);
+});
+
+test("the waiter copy is its own slip with the whole order; the kitchen job never carries it", () => {
+  const items = [
+    { quantity: 1, nameSnapshot: "Chicken Karahi", unitPrice: 1000, categoryName: "Karahi" },
+    { quantity: 1, nameSnapshot: "Family Deal", unitPrice: 2000, dealItemsSnapshot: [{ name: "Zinger", quantity: 2, categoryName: "Fast Food" }, { name: "Cola", quantity: 1, categoryName: "Drinks" }] },
+  ];
+  const business = { name: "Grill", kitchenTicketPerCategory: true, kitchenWaiterCopy: true };
+  const kitchen = tickets(rows(business, order(items)));
+  assert.deepEqual(kitchen.map(ticket => ticket.filter(row => row.style?.invert).map(row => row.text.trim())), [["ORD-77", "DRINKS"], ["ORD-77", "FAST FOOD"], ["ORD-77", "KARAHI"]]);
+  assert.ok(kitchen[2].some(row => row.text?.trim() === "Ticket 3 of 3"));
+  const copy = tickets(renderWaiterCopy(business, order(items)).flatMap(part => decodeEscPos(part.base64)));
+  assert.equal(copy.length, 1);
+  assert.deepEqual(copy[0].filter(row => row.style?.invert).map(row => row.text.trim()), ["ORD-77", "WAITER COPY"]);
+  const text = copy[0].map(row => row.text ?? "").join("\n");
+  for (const value of ["Full order", "Chicken Karahi", "Family Deal", "Zinger - Qty 2", "Cola - Qty 1", "Table 4", "Ahmed", "Less spicy"]) assert.ok(text.includes(value), value);
+  assert.ok(!text.includes("Ticket "));
 });

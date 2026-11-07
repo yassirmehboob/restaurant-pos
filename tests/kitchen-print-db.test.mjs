@@ -204,6 +204,33 @@ test("one-printer mode prints the kitchen ticket from the counter", { skip: !pro
       assert.ok(printed[1].text.includes("Chicken Tikka") && printed[1].text.includes("Well done") && printed[1].text.includes("> Chicken Tikka - Qty 1") && !printed[1].text.includes("Cola"));
       assert.ok(printed[2].text.includes("Tikka Deal") && printed[2].text.includes("> Cola - Qty 1") && !printed[2].text.includes("> Chicken Tikka"));
       assert.ok(printed[2].text.includes("Ticket 3 of 3"));
+
+      // The waiter copy, saved through the settings form, is a second job: the whole order on the counter printer.
+      jar.clear();
+      await createSession({ userId: String(owner._id), businessId: String(business._id), role: "OWNER", authVersion: 0 });
+      form.set("kitchenTicketPerCategory", "YES"); form.set("kitchenWaiterCopy", "YES");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await Business.findById(business._id).lean()).kitchenWaiterCopy, true);
+      form.delete("kitchenWaiterCopy");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await Business.findById(business._id).lean()).kitchenWaiterCopy, true);
+      const slips = job => { const out = [[]]; for (const row of job.parts.flatMap(part => decodeEscPos(part.base64))) { if (row.kind === "cut") out.push([]); else out.at(-1).push(row); } return out.filter(ticket => ticket.length); };
+      const withCopy = await buildPrintJob(String(business._id), created.orderId, "kitchen");
+      assert.deepEqual([withCopy.role, withCopy.printer.host, slips(withCopy).length], ["kitchen", "192.168.1.60", 3]);
+      assert.equal(withCopy.also.length, 1);
+      const [waiter] = withCopy.also;
+      assert.deepEqual([waiter.role, waiter.printer.host, waiter.copies], ["customer", "192.168.1.50", 1]);
+      const copied = slips(waiter);
+      assert.equal(copied.length, 1);
+      assert.deepEqual(copied[0].filter(row => row.style?.invert).map(row => row.text.trim()), [number, "WAITER COPY"]);
+      const copy = copied[0].map(row => row.text ?? "").join("\n");
+      for (const text of ["Chicken Karahi", "Chicken Tikka", "Well done", "Tikka Deal", "> Chicken Tikka - Qty 1", "> Cola - Qty 1", "Bilal"]) assert.ok(copy.includes(text), text);
+      // Counter printing off: no waiter copy. The customer job never carries one.
+      await settings({ customerPrintingEnabled: false });
+      assert.equal((await buildPrintJob(String(business._id), created.orderId, "kitchen")).also, undefined);
+      await settings({ customerPrintingEnabled: true });
+      assert.equal((await buildPrintJob(String(business._id), created.orderId, "customer")).also, undefined);
+      await settings({ kitchenWaiterCopy: false });
       await settings({ kitchenTicketPerCategory: false });
       const single = await buildPrintJob(String(business._id), created.orderId, "kitchen");
       assert.equal(single.parts.flatMap(part => decodeEscPos(part.base64)).filter(row => row.kind === "cut").length, 1);

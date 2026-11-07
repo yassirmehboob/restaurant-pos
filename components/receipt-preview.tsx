@@ -3,7 +3,7 @@ import { useEffect,useMemo,useState,useSyncExternalStore } from "react";
 import { columnsFor } from "@/lib/escpos";
 import { readyTimeMessage } from "@/lib/preparation-time";
 import { loadLocalFont,type ReceiptFamily } from "@/lib/receipt-fonts";
-import { paperWidth,renderReceipt,type ReceiptBusiness,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
+import { paperWidth,renderReceipt,renderWaiterCopy,type ReceiptBusiness,type ReceiptKind,type ReceiptOrder } from "@/lib/receipt-layout";
 import { decodeEscPos,rasterBlocks,rasterWidth,type ReceiptRow } from "@/lib/receipt-raster";
 import { kitchenLanguage,localLanguageOf,type LocalLanguage,type TranslationMap } from "@/lib/kitchen-language";
 import "./receipt-preview.css";
@@ -37,7 +37,8 @@ function Barcode({value}:{value:string}){
   return <div className="receipt-preview-barcode"><svg viewBox={`0 0 ${x} 40`} preserveAspectRatio="none" aria-hidden="true">{rects}</svg><span>{value}</span></div>;
 }
 
-export function ReceiptPreview({kind,family,business,readyTime,off}:{kind:ReceiptKind;family:ReceiptFamily;business:ReceiptBusiness;readyTime:boolean;off?:boolean}){
+// waiterCopy: the whole-order slip the counter printer prints with the kitchen ticket.
+export function ReceiptPreview({kind,family,business,readyTime,off,waiterCopy}:{kind:ReceiptKind;family:ReceiptFamily;business:ReceiptBusiness;readyTime:boolean;off?:boolean;waiterCopy?:boolean}){
   // Desktop fonts are drawn on a canvas, which only exists in the browser.
   const browser=useSyncExternalStore(noop,()=>true,()=>false);
   // Redraw once the Sindhi/Urdu font has loaded; the canvas would otherwise keep a fallback font.
@@ -46,11 +47,12 @@ export function ReceiptPreview({kind,family,business,readyTime,off}:{kind:Receip
   const rows=useMemo(()=>{
     const rows:Row[]=[];
     const local=kind==="kitchen"?localLanguageOf(kitchenLanguage(business.kitchenReceiptLanguage)):null;
-    for(const part of renderReceipt(kind,business,SAMPLE_ORDER,{payments:SAMPLE_PAYMENTS,cashier:"Counter 1",readyMessage:readyTimeMessage(readyTime,25),translations:local?SAMPLE_TRANSLATIONS[local]:{}})){
+    const extras={payments:SAMPLE_PAYMENTS,cashier:"Counter 1",readyMessage:readyTimeMessage(readyTime,25),translations:local?SAMPLE_TRANSLATIONS[local]:{}};
+    for(const part of waiterCopy?renderWaiterCopy(business,SAMPLE_ORDER,extras):renderReceipt(kind,business,SAMPLE_ORDER,extras)){
       if(part.type==="logo")rows.push({kind:"logo",url:part.url,width:part.width});else rows.push(...decodeEscPos(part.base64));
     }
     return rows;
-  },[kind,business,readyTime]);
+  },[kind,business,readyTime,waiterCopy]);
   const paper=paperWidth(business),columns=columnsFor(paper);
   // Other families render exactly as QZ Tray prints them: text rows become the same images.
   // Sindhi and Urdu always print as an image (Tahoma for the English rows when the printer font is chosen), so they preview as one.
@@ -65,7 +67,7 @@ export function ReceiptPreview({kind,family,business,readyTime,off}:{kind:Receip
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fontLoads only asks for a redraw.
   },[rows,family,paper,browser,fontLoads]);
   return <div className={`receipt-preview${off?" is-off":""}`}>
-    <div className="receipt-preview-paper" style={{width:`calc(${columns}ch + 28px)`}} aria-label={`${kind==="customer"?"Customer receipt":"Kitchen ticket"} preview`} role="img">
+    <div className="receipt-preview-paper" style={{width:`calc(${columns}ch + 28px)`}} aria-label={`${waiterCopy?"Waiter copy":kind==="customer"?"Customer receipt":"Kitchen ticket"} preview`} role="img">
       {shown.map((row,index)=>{
         // Business logo from uploads and canvas snapshots, shown at printer size.
         // A sized image (the payment QR code) previews at its printed share of the paper width.

@@ -27,3 +27,12 @@ export function kitchenTickets<L extends Line>(items:L[]):KitchenTicket<L>[]{
   }
   return [...tickets.values()].sort((a,b)=>a.sort-b.sort||a.category.localeCompare(b.category)).map(({category,items})=>({category,items}));
 }
+
+// Tickets for one kitchen print: the whole order, or one per category; then, when the business asks for it,
+// a copy of the whole order the waiter keeps to check the table's food against.
+export const WAITER_COPY="Waiter copy";
+export type PrintedTicket<L>={category:string;items:L[];waiterCopy?:boolean};
+export function orderTickets<L extends Line>(items:L[],options:{perCategory?:boolean|null;waiterCopy?:boolean|null}):PrintedTicket<L>[]{
+  const kitchen:PrintedTicket<L>[]=options.perCategory&&items.length?kitchenTickets(items):[{category:"",items}];
+  return options.waiterCopy?[...kitchen,{category:WAITER_COPY,items,waiterCopy:true}]:kitchen;
+}
