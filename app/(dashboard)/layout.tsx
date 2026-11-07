@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     </aside>
     <div className="dashboard-main">
       <SaleBannerVisibility><div className={`session-banner ${sale ? "is-open" : "is-closed"}`}>
-        <div className="session-banner-info"><span className="session-banner-icon">{sale ? <CircleDot size={19}/> : <Play size={18}/>}</span><div><strong>{sale ? sale.counterName : "Ready for your next shift?"}</strong><span>{sale ? `Sale date ${formatDate(sale.saleDate)} / ${user.fullName}` : "Set your sale date and opening cash to begin."}</span></div></div>
+        <div className="session-banner-info"><span className="session-banner-icon">{sale ? <CircleDot size={19}/> : <Play size={18}/>}</span><div><strong>{sale ? sale.counterName : "Ready for your next shift?"}</strong><span>{sale ? `Sale date ${formatDate(sale.saleDate)} / ${user.fullName}` : "Set your sale date and opening cash to begin."}</span></div>{/* The POS screen shows "Editing order ..." here, after the counter and sale date. */}<div id="pos-editing-slot" className="session-banner-slot"/></div>
         {can(user,"sale_sessions")&&<SaleBannerLink open={Boolean(sale)}/>}
       </div>
       </SaleBannerVisibility>

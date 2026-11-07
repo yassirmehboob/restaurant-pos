@@ -20,10 +20,10 @@
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:900px){.discount-type-row{grid-template-columns:1fr 1fr}.discount-type-row .discount-name{grid-column:1/-1}}
 /* Review & send dialog */
-.review-discount{margin:10px 0;padding:10px;display:grid;gap:8px;background:#f8fafc;border:1px solid #e4e9f0;border-radius:11px}
+.review-discount{margin:0;padding:8px;display:grid;gap:6px;background:#f8fafc;border:1px solid #e4e9f0;border-radius:11px}
 .review-discount-label{color:#475467;font-size:11px;font-weight:750}
-.review-discount-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
-.review-discount-cards button{min-height:54px;padding:7px 10px;display:grid;align-content:center;gap:2px;text-align:left;color:#273244;background:#fff;border:1px solid #d8dee7;border-radius:10px;cursor:pointer}
+.review-discount-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.review-discount-cards button{min-height:44px;padding:5px 9px;display:grid;align-content:center;gap:2px;text-align:left;color:#273244;background:#fff;border:1px solid #d8dee7;border-radius:10px;cursor:pointer}
 .review-discount-cards button strong{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
 .review-discount-cards button small{color:#667085;font-size:11px}
 .review-discount-cards button:hover{border-color:#86efac;background:#f0fdf4}
@@ -67,3 +67,5 @@
 .discount-report-view{height:40px;padding:0 16px;font-size:13px}
 .sms-log-table.discount-report-table .discount-report-action::before{content:none}
 }
+.review-choice .review-discount-cards{max-height:196px;overflow-y:auto;padding:1px}
+.review-discount-label small{color:#98a2b3;font-weight:600;margin-left:4px}

@@ -244,6 +244,20 @@ test("invoice discounts: owner settings, payment, receipt, SMS alerts and report
       assert.equal((await buildDiscountReport(String(business._id), { range: "CUSTOM", from: "2026-11-02", to: "2026-11-02", type: "Discount" })).invoices.length, 1);
     });
 
+    await t.test("a takeaway with no discount at Review & send can pick one in the payment popup", async () => {
+      // The payment popup shows its discount cards from the preview, even before a discount is chosen.
+      const plain = await previewTakeawayPayment(order("TAKEAWAY", 2));
+      assert.equal(plain.ok, true, plain.message);
+      assert.deepEqual([plain.orderType, plain.discountTypes.map(type => type.id), plain.invoiceDiscount, plain.grandTotal], ["TAKEAWAY", types.map(type => type.id), null, 2300]);
+      // Open 10% picked at payment: 2,000 - 200 = 1,800, tax 15% = 270.
+      const picked = await previewTakeawayPayment(order("TAKEAWAY", 2), { typeId: types[0].id, percent: 10 });
+      assert.deepEqual([picked.invoiceDiscount.amount, picked.grandTotal], [200, 2070]);
+      const paid = await completeTakeawayPayment(order("TAKEAWAY", 2), { idempotencyKey: randomUUID(), method: "CASH", expectedGrandTotal: 2070, tenderedAmount: 2100, reference: "", notes: "", discount: { typeId: types[0].id, percent: 10, remarks: "Regular guest" } });
+      assert.equal(paid.ok, true, paid.message);
+      const saved = await Order.findById(paid.orderId).lean();
+      assert.deepEqual([saved.invoiceDiscount.percent, saved.invoiceDiscount.amount, saved.grandTotal, saved.paymentStatus], [10, 200, 2070, "PAID"]);
+    });
+
     await t.test("the coupon code box can be turned off, and the server then refuses coupon codes", async () => {
       const { applyOrderCoupon } = await import("../app/(dashboard)/payments/coupon-actions.ts");
       await signIn(owner);

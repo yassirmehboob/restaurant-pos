@@ -20,7 +20,7 @@
 .payment-dialog .payment-tax-summary{gap:6px;padding:10px 12px}
 .payment-dialog .payment-tax-summary button{min-height:36px}
 .payment-dialog .payment-coupon{padding:10px 12px}
-@media(min-width:760px){.payment-dialog{width:min(880px,calc(100% - 32px))}.payment-dialog form{padding:18px 22px;gap:12px}.payment-columns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}.payment-dialog footer{bottom:-18px;padding-top:4px}}
+@media(min-width:760px){.payment-dialog{width:min(1080px,calc(100% - 32px))}.payment-dialog form{padding:18px 22px;gap:12px}.payment-columns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}.payment-dialog footer{bottom:-18px;padding-top:4px}}
 
 .payment-history article.is-reversed b{color:#98a2b3;text-decoration:line-through}
 .payment-reversal{margin:6px 0 0;padding:7px 9px;color:#b42318;font-size:12px;line-height:1.4;background:#fef3f2;border-radius:7px}
@@ -28,3 +28,44 @@
 .reverse-payment-trigger{height:38px;padding:0 12px;display:flex;gap:7px;align-items:center;color:#b42318;background:#fff;border:1px solid #fda29b;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer}
 .reverse-payment-trigger:hover:not(:disabled){background:#fef3f2}
 .reverse-payment-trigger:disabled{opacity:.6;cursor:default}
+.payment-dialog .cash-amount-control input{width:auto;min-width:0;height:100%;padding:0 12px;border:0;border-radius:0 8px 8px 0;background:transparent}
+.payment-dialog .cash-amount-control input:focus-visible{outline:0}
+.payment-dialog .cash-amount-control:has(input[readonly]){background:#f8fafc}
+.payment-amount-field .cash-amount-words{margin-top:6px}
+/* Big, fixed-width figures for the three numbers the cashier checks: due, cash received, change. */
+.payment-due span{font-size:13px;font-weight:750}
+.payment-due strong{font-size:30px;line-height:1.1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.payment-amount-row{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:10px;align-items:start}
+.payment-amount-row>:only-child{grid-column:1/-1}
+.payment-dialog .cash-amount-control{height:56px}
+.payment-dialog .cash-amount-control input{font-size:26px}
+.payment-amount-row .cash-change{min-height:79px;flex-direction:column;justify-content:center;gap:3px;border:1px solid #e2e8f0}
+.payment-amount-row .cash-change span{font-size:11px;font-weight:750}
+.payment-amount-row .cash-change strong{color:#94a3b8;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.payment-amount-row .cash-change.has-change{background:#ecfdf5;border-color:#6ee7b7}
+.payment-amount-row .cash-change.has-change strong{color:#047857}
+@media (max-width:520px){.payment-amount-row{grid-template-columns:1fr}.payment-amount-row .cash-change{min-height:0;flex-direction:row;justify-content:space-between;align-items:center}}
+/* Short cash: the server would refuse it, so it reads as a warning. */
+.payment-amount-row .cash-change.is-short{background:#fef3f2;border-color:#fda29b}
+.payment-amount-row .cash-change.is-short span,.payment-amount-row .cash-change.is-short strong{color:#b42318}
+/* One-tap cash amounts under the cash box. */
+.payment-quick-cash{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+.payment-quick-cash button{min-height:48px;padding:4px 8px;display:grid;place-content:center;gap:1px;color:#273244;background:#fff;border:1px solid #d8dee7;border-radius:9px;font-size:15px;font-weight:750;font-variant-numeric:tabular-nums;cursor:pointer}
+.payment-quick-cash button small{color:#667085;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.payment-quick-cash button:hover{border-color:#93c5fd;background:#eff6ff}
+.payment-quick-cash button.active{color:#1d4ed8;background:#eff6ff;border-color:#2563eb;box-shadow:0 0 0 1px #2563eb}
+/* Part B layout: the bill on the left, taking the money on the right. */
+.payment-section-title{margin:0;color:#667085;font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.payment-receipt{overflow:hidden;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}
+.payment-dialog .payment-receipt .payment-tax-summary{gap:8px;margin:0;padding:12px 14px;border:0;border-radius:0;background:transparent}
+.payment-receipt .payment-tax-summary>div{font-size:13px}
+.payment-receipt .payment-tax-summary strong{font-variant-numeric:tabular-nums}
+.payment-receipt .payment-due{border:0;border-top:1px dashed #a7f3d0;border-radius:0}
+.payment-methods{gap:5px}
+.payment-methods button{height:auto;min-height:56px;display:grid;place-items:center;align-content:center;gap:3px;font-size:12px;cursor:pointer}
+.payment-methods button svg{color:#98a2b3}
+.payment-methods button.active svg{color:#059669}
+.payment-add-note{justify-self:start;display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 4px;color:#2563eb;background:none;border:0;font-size:12px;font-weight:750;cursor:pointer}
+.payment-add-note:hover{text-decoration:underline}
+@media(min-width:760px){.payment-take{padding-left:20px;border-left:1px solid #eef2f6}}
+.payment-dialog .cash-amount-control input::placeholder{font-size:15px;font-weight:600;letter-spacing:0}
