@@ -5,6 +5,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { performance } from "node:perf_hooks";
 import { once } from "node:events";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
 import mongoose from "mongoose";
 import { SignJWT } from "jose";
 import bcrypt from "bcryptjs";
@@ -73,6 +75,7 @@ async function runScenario(name, concurrency, job, count, durationSeconds = seco
   })()));
   const elapsed = performance.now() - start;
   const summary = { name, concurrency, durationSeconds: +(elapsed / 1000).toFixed(2), paidCheckouts: successfulCheckouts - checkoutStart, startServerRSSMB: Math.round(startRSSMB), endServerRSSMB: Math.round(latest.rssMB), ...summarize(samples, elapsed), approximateServerCPUPercent: +((latest.cpuMS - cpuStart) / elapsed * 100).toFixed(1), peakServerRSSMB: Math.round(Math.max(latest.rssMB, ...metrics.map(value => value.rssMB))) };
+  summary.routes = [...new Set(samples.map(sample => sample.route))].map(route => ({ route, ...summarize(samples.filter(sample => sample.route === route), elapsed) }));
   result.scenarios.push(summary); console.log(JSON.stringify(summary)); return summary;
 }
 try {
@@ -130,6 +133,11 @@ try {
   }
   const preview = () => request("/pos", 0, "previewPosTotals", [{ paymentMethod: "CASH", lines: input.lines, deliveryCharge: 0 }]);
   const pilot = await preview(); assert.ok(pilot.ok, "Server Action benchmark pilot failed: " + JSON.stringify(pilot));
+  if (args["browser-module"]) {
+    const { checkOrderCatalog } = await import("./load-test-browser.mjs");
+    result.browser = await checkOrderCatalog(base, cookies, pathToFileURL(path.resolve(args["browser-module"])).href);
+    console.log(JSON.stringify({ phase: "browser", ...result.browser }));
+  }
   for (const concurrency of concurrencies) {
     await runScenario("counter-operations", concurrency, (worker, index) => index % 4 === 0 ? request("/pos", worker, "previewPosTotals", [{ paymentMethod: "CASH", lines: input.lines, deliveryCharge: 0 }]) : request(["/pos", "/orders", "/kitchen"][index % 3], worker));
   }
@@ -150,6 +158,7 @@ try {
   result.serverErrorSamples = serverErrors;
   if(interrupted)throw new Error("Benchmark interrupted; isolated data will be removed.");
   await mkdir("performance", { recursive: true }); await writeFile("performance/" + label + ".json", JSON.stringify(result, null, 2) + "\n");
+  assert.equal(result.scenarios.reduce((sum, scenario) => sum + scenario.failures, 0), 0, "Load test had failed requests; inspect performance/" + label + ".json");
   console.log(JSON.stringify({ phase: "complete", file: "performance/" + label + ".json", integrity: result.integrity, peakServerRSSMB: result.peakServerRSSMB }));
 } finally {
   if (server && server.exitCode === null) { server.kill(); await stopped; }

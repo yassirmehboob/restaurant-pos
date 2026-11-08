@@ -1,0 +1,320 @@
+{
+  "date": "2026-11-08",
+  "baseURL": "http://localhost:3000",
+  "browser": "Chrome, headless",
+  "pages": [
+    {
+      "route": "/dashboard",
+      "status": 200,
+      "finalPath": "/dashboard",
+      "errorScreen": false
+    },
+    {
+      "route": "/pos",
+      "status": 200,
+      "finalPath": "/pos",
+      "errorScreen": false
+    },
+    {
+      "route": "/orders",
+      "status": 200,
+      "finalPath": "/orders",
+      "errorScreen": false
+    },
+    {
+      "route": "/kitchen",
+      "status": 200,
+      "finalPath": "/kitchen",
+      "errorScreen": false
+    },
+    {
+      "route": "/categories",
+      "status": 200,
+      "finalPath": "/products",
+      "errorScreen": false
+    },
+    {
+      "route": "/products",
+      "status": 200,
+      "finalPath": "/products",
+      "errorScreen": false
+    },
+    {
+      "route": "/deals",
+      "status": 200,
+      "finalPath": "/deals",
+      "errorScreen": false
+    },
+    {
+      "route": "/tables",
+      "status": 200,
+      "finalPath": "/tables",
+      "errorScreen": false
+    },
+    {
+      "route": "/customers",
+      "status": 200,
+      "finalPath": "/customers",
+      "errorScreen": false
+    },
+    {
+      "route": "/staff",
+      "status": 200,
+      "finalPath": "/staff",
+      "errorScreen": false
+    },
+    {
+      "route": "/users",
+      "status": 200,
+      "finalPath": "/users",
+      "errorScreen": false
+    },
+    {
+      "route": "/sale-sessions",
+      "status": 200,
+      "finalPath": "/sale-sessions",
+      "errorScreen": false
+    },
+    {
+      "route": "/sales",
+      "status": 200,
+      "finalPath": "/sales",
+      "errorScreen": false
+    },
+    {
+      "route": "/payments",
+      "status": 404,
+      "finalPath": "/payments",
+      "errorScreen": false
+    },
+    {
+      "route": "/expenses",
+      "status": 200,
+      "finalPath": "/expenses",
+      "errorScreen": false
+    },
+    {
+      "route": "/reports",
+      "status": 200,
+      "finalPath": "/reports",
+      "errorScreen": false
+    },
+    {
+      "route": "/reports/discounts",
+      "status": 200,
+      "finalPath": "/reports/discounts",
+      "errorScreen": false
+    },
+    {
+      "route": "/reports/profit-loss",
+      "status": 200,
+      "finalPath": "/reports/profit-loss",
+      "errorScreen": false
+    },
+    {
+      "route": "/reports/reversals",
+      "status": 200,
+      "finalPath": "/reports/reversals",
+      "errorScreen": false
+    },
+    {
+      "route": "/audit",
+      "status": 200,
+      "finalPath": "/audit",
+      "errorScreen": false
+    },
+    {
+      "route": "/coupons",
+      "status": 200,
+      "finalPath": "/coupons",
+      "errorScreen": false
+    },
+    {
+      "route": "/security",
+      "status": 200,
+      "finalPath": "/security",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/business",
+      "status": 200,
+      "finalPath": "/settings/business",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/printing",
+      "status": 200,
+      "finalPath": "/settings/printing",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/kitchen",
+      "status": 200,
+      "finalPath": "/settings/kitchen",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/translations",
+      "status": 200,
+      "finalPath": "/settings/translations",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/discounts",
+      "status": 200,
+      "finalPath": "/settings/discounts",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/sms",
+      "status": 200,
+      "finalPath": "/settings/sms",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/sms-messaging",
+      "status": 200,
+      "finalPath": "/settings/sms-messaging",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/signage",
+      "status": 200,
+      "finalPath": "/settings/signage",
+      "errorScreen": false
+    },
+    {
+      "route": "/settings/backups",
+      "status": 200,
+      "finalPath": "/settings/backups",
+      "errorScreen": false
+    },
+    {
+      "route": "/waiter-requests",
+      "status": 200,
+      "finalPath": "/waiter-requests",
+      "errorScreen": false
+    }
+  ],
+  "expectedProbe404": "/payments is not an application route; payment uses order dialogs",
+  "checks": [
+    {
+      "name": "Empty cart cannot be saved",
+      "passed": true
+    },
+    {
+      "name": "Catalog search handles no matches",
+      "passed": true
+    },
+    {
+      "name": "Add catalog item and calculate server totals",
+      "passed": true
+    },
+    {
+      "name": "Increase/decrease quantity recalculates totals",
+      "passed": true
+    },
+    {
+      "name": "Line note can be edited",
+      "passed": true
+    },
+    {
+      "name": "Dine-in review shows matching invoice total and closes",
+      "passed": true
+    },
+    {
+      "name": "Takeaway review opens payment without saving order",
+      "passed": true
+    },
+    {
+      "name": "Underpayment is blocked and change is calculated",
+      "passed": true
+    },
+    {
+      "name": "Coupon payment control respects owner configuration",
+      "passed": true
+    },
+    {
+      "name": "Switch payment method and cancel checkout",
+      "passed": true
+    },
+    {
+      "name": "Delivery requires a customer and delivery details",
+      "passed": true
+    },
+    {
+      "name": "Clear confirmation can be cancelled then confirmed",
+      "passed": true
+    },
+    {
+      "name": "POS order browser opens and refreshes",
+      "passed": true
+    },
+    {
+      "name": "Authenticated report CSV export",
+      "passed": true
+    },
+    {
+      "name": "Mobile POS search and cart remain usable",
+      "passed": true
+    },
+    {
+      "name": "Customer search filters and restores records",
+      "passed": true
+    },
+    {
+      "name": "Order search filters and restores view",
+      "passed": true
+    },
+    {
+      "name": "Actual navigation links resolve",
+      "passed": true
+    },
+    {
+      "name": "Mobile page has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "Logout revokes copied session and redirects protected pages",
+      "passed": true
+    }
+  ],
+  "pageErrors": [],
+  "responsive": [
+    {
+      "width": 390,
+      "height": 30,
+      "lineHeight": 30,
+      "overflow": false,
+      "passed": true
+    },
+    {
+      "width": 375,
+      "height": 30,
+      "lineHeight": 30,
+      "overflow": false,
+      "passed": true
+    },
+    {
+      "width": 480,
+      "height": 30,
+      "lineHeight": 30,
+      "overflow": false,
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 30,
+      "lineHeight": 30,
+      "overflow": false,
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 31.5,
+      "lineHeight": 31.5,
+      "overflow": false,
+      "passed": true
+    }
+  ]
+}

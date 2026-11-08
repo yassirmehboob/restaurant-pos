@@ -1,0 +1,260 @@
+﻿
+> restaurant-pos@1.0.0 test
+> node --import ./tests/register.mjs --test tests/sale-sessions.test.mjs tests/amount-format.test.mjs tests/dates.test.mjs tests/permissions.test.mjs tests/audit.test.mjs tests/tax.test.mjs tests/product-preparation.test.mjs tests/weight.test.mjs tests/receipt-lines.test.mjs tests/invoice-discount.test.mjs tests/receipt-preparation.test.mjs tests/two-factor.test.mjs tests/elapsed-time.test.mjs tests/security.test.mjs tests/waiter.test.mjs tests/pos-waiter-approvals.test.mjs tests/sms.test.mjs tests/backups.test.mjs tests/backups-access.test.mjs tests/backups-drive.test.mjs tests/coupons.test.mjs tests/signage.test.mjs tests/mp4-faststart.test.mjs tests/lan-access.test.mjs tests/escpos.test.mjs tests/kitchen-language.test.mjs tests/cash-drawer.test.mjs tests/kitchen-tickets.test.mjs tests/payment-qr.test.mjs
+
+(node:8120) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/amount-format.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ typed or pasted amounts become plain numbers (2.8016ms)
+✔ amounts are grouped in thousands, keeping decimals as typed (0.6913ms)
+✔ amounts read in rupees, lakh and crore (1.2488ms)
+✔ the caret stays after the same digit when commas appear or move (0.4195ms)
+(node:25296) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/audit-data.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ audit metadata redacts nested secrets while preserving useful change flags (3.9643ms)
+✔ audit views without profit access cannot expose nested historical costs (2.98ms)
+✔ audit dates use actual Pakistan calendar timestamps, including midnight boundaries (2.1225ms)
+✔ audit searches treat regex metacharacters literally and keep tenant and actor scope (1.1468ms)
+(node:26704) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/app/(dashboard)/settings/backups/actions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ server actions allow cashier backups but deny cashier/admin schedule changes and restores (17.7454ms)
+✔ Drive tokens are encrypted and bound to one restaurant (7.4345ms)
+✔ consent URL requests only app-created Drive files with offline access and PKCE (73.6268ms)
+✔ a backup is uploaded with a verified checksum and recorded (15.8573ms)
+✔ a missing folder is recreated and an already uploaded backup is not duplicated (7.5142ms)
+✔ checksum mismatches and revoked access fail the copy without throwing (7.8292ms)
+✔ uploads are skipped when disconnected, switched off, or already done today (72.7956ms)
+✔ one server OAuth client from the environment serves every restaurant (2.0837ms)
+(node:21644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/permissions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ backup encryption authenticates the whole archive and preserves BSON identities (17.9697ms)
+✔ validation rejects tenant mixing, unsupported collections, duplicate IDs and missing owner accounts (2.7776ms)
+✔ schedules follow restaurant time, selected weekdays and interval limits (75.2952ms)
+✔ backup paths cannot traverse directories or use publicly served storage (1.9714ms)
+✔ database switch keeps connection options and the original authentication database (1.5314ms)
+✔ cashiers can create backups without receiving owner configuration privileges (2.4728ms)
+(node:19644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/cash-drawer.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the drawer kick is ESC p for pin 2 or pin 5 (3.8164ms)
+✔ the drawer opens only when set, and only for cash unless every payment is chosen (0.9401ms)
+✔ the drawer goes to a LAN receipt printer too, and never in browser printing (0.5317ms)
+(node:30444) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/order-calculation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a discount comes off the subtotal before tax, never the delivery charge, and splits to the paisa (5.9042ms)
+✔ tax-inclusive item prices are taxed on the discounted price (0.6596ms)
+✔ percentage coupons respect the cap and minimum order; fixed coupons never exceed the bill (2.7883ms)
+✔ coupon eligibility enforces single use, offer status, dates, owner customer and next-visit rule (2.909ms)
+✔ batch settings are validated on the server (26.4623ms)
+✔ codes are 10 digits without a leading zero and are normalised from input (35.0868ms)
+✔ a discounted invoice keeps its discount when the payment method changes its tax rate (3.9217ms)
+(node:5232) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/dates.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ all dates display as DD/MM/YYYY without changing stored business dates (3.9103ms)
+✔ typed dates reject impossible days and accept leap days (1.1247ms)
+✔ timestamps use the restaurant timezone across midnight and year boundaries (1.0481ms)
+✔ time displays use 12 hours with uppercase AM/PM, including midnight and noon (0.7186ms)
+(node:35140) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/elapsed-time.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ elapsed time scales from minutes to hours, days and months (6.1732ms)
+(node:29176) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/escpos.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ receipt columns match the TM-T88V Font A width for each paper size (8.5991ms)
+✔ wrapping never exceeds the line width, including very long words (3.206ms)
+✔ rows right-align amounts on the last wrapped line (2.6392ms)
+✔ line() keeps table spacing and cuts at the paper width (0.9737ms)
+✔ printer is initialised with the Latin code page and unsupported characters print as ? (0.9474ms)
+✔ barcode, cut and base64 output are valid ESC/POS (1.0063ms)
+✔ printer targets accept USB names and LAN IPs, and reject bad LAN addresses (13.0108ms)
+✔ indented detail lines keep their indent when wrapped (0.8352ms)
+✔ QZ Tray requests are signed with the configured key, and unsigned when none is set (164.5822ms)
+✔ receipt font and size become the printer's base style (180.2741ms)
+✔ the receipt decoder replays lines, styles, barcodes and the cut (14.7183ms)
+✔ kitchen tickets print deal items as the item name then its quantity (24.0311ms)
+✔ kitchen tickets start with the restaurant name (1.9263ms)
+(node:26868) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/invoice-discount.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ an open discount uses the cashier's percentage, rounded to the whole rupee (13.8256ms)
+✔ a fixed discount ignores the typed percentage and stops at its cap (1.8362ms)
+✔ remarks are enforced at payment but not while previewing (1.4223ms)
+✔ unknown types and zero-value discounts are refused (1.6723ms)
+✔ discount settings validate fixed percentages, unique names and SMS numbers (13.0965ms)
+(node:36944) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/kitchen-language.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the five kitchen languages map to what each ticket prints (4.5323ms)
+✔ names are found exactly, and weighed items keep their weight (0.8932ms)
+✔ Sindhi and Urdu travel inside the print job and come back out unchanged (3.0388ms)
+✔ item rows: English, translation only, or both; missing translations stay English (5.0601ms)
+✔ a kitchen ticket carries the translations only when its language asks for them (50.9236ms)
+✔ NLLB output is trimmed to the Arabic-script translation (0.9517ms)
+(node:37696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/kitchen-tickets.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ items group by category in menu order, deals split by their items' categories (5.0895ms)
+✔ per-category mode prints one cut ticket per category with highlighted order number and category (56.0684ms)
+✔ without the setting the kitchen gets one ticket and no category band (5.2316ms)
+✔ the waiter copy is its own slip with the whole order; the kitchen job never carries it (11.5477ms)
+(node:25304) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/env.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ login cookies are HTTPS-only in production unless a plain-http LAN server opts out (3.5913ms)
+✔ random ids work on plain-http pages where crypto.randomUUID is missing (32.453ms)
+(node:16700) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/mp4-faststart.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ fragmented MP4s become fast-start files with every sample at the right bytes (24.247ms)
+✔ an index stored after the media is moved to the front with shifted offsets (2.4767ms)
+✔ files the rewriter cannot use are returned unchanged (1.5314ms)
+(node:31696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/receipt-layout.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the payment QR code follows the chosen bills: unpaid only, both, or never (4.7451ms)
+✔ the QR code prints after the bill summary with its caption, sized to the paper (35.3945ms)
+(node:14464) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/permissions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ owner retains all access; role defaults apply only when no override exists (8.0525ms)
+✔ explicit grants and revocations override role presets without adding other permissions (0.6885ms)
+✔ owner profile accepts identity changes and strips access-control fields (10.5996ms)
+✔ account validation normalizes usernames and rejects invalid access and account fields (6.078ms)
+✔ manager, supervisor and chef roles get their default access and can be saved (1.136ms)
+✔ reversing payments is owner-granted, never a role default (0.4846ms)
+✔ staff CNIC, address and remarks are optional and CNIC is normalized (59.3417ms)
+(node:22420) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/app/api/pos/waiter-requests/route.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ POS approval queue requires cashier access and exposes only pending requests from the signed-in business (130.4272ms)
+(node:32460) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/validation/master-data.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ item preparation time is optional and blank values clear it (11.2836ms)
+✔ item preparation time accepts whole minutes within one day (4.122ms)
+(node:21052) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/receipt-lines.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 80 mm receipts print the item name across the full row with # | Price | Qty | Amount below it (80.5086ms)
+✔ a long item name uses the whole paper width before it wraps (1.7596ms)
+✔ 58 mm receipts use the same layout, under the same column headings (2.6399ms)
+✔ figures too wide for the paper close up and wrap instead of being cut off (2.2864ms)
+✔ received rows name the payment method and list split payments per method (2.1029ms)
+✔ kitchen tickets use the same table, with only Qty when prices are hidden (4.848ms)
+(node:9496) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/preparation-time.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ receipt uses the longest configured preparation time, not the sum (2.4234ms)
+✔ ready time prints only when enabled and a preparation time exists (0.8031ms)
+(node:15980) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/sale-session-totals.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ closing balances distinguish total receipts from physical cash (2.4536ms)
+✔ empty shifts preserve opening cash and zero-opening shifts are valid (3.9139ms)
+✔ money arithmetic uses cents and permits an expense deficit (0.5892ms)
+✔ start sale rejects missing, negative, fractional-cent balances and invalid dates (2.4665ms)
+✔ reports filter session sales by business date and legacy sales by timestamps (1.5377ms)
+✔ reversals come off sales, balance and drawer cash; card reversals leave the drawer alone (0.339ms)
+(node:2820) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/csv.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ CSV export neutralizes spreadsheet formulas without changing numeric values (1.711ms)
+✔ image validation rejects executable files and mismatched or oversized content (2.3589ms)
+✔ all password entry schemas enforce bcrypt's 72-byte limit (9.9842ms)
+✔ database errors do not expose internal details in action responses (0.4126ms)
+✔ payment inputs reject overflow, non-finite values and fractional cents (2.6878ms)
+(node:28952) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/signage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ videos are recognised by their contents, not their name (5.5726ms)
+✔ byte ranges let TVs stream, seek and loop videos (2.9241ms)
+✔ long menus continue over several pages (0.713ms)
+✔ playlists are validated on the server (19.8248ms)
+(node:6964) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/sms-template.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ payment templates replace supported fields literally and reject invalid placeholders (3.6969ms)
+✔ SMS numbers accept international format and normalize Pakistani mobiles (0.859ms)
+✔ business subscription tokens are encrypted and authenticated per business (4.1827ms)
+✔ SMS settings reject unsafe tokens and invalid messages (8.1972ms)
+✔ SMS endpoint preserves the configured base path and appends v1/messages (0.7646ms)
+✔ all delivery stages have independent valid templates and message preferences (2.5621ms)
+✔ SMS response capture keeps only the actual status and redacts subscription tokens (45.6015ms)
+✔ SMS history filters scope the business and escape search expressions (0.7864ms)
+(node:22560) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/tax.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ method overrides inherit default while explicit zero stays tax-free (4.9684ms)
+✔ business invoice tax replaces product tax and applies once, excluding delivery (2.5528ms)
+✔ payment method quotes use invoice snapshots rather than later profile settings (1.3303ms)
+✔ legacy invoices preserve saved totals and partial payments cannot change tax method (1.3167ms)
+✔ taxes round to cents and percentages reject invalid values (7.6115ms)
+(node:33504) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/auth/totp.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ setup QR payload identifies the account and matches authenticator parameters (3.9963ms)
+✔ TOTP matches RFC 6238 SHA-1 reference vectors (3.4958ms)
+✔ verification rejects malformed, expired and replayed codes (5.4201ms)
+✔ secrets are encrypted, authenticated and bound to their account (8.7813ms)
+✔ recovery codes are distinct and stored as normalized hashes (3.3745ms)
+(node:32248) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/validation/waiter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ waiter orders are dine-in with valid quantities, revisions and item IDs; the table is optional (20.5272ms)
+✔ waiter workspace access cannot be broadened to expose bills or bypass approval (2.3993ms)
+✔ hidden bill summaries are omitted from pending and confirmed waiter payloads (2.9436ms)
+✔ cashier waiter list keeps only open sales (0.5169ms)
+✔ push subscriptions reject private network destinations and malformed keys (7.0174ms)
+✔ background push sends only a generic alert, respects revoked sessions and removes expired endpoints (3.4163ms)
+(node:26936) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/weight.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ weights below 1 KG read in grams and larger weights in KG (2.7171ms)
+✔ weight prices round to the whole rupee (0.5756ms)
+✔ KG items are priced from the weight and named with it (2.7953ms)
+✔ KG items need a weight of at least 125 g, and piece items reject one (3.9479ms)
+✔ order lines accept whole-gram weights from 125 g (22.9825ms)
+✔ items sold by KG cannot have size variants (5.4438ms)
+ℹ tests 135
+ℹ suites 0
+ℹ pass 135
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7539.1388
+

@@ -1,0 +1,145 @@
+﻿
+> restaurant-pos@1.0.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 51ms
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 4.7s
+  Running TypeScript ...
+  Finished TypeScript in 22.5s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/55) ...
+  Generating static pages using 7 workers (13/55) 
+  Generating static pages using 7 workers (27/55) 
+  Generating static pages using 7 workers (41/55) 
+✓ Generating static pages using 7 workers (55/55) in 1177ms
+npm.cmd : Turbopack build encountered 1 warning:
+At line:2 char:1
++ npm.cmd run build *> test-build-results.log; Get-Content test-build-r ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Turbopack build encountered 1 warning::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+./lib/translation/nllb.ts:12:33
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m10 |[0m ...[32milled-600M"[0m;
+  [90m11 |[0m ...[32mneration_config.json"[0m,[32m"tokenizer.json"[0m,[32m"tokenizer_config.json"[0m,[32m"spec
+ial_tokens_map.json.[0m.[32m.[0m
+[33m[1m>[0m [90m12 |[0m ...e(process.env.[33mTRANSLATION_MODEL_DIRECTORY[0m||path.join(process.cwd(),[32m".."[
+0m,[32m"restaurant-pos...[0m
+  [90m   |[0m    
+[33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m13 |[0m ...ry(file=>existsSync(path.join(modelDirectory(),[33mMODEL_ID[0m,file)));
+  [90m14 |[0m ...
+  [90m15 |[0m ...[90mrequest and is stopped after a quiet spell, which returns its memory.[0m
+
+  Finalizing page optimization ...
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the 
+output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of 
+the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.resolve(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  #1 [Server Component]:
+    ./lib/translation/nllb.ts
+    ./app/(dashboard)/settings/translations/actions.ts
+
+  #2 [Server Component]:
+    ./lib/translation/nllb.ts
+    ./app/(dashboard)/settings/translations/page.tsx
+
+
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /access-denied
+├ ƒ /api/backups
+├ ƒ /api/backups/[id]
+├ ƒ /api/backups/google/callback
+├ ƒ /api/backups/google/connect
+├ ƒ /api/coupons/[batchId]
+├ ƒ /api/display/[token]/feed
+├ ƒ /api/display/[token]/media/[kind]/[id]
+├ ƒ /api/display/pair
+├ ƒ /api/images/[id]
+├ ƒ /api/menu/[token]/images/[id]
+├ ƒ /api/menu/[token]/orders
+├ ƒ /api/menu/[token]/orders/[id]
+├ ƒ /api/menu/[token]/preview
+├ ƒ /api/menu/[token]/verify
+├ ƒ /api/pos/waiter-requests
+├ ƒ /api/print/order/[id]
+├ ƒ /api/print/qr-request/[id]
+├ ƒ /api/products/items.xlsx
+├ ƒ /api/qz/certificate
+├ ƒ /api/qz/sign
+├ ƒ /api/reports/sales.csv
+├ ƒ /api/session
+├ ƒ /api/signage/media/[kind]/[id]
+├ ƒ /api/signage/preview/[screenId]
+├ ƒ /api/signage/videos
+├ ƒ /api/staff-photos/[id]
+├ ƒ /api/waiter
+├ ƒ /audit
+├ ƒ /categories
+├ ƒ /coupons
+├ ƒ /customers
+├ ƒ /dashboard
+├ ƒ /deals
+├ ○ /display
+├ ƒ /display/[token]
+├ ƒ /display/preview/[screenId]
+├ ƒ /expenses
+├ ƒ /kitchen
+├ ƒ /login
+├ ƒ /login/verify
+├ ○ /manifest.webmanifest
+├ ƒ /menu/[token]
+├ ƒ /orders
+├ ƒ /orders/[id]
+├ ƒ /pos
+├ ƒ /print/order/[id]/customer
+├ ƒ /print/order/[id]/kitchen
+├ ƒ /print/qr-request/[id]
+├ ƒ /print/table-qr/[id]
+├ ƒ /products
+├ ƒ /reports
+├ ƒ /reports/discounts
+├ ƒ /reports/profit-loss
+├ ƒ /reports/reversals
+├ ƒ /sale-sessions
+├ ƒ /sales
+├ ƒ /security
+├ ƒ /settings/backups
+├ ƒ /settings/business
+├ ƒ /settings/discounts
+├ ƒ /settings/kitchen
+├ ƒ /settings/printing
+├ ƒ /settings/signage
+├ ƒ /settings/sms
+├ ƒ /settings/sms-messaging
+├ ƒ /settings/translations
+├ ƒ /signup
+├ ƒ /staff
+├ ƒ /tables
+├ ƒ /users
+├ ƒ /waiter
+├ ƒ /waiter-requests
+└ ƒ /waiter/my-orders
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

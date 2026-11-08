@@ -1,0 +1,275 @@
+﻿
+> restaurant-pos@1.0.0 test:db
+> node --env-file=.env.local --import ./tests/register.mjs --test tests/sale-sessions-db.test.mjs tests/reporting-db.test.mjs tests/kitchen-timing-db.test.mjs tests/audit-db.test.mjs tests/two-factor-db.test.mjs tests/two-factor-flow-db.test.mjs tests/kitchen-orders-db.test.mjs tests/security-db.test.mjs tests/waiter-db.test.mjs tests/sms-db.test.mjs tests/order-sms-db.test.mjs tests/backups-db.test.mjs tests/coupons-db.test.mjs tests/signage-db.test.mjs tests/weight-db.test.mjs tests/discount-db.test.mjs tests/kitchen-print-db.test.mjs tests/qr-orders-db.test.mjs tests/item-export-db.test.mjs tests/sale-close-unpaid-db.test.mjs tests/payment-reversal-db.test.mjs tests/kitchen-translations-db.test.mjs tests/cash-drawer-db.test.mjs tests/payment-qr-db.test.mjs
+
+(node:25428) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/AuditLog.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ audit queries isolate businesses, paginate and filter by actual event dates (1238.0749ms)
+✔ encrypted restaurant backup restores records, BSON image bytes and indexes into a verified separate database (7277.5467ms)
+✔ restore switch CLI refuses a running app, switches a stopped local setup and can roll back (28469.4691ms)
+✔ backup worker deduplicates jobs, honors last-counter closing and does not expose driver errors (2589.1505ms)
+(node:27636) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ cash drawer: printing settings and the payment that opens it
+  ✔ the drawer is off until the owner turns it on, and a form without drawer fields keeps it (3498.1324ms)
+  ✔ cash payments open it on the receipt printer: dine-in and takeaway, not card (3376.1488ms)
+  ✔ 'every payment' opens it for card too; browser printing never does (1100.7346ms)
+✔ cash drawer: printing settings and the payment that opens it (20354.6551ms)
+(node:22676) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ coupons: creation, single use, holds, next-visit rewards, ownership and isolation
+  ✔ only the owner can create or download coupons (1423.9973ms)
+  ✔ a takeaway coupon is discounted before tax and works exactly once (4065.3256ms)
+  ✔ a coupon held by an unpaid order is released on cancel or failed edit, then redeemed on payment (3618.4527ms)
+  ✔ next-visit coupons are given automatically and only work for that customer on a later day (4549.8008ms)
+  ✔ the owner can give, take back, cancel and stop coupons (2056.7216ms)
+  ✔ another restaurant cannot see or use these coupons (422.4554ms)
+✔ coupons: creation, single use, holds, next-visit rewards, ownership and isolation (31271.9878ms)
+(node:23344) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ invoice discounts: owner settings, payment, receipt, SMS alerts and report
+  ✔ only the owner, with the correct password, can change discount settings (939.3471ms)
+  ✔ a cashier gives an open 10% discount at Review & send and it is kept through payment (3264.4803ms)
+  ✔ the dine-in payment can change or remove the discount from Review & send (2299.3143ms)
+  ✔ a saved discount stays right through edits, tax changes, coupons and limited staff (4597.9306ms)
+  ✔ a takeaway gets the fixed special discount, held to its cap (1271.4141ms)
+  ✔ the report lists discounted invoices with cashier and remarks (213.0553ms)
+  ✔ a takeaway with no discount at Review & send can pick one in the payment popup (1716.9407ms)
+  ✔ the coupon code box can be turned off, and the server then refuses coupon codes (2210.7962ms)
+  ✔ with discounts turned off, an order carrying a discount is refused (551.4091ms)
+✔ invoice discounts: owner settings, payment, receipt, SMS alerts and report (31940.3352ms)
+(node:18020) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ items export: permissions, tenant isolation and spreadsheet contents
+  ✔ anonymous and staff without the catalog privilege are refused (156.3014ms)
+  ✔ items saved through the real actions export with sizes, weight and status (1569.4092ms)
+✔ items export: permissions, tenant isolation and spreadsheet contents (7322.3747ms)
+(node:37160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/kitchen-orders.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ kitchen includes all open counters and five hours of closed sales only (864.118ms)
+(node:25092) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ one-printer mode prints the kitchen ticket from the counter
+  ✔ a new dine-in order asks the counter to print the kitchen ticket (2179.2109ms)
+  ✔ a paid takeaway order prints the kitchen ticket (1278.4798ms)
+  ✔ separate printers or kitchen printing off skip the counter kitchen ticket (1228.2484ms)
+  ✔ saved receipt font and size reach the printed job (755.4479ms)
+  ✔ unpaid dine-in bills print on placing, with their own copies and an UNPAID banner (1466.5889ms)
+  ✔ confirming a waiter order prints the kitchen ticket and the unpaid bill (203.0705ms)
+  ✔ a waiter can send an order without a table, and the cashier sees it as No table (314.7725ms)
+  ✔ a ticket per category sends each kitchen counter only its items, deals split by item (1132.4217ms)
+✔ one-printer mode prints the kitchen ticket from the counter (17965.4911ms)
+▶ optional kitchen timers advance only eligible business orders and preserve human progress
+  ✔ disabled timing keeps human-dependent behavior (50.5392ms)
+  ✔ concurrent workers use status comparisons and do not duplicate transitions (1139.4803ms)
+  ✔ ready delay follows actual manual preparation start (234.1828ms)
+  ✔ legacy orders use creation time and invalid configuration cannot advance them (258.1901ms)
+✔ optional kitchen timers advance only eligible business orders and preserve human progress (4732.2899ms)
+(node:26264) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ kitchen translations: owner approval, NLLB suggestions offline, and the printed ticket
+  ✔ only staff with settings access manage translations, and only for menu names (82.0773ms)
+  ✔ the kitchen language setting saves, and English tickets stay in the printer font (422.3658ms)
+  ✔ approved Urdu prints under the English name, drawn as an image (1079.5668ms)
+  ✔ emptying a box removes that translation from the ticket (396.1609ms)
+  ✔ NLLB suggests offline; a suggestion prints only after approval (54683.1555ms)
+✔ kitchen translations: owner approval, NLLB suggestions offline, and the printed ticket (61777.1695ms)
+(node:22560) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ dine-in and takeaway customers get order placed and order ready texts; walk-ins get none
+  ✔ settings need dine-in, takeaway or both when a message is on (318.947ms)
+  ✔ a dine-in order with a customer is texted once when placed, even after edits (1048.2684ms)
+  ✔ walk-in orders are never texted or logged (582.6343ms)
+  ✔ marking the order ready in the kitchen sends the ready text (256.533ms)
+  ✔ a paid takeaway is texted as placed alongside its payment, and the kitchen timer sends ready (664.2232ms)
+  ✔ switching off dine-in stops dine-in texts but not takeaway (333.6788ms)
+  ✔ the sender delivers the texts and skips orders cancelled before sending (438.291ms)
+✔ dine-in and takeaway customers get order placed and order ready texts; walk-ins get none (9497.5929ms)
+(node:28244) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ payment QR code: upload in Business profile, print on the chosen bills
+  ✔ only staff with settings access can change it (203.7836ms)
+  ✔ an uploaded QR prints on unpaid bills by default, with the caption (445.0182ms)
+  ✔ both paid & unpaid, then don't print, keep the image without re-uploading it (165.1511ms)
+  ✔ bad input is refused and changes nothing (85.5801ms)
+  ✔ removing the image stops it printing (73.5712ms)
+✔ payment QR code: upload in Business profile, print on the chosen bills (4533.7856ms)
+(node:26196) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ payment reversal: permission, drawer totals, reopen flows and report
+  ✔ only the owner and accounts the owner picked may reverse (90.0321ms)
+  ✔ a reason is required, and nothing changes without one (103.7ms)
+  ✔ owner reversal comes off the drawer that took it, and the order is unpaid again (390.0678ms)
+  ✔ it cannot be reversed twice, and leaves paid reports (349.2395ms)
+  ✔ the cashier's sale cannot close until it is collected again (123.496ms)
+  ✔ collecting it again counts once, by the new method, and the receipt shows only that payment (453.9679ms)
+  ✔ it can be reversed again, each time on the report with its own reason (140.4323ms)
+  ✔ a reversed order can be edited, then cancelled, which clears the block (666.787ms)
+  ✔ after a shift closes, a mistaken payment is just unpaid: no open sale needed and no drawer is touched (2956.4386ms)
+  ✔ a served takeaway finishes when collected again; an unfinished one keeps its kitchen stage (1666.7651ms)
+  ✔ the owner grants and revokes the right through the account form (729.8115ms)
+  ✔ a delivered order stays delivered and can be collected again (620.9171ms)
+  ✔ the coupon returns to the order and reward coupons cannot be earned twice (1074.928ms)
+✔ payment reversal: permission, drawer totals, reopen flows and report (14243.3193ms)
+(node:19200) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ QR table orders: guest submits, cashier prints, approves or cancels, and the guest is texted at every stage
+  ✔ ordering is off until the owner switches it on (192.6563ms)
+  ✔ no QR orders while every counter is closed (225.1478ms)
+  ✔ an edited or unknown link matches no table (32.6673ms)
+  ✔ the guest menu lists available items with prices and token-scoped photos (278.4282ms)
+  ✔ bad details are refused with a code the phone can translate (386.6431ms)
+  ✔ a valid order waits for the cashier, on the table from the code, priced by the server (473.9986ms)
+  ✔ the cashier can print a slip while the order is pending (32.6048ms)
+  ✔ pending orders per phone are capped (215.0481ms)
+  ✔ approval sends it to the kitchen tagged QR, linked to the existing customer, and texts 'placed' (217.9191ms)
+  ✔ each kitchen stage and the payment texts the guest once (360.4631ms)
+  ✔ a new guest number becomes a customer on approval (353.5177ms)
+  ✔ hiding the bill summary hides totals from guests (64.5763ms)
+  ✔ a table is capped on pending orders and a new code retires the old print (557.7667ms)
+  ✔ one network address cannot flood orders (414.1161ms)
+  ✔ with SMS phone codes on, a new number types the texted code once and then orders freely (4320.3354ms)
+✔ QR table orders: guest submits, cashier prints, approves or cancels, and the guest is texted at every stage (14104.4295ms)
+(node:18412) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/reporting.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Today follows the open sale date and explicit historical ranges remain unchanged (15.0992ms)
+▶ paid sales appear independently of kitchen status across sales and profit reports
+  ✔ Orders uses saleDate rather than the after-midnight creation date (45.7431ms)
+  ✔ sales history and aggregate reports select the same paid orders (94.2273ms)
+  ✔ profit/loss uses the same sales and business-date expenses (63.8491ms)
+  ✔ after-midnight sales stay on their selected business date (121.705ms)
+  ✔ reports remain isolated by business (126.9939ms)
+✔ paid sales appear independently of kitchen status across sales and profit reports (1199.7138ms)
+(node:4076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ a sale cannot close while its invoices are unpaid
+  ✔ unpaid invoices are listed and totalled, and stay out of the balance (95.1049ms)
+  ✔ the POS order list shows only the signed-in counter's open sale (175.8651ms)
+  ✔ the cashier cannot close, and the sale stays open and usable (43.8222ms)
+  ✔ the owner cannot close that counter either, even with the right password (232.7387ms)
+  ✔ another counter's unpaid invoices do not hold this sale open (65.8986ms)
+  ✔ one invoice left: still blocked after the other is paid (169.7701ms)
+  ✔ a cancelled invoice no longer blocks, and the closing totals are exact (113.3756ms)
+  ✔ a zero-total invoice has nothing to collect, so it cannot trap a sale open (169.7107ms)
+  ✔ the owner can close a counter once everything is collected (463.9336ms)
+✔ a sale cannot close while its invoices are unpaid (7797.2265ms)
+(node:17884) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/SaleSession.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ database shift isolation, uniqueness, business dates and transactional closing
+  ✔ shared logins find the same session; other businesses cannot see it (26.7172ms)
+  ✔ account and counter each permit only one active session (23.0586ms)
+  ✔ after-midnight collections keep the sale date and exclude another shift's cash (29.6009ms)
+  ﹣ standalone configuration fails clearly without changing financial data (0.9475ms) # SKIP
+  ✔ closing conflicts with financial writes and persists an exact snapshot (95.8543ms)
+  ✔ a second shift on the same date has independent opening cash and totals (24.6454ms)
+  ✔ owner closes a different account's counter with isolated totals and attribution (84.1204ms)
+✔ database shift isolation, uniqueness, business dates and transactional closing (1239.654ms)
+(node:14028) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ security: authorization, tenant isolation, sessions and payment integrity
+  ✔ anonymous requests cannot read reports, images or mutate orders (66.6569ms)
+  ✔ staff cannot bypass owner-only or payment permissions (83.3825ms)
+  ✔ authorized owner cannot modify another restaurant's records (347.084ms)
+  ✔ prices are server-calculated and concurrent payment attempts collect once (503.4185ms)
+  ✔ waiter flow hides bills, isolates requests, enforces approval and uses the cashier sale (1238.8753ms)
+  ✔ SMS settings are owner-only and both paid-order flows enqueue one customer receipt (778.7887ms)
+  ✔ delivery completion collects payment atomically, sends only Delivered, and requires confirmation for already-paid orders (2882.8162ms)
+  ✔ owner credential changes require reauthentication and revoke older sessions (2591.6025ms)
+  ✔ logout revokes the token even if a copied cookie is replayed (55.5162ms)
+  ✔ activity renews the session, polling does not, and logout ends every renewal (407.1533ms)
+✔ security: authorization, tenant isolation, sessions and payment integrity (15190.3528ms)
+(node:3940) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ display screens: pairing, live feed, videos, revocation and isolation
+  ✔ only the owner manages screens (319.0063ms)
+  ✔ a TV pairs with a 6-digit code and collects its key exactly once (200.2936ms)
+  ✔ the feed shows live menu and deals, without unavailable items, with display-scoped image links (134.8359ms)
+  ✔ videos stream in, are checked, play with byte ranges and leave screens when deleted (1120.4212ms)
+  ✔ pictures are checked, shown full screen on the TV and leave screens when deleted (578.4162ms)
+  ✔ disconnecting or re-pairing revokes the old TV immediately (290.9837ms)
+✔ display screens: pairing, live feed, videos, revocation and isolation (7394.4995ms)
+(node:4448) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/Business.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ SMS outbox is transactional, isolated and sends at most once even with concurrent workers
+  ✔ master and receipt switches suppress queueing; token is never selected by default (70.6398ms)
+  ✔ rollback queues nothing; duplicate payment callbacks create one receipt (140.6743ms)
+  ✔ concurrent workers use each tenant token and the required single-recipient payload (152.7714ms)
+  ✔ disabled sending, missing phones, invalid templates and bad tokens do not send (192.757ms)
+  ✔ ambiguous results and interrupted work are not automatically retried (216.1952ms)
+  ✔ opt-out instructions can be off while payment SMS still sends (325.4116ms)
+  ✔ legacy receipt uniqueness migrates without losing messages (231.0399ms)
+  ✔ delivery messages send independently of payment receipts and honor per-stage toggles (601.6431ms)
+  ✔ discount alerts go to each owner number without opt-out text, only while SMS is on (770.8755ms)
+  ✔ actual API statuses are retained for success and failure responses without raw response secrets (383.5733ms)
+  ✔ SMS history paginates, filters and isolates business records without exposing message bodies (318.5824ms)
+✔ SMS outbox is transactional, isolated and sends at most once even with concurrent workers (4062.6422ms)
+(node:21032) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 2FA database enforces single-use factors and shared attempt limits (841.0397ms)
+(node:35240) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ login and 2FA setup require both factors and revoke old sessions (12567.4615ms)
+(node:6364) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/WaiterRequest.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ waiter edits are isolated; only one cashier can confirm; rollback leaves an editable request (649.5392ms)
+(node:31516) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ KG items are priced, saved and reported by weight
+  ✔ preview prices each weight separately, rounded to the rupee (55.2882ms)
+  ✔ saved lines keep the weight, the KG price and a weighted name (191.3648ms)
+  ✔ a KG item without a valid weight is refused (187.341ms)
+  ✔ receipt lines print before tax and add up to the subtotal (268.4293ms)
+  ✔ reports total the weight per KG item (62.6347ms)
+✔ KG items are priced, saved and reported by weight (3279.2078ms)
+ℹ tests 157
+ℹ suites 0
+ℹ pass 156
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 210067.5573

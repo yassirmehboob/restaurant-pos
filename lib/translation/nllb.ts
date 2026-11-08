@@ -20,7 +20,9 @@ const pending=new Map<number,Pending>();
 
 function stop(){if(idle)clearTimeout(idle);idle=null;worker?.kill();worker=null}
 function start(){
-  const child=fork(path.join(process.cwd(),"lib","translation","nllb-worker.mjs"),[],{env:{...process.env,TRANSLATION_MODEL_DIRECTORY:modelDirectory()},stdio:["ignore","ignore","pipe","ipc"]});
+  // Resolve at runtime: Turbopack otherwise treats fork's absolute Windows path
+  // as a module request rooted at its virtual /ROOT directory.
+  const child=fork(path.join(/* turbopackIgnore: true */ process.cwd(),"lib","translation","nllb-worker.mjs"),[],{env:{...process.env,TRANSLATION_MODEL_DIRECTORY:modelDirectory()},stdio:["ignore","ignore","pipe","ipc"]});
   child.on("message",(message:{id?:number;ok?:boolean;results?:string[];message?:string})=>{
     if(message.id===undefined)return;
     const job=pending.get(message.id);pending.delete(message.id);

@@ -1,0 +1,543 @@
+{
+  "label": "speed-large-soak",
+  "measuredAt": "2026-11-07T23:31:21.651Z",
+  "environment": {
+    "node": "v24.18.0",
+    "cpu": "Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz",
+    "logicalCPUs": 8,
+    "memoryGB": 16
+  },
+  "config": {
+    "orderCount": 50000,
+    "seconds": 10,
+    "concurrencies": [
+      2,
+      10,
+      25,
+      50
+    ],
+    "writes": 200,
+    "soak": 300
+  },
+  "scenarios": [
+    {
+      "name": "counter-operations",
+      "concurrency": 2,
+      "durationSeconds": 10.02,
+      "paidCheckouts": 0,
+      "startServerRSSMB": 705,
+      "endServerRSSMB": 742,
+      "requests": 300,
+      "failures": 0,
+      "requestsPerSecond": 29.95,
+      "p50MS": 61,
+      "p95MS": 138,
+      "maxMS": 189,
+      "averageKB": 125.2,
+      "errors": [],
+      "approximateServerCPUPercent": 98.3,
+      "peakServerRSSMB": 764,
+      "routes": [
+        {
+          "route": "previewPosTotals",
+          "requests": 75,
+          "failures": 0,
+          "requestsPerSecond": 7.49,
+          "p50MS": 27,
+          "p95MS": 63,
+          "maxMS": 101,
+          "averageKB": 0.4,
+          "errors": []
+        },
+        {
+          "route": "/kitchen",
+          "requests": 75,
+          "failures": 0,
+          "requestsPerSecond": 7.49,
+          "p50MS": 52,
+          "p95MS": 104,
+          "maxMS": 127,
+          "averageKB": 140.1,
+          "errors": []
+        },
+        {
+          "route": "/orders",
+          "requests": 75,
+          "failures": 0,
+          "requestsPerSecond": 7.49,
+          "p50MS": 102,
+          "p95MS": 170,
+          "maxMS": 189,
+          "averageKB": 230.7,
+          "errors": []
+        },
+        {
+          "route": "/pos",
+          "requests": 75,
+          "failures": 0,
+          "requestsPerSecond": 7.49,
+          "p50MS": 70,
+          "p95MS": 103,
+          "maxMS": 167,
+          "averageKB": 129.7,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "counter-operations",
+      "concurrency": 10,
+      "durationSeconds": 10.12,
+      "paidCheckouts": 0,
+      "startServerRSSMB": 742,
+      "endServerRSSMB": 721,
+      "requests": 453,
+      "failures": 0,
+      "requestsPerSecond": 44.76,
+      "p50MS": 224,
+      "p95MS": 326,
+      "maxMS": 424,
+      "averageKB": 124.9,
+      "errors": [],
+      "approximateServerCPUPercent": 121.8,
+      "peakServerRSSMB": 778,
+      "routes": [
+        {
+          "route": "previewPosTotals",
+          "requests": 114,
+          "failures": 0,
+          "requestsPerSecond": 11.26,
+          "p50MS": 141,
+          "p95MS": 207,
+          "maxMS": 242,
+          "averageKB": 0.4,
+          "errors": []
+        },
+        {
+          "route": "/kitchen",
+          "requests": 113,
+          "failures": 0,
+          "requestsPerSecond": 11.17,
+          "p50MS": 229,
+          "p95MS": 319,
+          "maxMS": 411,
+          "averageKB": 140.1,
+          "errors": []
+        },
+        {
+          "route": "/pos",
+          "requests": 113,
+          "failures": 0,
+          "requestsPerSecond": 11.17,
+          "p50MS": 220,
+          "p95MS": 308,
+          "maxMS": 355,
+          "averageKB": 129.7,
+          "errors": []
+        },
+        {
+          "route": "/orders",
+          "requests": 113,
+          "failures": 0,
+          "requestsPerSecond": 11.17,
+          "p50MS": 268,
+          "p95MS": 356,
+          "maxMS": 424,
+          "averageKB": 230.7,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "counter-operations",
+      "concurrency": 25,
+      "durationSeconds": 10.29,
+      "paidCheckouts": 0,
+      "startServerRSSMB": 721,
+      "endServerRSSMB": 726,
+      "requests": 500,
+      "failures": 0,
+      "requestsPerSecond": 48.59,
+      "p50MS": 543,
+      "p95MS": 647,
+      "maxMS": 802,
+      "averageKB": 125.2,
+      "errors": [],
+      "approximateServerCPUPercent": 124.8,
+      "peakServerRSSMB": 778,
+      "routes": [
+        {
+          "route": "previewPosTotals",
+          "requests": 125,
+          "failures": 0,
+          "requestsPerSecond": 12.15,
+          "p50MS": 349,
+          "p95MS": 442,
+          "maxMS": 488,
+          "averageKB": 0.4,
+          "errors": []
+        },
+        {
+          "route": "/pos",
+          "requests": 125,
+          "failures": 0,
+          "requestsPerSecond": 12.15,
+          "p50MS": 548,
+          "p95MS": 628,
+          "maxMS": 720,
+          "averageKB": 129.7,
+          "errors": []
+        },
+        {
+          "route": "/kitchen",
+          "requests": 125,
+          "failures": 0,
+          "requestsPerSecond": 12.15,
+          "p50MS": 545,
+          "p95MS": 628,
+          "maxMS": 669,
+          "averageKB": 140.1,
+          "errors": []
+        },
+        {
+          "route": "/orders",
+          "requests": 125,
+          "failures": 0,
+          "requestsPerSecond": 12.15,
+          "p50MS": 597,
+          "p95MS": 695,
+          "maxMS": 802,
+          "averageKB": 230.7,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "counter-operations",
+      "concurrency": 50,
+      "durationSeconds": 10.44,
+      "paidCheckouts": 0,
+      "startServerRSSMB": 726,
+      "endServerRSSMB": 837,
+      "requests": 512,
+      "failures": 0,
+      "requestsPerSecond": 49.04,
+      "p50MS": 1079,
+      "p95MS": 1227,
+      "maxMS": 1509,
+      "averageKB": 125.2,
+      "errors": [],
+      "approximateServerCPUPercent": 142.9,
+      "peakServerRSSMB": 837,
+      "routes": [
+        {
+          "route": "previewPosTotals",
+          "requests": 128,
+          "failures": 0,
+          "requestsPerSecond": 12.26,
+          "p50MS": 712,
+          "p95MS": 932,
+          "maxMS": 978,
+          "averageKB": 0.4,
+          "errors": []
+        },
+        {
+          "route": "/pos",
+          "requests": 128,
+          "failures": 0,
+          "requestsPerSecond": 12.26,
+          "p50MS": 1092,
+          "p95MS": 1210,
+          "maxMS": 1411,
+          "averageKB": 129.7,
+          "errors": []
+        },
+        {
+          "route": "/kitchen",
+          "requests": 128,
+          "failures": 0,
+          "requestsPerSecond": 12.26,
+          "p50MS": 1087,
+          "p95MS": 1207,
+          "maxMS": 1235,
+          "averageKB": 140.1,
+          "errors": []
+        },
+        {
+          "route": "/orders",
+          "requests": 128,
+          "failures": 0,
+          "requestsPerSecond": 12.26,
+          "p50MS": 1167,
+          "p95MS": 1285,
+          "maxMS": 1509,
+          "averageKB": 230.7,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "reporting",
+      "concurrency": 4,
+      "durationSeconds": 11.75,
+      "paidCheckouts": 0,
+      "startServerRSSMB": 837,
+      "endServerRSSMB": 1072,
+      "requests": 13,
+      "failures": 0,
+      "requestsPerSecond": 1.11,
+      "p50MS": 2983,
+      "p95MS": 7131,
+      "maxMS": 7131,
+      "averageKB": 1831.9,
+      "errors": [],
+      "approximateServerCPUPercent": 183.9,
+      "peakServerRSSMB": 1072,
+      "routes": [
+        {
+          "route": "/dashboard",
+          "requests": 5,
+          "failures": 0,
+          "requestsPerSecond": 0.43,
+          "p50MS": 2788,
+          "p95MS": 3262,
+          "maxMS": 3262,
+          "averageKB": 75.7,
+          "errors": []
+        },
+        {
+          "route": "/api/reports/sales.csv?range=MONTH",
+          "requests": 4,
+          "failures": 0,
+          "requestsPerSecond": 0.34,
+          "p50MS": 2979,
+          "p95MS": 3179,
+          "maxMS": 3179,
+          "averageKB": 5743.7,
+          "errors": []
+        },
+        {
+          "route": "/reports?range=MONTH",
+          "requests": 4,
+          "failures": 0,
+          "requestsPerSecond": 0.34,
+          "p50MS": 6935,
+          "p95MS": 7131,
+          "maxMS": 7131,
+          "averageKB": 115.5,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "two-counter-mixed-soak",
+      "concurrency": 2,
+      "durationSeconds": 300.06,
+      "paidCheckouts": 358,
+      "startServerRSSMB": 1072,
+      "endServerRSSMB": 1099,
+      "requests": 8947,
+      "failures": 0,
+      "requestsPerSecond": 29.82,
+      "p50MS": 67,
+      "p95MS": 127,
+      "maxMS": 307,
+      "averageKB": 232.3,
+      "errors": [],
+      "approximateServerCPUPercent": 104.8,
+      "peakServerRSSMB": 1157,
+      "routes": [
+        {
+          "route": "/orders",
+          "requests": 2147,
+          "failures": 0,
+          "requestsPerSecond": 7.16,
+          "p50MS": 88,
+          "p95MS": 140,
+          "maxMS": 290,
+          "averageKB": 230.7,
+          "errors": []
+        },
+        {
+          "route": "completeTakeawayPayment",
+          "requests": 358,
+          "failures": 0,
+          "requestsPerSecond": 1.19,
+          "p50MS": 86,
+          "p95MS": 150,
+          "maxMS": 307,
+          "averageKB": 45.7,
+          "errors": []
+        },
+        {
+          "route": "/kitchen",
+          "requests": 2148,
+          "failures": 0,
+          "requestsPerSecond": 7.16,
+          "p50MS": 85,
+          "p95MS": 133,
+          "maxMS": 247,
+          "averageKB": 599.5,
+          "errors": []
+        },
+        {
+          "route": "previewPosTotals",
+          "requests": 2147,
+          "failures": 0,
+          "requestsPerSecond": 7.16,
+          "p50MS": 21,
+          "p95MS": 43,
+          "maxMS": 101,
+          "averageKB": 0.4,
+          "errors": []
+        },
+        {
+          "route": "/pos",
+          "requests": 2147,
+          "failures": 0,
+          "requestsPerSecond": 7.16,
+          "p50MS": 54,
+          "p95MS": 105,
+          "maxMS": 194,
+          "averageKB": 129.7,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "paid-takeaway-checkout",
+      "concurrency": 2,
+      "durationSeconds": 9.67,
+      "paidCheckouts": 200,
+      "startServerRSSMB": 1099,
+      "endServerRSSMB": 1090,
+      "requests": 200,
+      "failures": 0,
+      "requestsPerSecond": 20.67,
+      "p50MS": 88,
+      "p95MS": 154,
+      "maxMS": 215,
+      "averageKB": 45.7,
+      "errors": [],
+      "approximateServerCPUPercent": 96.3,
+      "peakServerRSSMB": 1157,
+      "routes": [
+        {
+          "route": "completeTakeawayPayment",
+          "requests": 200,
+          "failures": 0,
+          "requestsPerSecond": 20.67,
+          "p50MS": 88,
+          "p95MS": 154,
+          "maxMS": 215,
+          "averageKB": 45.7,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "paid-takeaway-checkout",
+      "concurrency": 10,
+      "durationSeconds": 11.5,
+      "paidCheckouts": 200,
+      "startServerRSSMB": 1090,
+      "endServerRSSMB": 1090,
+      "requests": 200,
+      "failures": 0,
+      "requestsPerSecond": 17.4,
+      "p50MS": 356,
+      "p95MS": 1647,
+      "maxMS": 6857,
+      "averageKB": 45.7,
+      "errors": [],
+      "approximateServerCPUPercent": 106.4,
+      "peakServerRSSMB": 1157,
+      "routes": [
+        {
+          "route": "completeTakeawayPayment",
+          "requests": 200,
+          "failures": 0,
+          "requestsPerSecond": 17.4,
+          "p50MS": 356,
+          "p95MS": 1647,
+          "maxMS": 6857,
+          "averageKB": 45.7,
+          "errors": []
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "route": "/pos",
+      "coldMS": 535,
+      "warmP50MS": 74,
+      "responseKB": 129.7
+    },
+    {
+      "route": "/orders",
+      "coldMS": 171,
+      "warmP50MS": 168,
+      "responseKB": 230.7
+    },
+    {
+      "route": "/kitchen",
+      "coldMS": 66,
+      "warmP50MS": 62,
+      "responseKB": 140.1
+    },
+    {
+      "route": "/dashboard",
+      "coldMS": 660,
+      "warmP50MS": 558,
+      "responseKB": 75.7
+    },
+    {
+      "route": "/reports?range=MONTH",
+      "coldMS": 2913,
+      "warmP50MS": 2668,
+      "responseKB": 115.5
+    },
+    {
+      "route": "/api/reports/sales.csv?range=MONTH",
+      "coldMS": 2011,
+      "warmP50MS": 2228,
+      "responseKB": 5743.7
+    }
+  ],
+  "integrity": {
+    "successfulCheckouts": 758,
+    "payments": 758,
+    "uniqueOrders": 758,
+    "totalCollected": 189500,
+    "correctPaidOrders": 758
+  },
+  "seed": {
+    "orders": 50000,
+    "payments": 49970,
+    "products": 120,
+    "activeKitchenOrders": 30,
+    "openCounters": 2,
+    "saleDate": "2026-11-08"
+  },
+  "browser": {
+    "checks": [
+      "Initial render shows 50 cards",
+      "All 500 loaded orders remain accessible",
+      "Search finds an order beyond the initial 50",
+      "Payment filtering resets visible count and preserves matches",
+      "Orders page fits a phone viewport"
+    ],
+    "errors": []
+  },
+  "query": {
+    "reportOrders": {
+      "returned": 50728,
+      "documentsExamined": 50758,
+      "keysExamined": 50758,
+      "executionMS": 173
+    }
+  },
+  "peakServerRSSMB": 1157,
+  "serverErrorSamples": []
+}

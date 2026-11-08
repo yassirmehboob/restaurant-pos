@@ -1,0 +1,32 @@
+﻿
+> restaurant-pos@1.0.0 test:load
+> node --import ./tests/register.mjs scripts/load-test.mjs --label=speed-before --orders=10000 --seconds=10 --concurrency=2,10,25,50 --writes=60
+
+npm.cmd : (node:35768) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of 
+file:///D:/node%20projects/restaurant-pos/models/Business.ts is not specified and it doesn't parse as CommonJS.
+At line:2 char:1
++ npm.cmd run test:load -- --label=speed-before --orders=10000 --second ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:35768) [M...se as CommonJS.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"phase":"seeded","orders":10000,"payments":9970,"products":120,"activeKitchenOrders":30,"openCounters":2,"saleDate":"2026-11-08"}
+{"phase":"endpoint","route":"/pos","coldMS":359,"warmP50MS":75,"responseKB":129.7}
+{"phase":"endpoint","route":"/orders","coldMS":274,"warmP50MS":219,"responseKB":1100.3}
+{"phase":"endpoint","route":"/kitchen","coldMS":58,"warmP50MS":42,"responseKB":140.1}
+{"phase":"endpoint","route":"/dashboard","coldMS":220,"warmP50MS":208,"responseKB":75.6}
+{"phase":"endpoint","route":"/reports?range=MONTH","coldMS":462,"warmP50MS":437,"responseKB":114.6}
+{"phase":"endpoint","route":"/api/reports/sales.csv?range=MONTH","coldMS":509,"warmP50MS":603,"responseKB":1158.8}
+{"name":"counter-operations","concurrency":2,"durationSeconds":10.04,"paidCheckouts":0,"startServerRSSMB":503,"endServerRSSMB":525,"requests":208,"failures":0,"requestsPerSecond":20.72,"p50MS":106,"p95MS":181,"maxMS":294,"averageKB":342.6,"errors":[],"approximateServerCPUPercent":121,"peakServerRSSMB":609}
+{"name":"counter-operations","concurrency":10,"durationSeconds":10.1,"paidCheckouts":0,"startServerRSSMB":525,"endServerRSSMB":581,"requests":209,"failures":0,"requestsPerSecond":20.7,"p50MS":490,"p95MS":727,"maxMS":934,"averageKB":341,"errors":[],"approximateServerCPUPercent":121,"peakServerRSSMB":609}
+{"name":"counter-operations","concurrency":25,"durationSeconds":10.6,"paidCheckouts":0,"startServerRSSMB":581,"endServerRSSMB":639,"requests":205,"failures":0,"requestsPerSecond":19.34,"p50MS":1345,"p95MS":1713,"maxMS":1864,"averageKB":340.9,"errors":[],"approximateServerCPUPercent":124.7,"peakServerRSSMB":649}
+{"name":"counter-operations","concurrency":50,"durationSeconds":12.53,"paidCheckouts":0,"startServerRSSMB":639,"endServerRSSMB":778,"requests":230,"failures":0,"requestsPerSecond":18.36,"p50MS":2611,"p95MS":3714,"maxMS":4139,"averageKB":344.4,"errors":[],"approximateServerCPUPercent":134.4,"peakServerRSSMB":851}
+{"name":"reporting","concurrency":4,"durationSeconds":10.67,"paidCheckouts":0,"startServerRSSMB":778,"endServerRSSMB":837,"requests":35,"failures":0,"requestsPerSecond":3.28,"p50MS":1160,"p95MS":2154,"maxMS":2485,"averageKB":429.4,"errors":[],"approximateServerCPUPercent":163.6,"peakServerRSSMB":869}
+{"name":"paid-takeaway-checkout","concurrency":2,"durationSeconds":2.26,"paidCheckouts":60,"startServerRSSMB":837,"endServerRSSMB":858,"requests":60,"failures":0,"requestsPerSecond":26.53,"p50MS":74,"p95MS":87,"maxMS":124,"averageKB":45.7,"errors":[],"approximateServerCPUPercent":145.8,"peakServerRSSMB":869}
+{"name":"paid-takeaway-checkout","concurrency":10,"durationSeconds":2.97,"paidCheckouts":60,"startServerRSSMB":858,"endServerRSSMB":859,"requests":60,"failures":0,"requestsPerSecond":20.19,"p50MS":316,"p95MS":1331,"maxMS":2925,"averageKB":45.7,"errors":[],"approximateServerCPUPercent":116.2,"peakServerRSSMB":869}
+{"phase":"complete","file":"performance/speed-before.json","integrity":{"successfulCheckouts":120,"payments":120,"uniqueOrders":120,"totalCollected":30000,"correctPaidOrders":120},"peakServerRSSMB":869}
+Isolated benchmark database removed.
+

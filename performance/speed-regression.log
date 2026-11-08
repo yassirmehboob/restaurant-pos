@@ -1,0 +1,38 @@
+﻿(node:328) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/lib/reporting.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Today follows the open sale date and explicit historical ranges remain unchanged (5.5956ms)
+▶ paid sales appear independently of kitchen status across sales and profit reports
+  ✔ Orders uses saleDate rather than the after-midnight creation date (25.7435ms)
+  ✔ sales history and aggregate reports select the same paid orders (100.6413ms)
+  ✔ profit/loss uses the same sales and business-date expenses (21.2545ms)
+  ✔ lightweight CSV query preserves report invoices, totals and legacy dates (28.9863ms)
+  ✔ after-midnight sales stay on their selected business date (19.8236ms)
+  ✔ reports remain isolated by business (42.3679ms)
+✔ paid sales appear independently of kitchen status across sales and profit reports (565.754ms)
+(node:8796) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/node%20projects/restaurant-pos/models/User.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ security: authorization, tenant isolation, sessions and payment integrity
+  ✔ anonymous requests cannot read reports, images or mutate orders (40.2015ms)
+  ✔ staff cannot bypass owner-only or payment permissions (34.8283ms)
+  ✔ authorized owner cannot modify another restaurant's records (119.5106ms)
+  ✔ prices are server-calculated and concurrent payment attempts collect once (177.4612ms)
+  ✔ waiter flow hides bills, isolates requests, enforces approval and uses the cashier sale (298.1907ms)
+  ✔ SMS settings are owner-only and both paid-order flows enqueue one customer receipt (198.9312ms)
+  ✔ delivery completion collects payment atomically, sends only Delivered, and requires confirmation for already-paid orders (611.1207ms)
+  ✔ owner credential changes require reauthentication and revoke older sessions (1074.026ms)
+  ✔ logout revokes the token even if a copied cookie is replayed (14.0611ms)
+  ✔ activity renews the session, polling does not, and logout ends every renewal (93.9351ms)
+✔ security: authorization, tenant isolation, sessions and payment integrity (5936.1971ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7793.401
+

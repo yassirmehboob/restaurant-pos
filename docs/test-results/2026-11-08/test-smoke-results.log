@@ -1,0 +1,100 @@
+﻿{
+  "passed": 19,
+  "checks": [
+    {
+      "route": "/login",
+      "status": 200,
+      "forgedCookie": false
+    },
+    {
+      "route": "/signup",
+      "status": 200,
+      "forgedCookie": false
+    },
+    {
+      "route": "/manifest.webmanifest",
+      "status": 200,
+      "forgedCookie": false
+    },
+    {
+      "route": "/dashboard",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/pos",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/orders",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/kitchen",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/reports",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/users",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/security",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/settings/backups",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/settings/business",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/waiter",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/waiter-requests",
+      "status": 307,
+      "forgedCookie": false
+    },
+    {
+      "route": "/api/reports/sales.csv",
+      "status": 401,
+      "forgedCookie": false
+    },
+    {
+      "route": "/api/images/000000000000000000000000",
+      "status": 401,
+      "forgedCookie": false
+    },
+    {
+      "route": "/api/staff-photos/000000000000000000000000",
+      "status": 401,
+      "forgedCookie": false
+    },
+    {
+      "route": "/api/backups",
+      "status": 401,
+      "forgedCookie": false
+    },
+    {
+      "route": "/dashboard",
+      "status": 307,
+      "forgedCookie": true
+    }
+  ]
+}

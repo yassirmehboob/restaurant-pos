@@ -1,0 +1,31 @@
+﻿
+> restaurant-pos@1.0.0 test:load
+> node --import ./tests/register.mjs scripts/load-test.mjs --label=preproduction-2026-11-08 --orders=10000 --seconds=6 --concurrency=2,10,25 --writes=30 --soak=60
+
+npm.cmd : (node:3884) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of 
+file:///D:/node%20projects/restaurant-pos/models/Business.ts is not specified and it doesn't parse as CommonJS.
+At line:2 char:1
++ npm.cmd run test:load -- --label=preproduction-2026-11-08 --orders=10 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:3884) [MO...se as CommonJS.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\D:\node projects\restaurant-pos\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"phase":"seeded","orders":10000,"payments":9970,"products":120,"activeKitchenOrders":30,"openCounters":2,"saleDate":"2026-11-08"}
+{"phase":"endpoint","route":"/pos","coldMS":391,"warmP50MS":60,"responseKB":129.7}
+{"phase":"endpoint","route":"/orders","coldMS":274,"warmP50MS":223,"responseKB":1100.3}
+{"phase":"endpoint","route":"/kitchen","coldMS":54,"warmP50MS":50,"responseKB":140.1}
+{"phase":"endpoint","route":"/dashboard","coldMS":212,"warmP50MS":248,"responseKB":75.6}
+{"phase":"endpoint","route":"/reports?range=MONTH","coldMS":387,"warmP50MS":495,"responseKB":114.6}
+{"phase":"endpoint","route":"/api/reports/sales.csv?range=MONTH","coldMS":801,"warmP50MS":707,"responseKB":1158.8}
+{"name":"counter-operations","concurrency":2,"durationSeconds":6.03,"paidCheckouts":0,"startServerRSSMB":506,"endServerRSSMB":540,"requests":111,"failures":0,"requestsPerSecond":18.41,"p50MS":114,"p95MS":209,"maxMS":384,"averageKB":344.5,"errors":[],"approximateServerCPUPercent":122.8,"peakServerRSSMB":543}
+{"name":"counter-operations","concurrency":10,"durationSeconds":6.39,"paidCheckouts":0,"startServerRSSMB":540,"endServerRSSMB":533,"requests":111,"failures":0,"requestsPerSecond":17.36,"p50MS":573,"p95MS":865,"maxMS":919,"averageKB":344.5,"errors":[],"approximateServerCPUPercent":121.5,"peakServerRSSMB":578}
+{"name":"counter-operations","concurrency":25,"durationSeconds":7.66,"paidCheckouts":0,"startServerRSSMB":533,"endServerRSSMB":581,"requests":96,"failures":0,"requestsPerSecond":12.53,"p50MS":1858,"p95MS":2838,"maxMS":3083,"averageKB":342.6,"errors":[],"approximateServerCPUPercent":125.4,"peakServerRSSMB":605}
+{"name":"reporting","concurrency":4,"durationSeconds":6.66,"paidCheckouts":0,"startServerRSSMB":581,"endServerRSSMB":622,"requests":17,"failures":0,"requestsPerSecond":2.55,"p50MS":1456,"p95MS":2854,"maxMS":2854,"averageKB":407.9,"errors":[],"approximateServerCPUPercent":139.1,"peakServerRSSMB":622}
+{"name":"two-counter-mixed-soak","concurrency":2,"durationSeconds":60.11,"paidCheckouts":38,"startServerRSSMB":622,"endServerRSSMB":669,"requests":933,"failures":0,"requestsPerSecond":15.52,"p50MS":112,"p95MS":303,"maxMS":626,"averageKB":341.5,"errors":[],"approximateServerCPUPercent":112.7,"peakServerRSSMB":722}
+{"name":"paid-takeaway-checkout","concurrency":2,"durationSeconds":1.29,"paidCheckouts":30,"startServerRSSMB":669,"endServerRSSMB":674,"requests":30,"failures":0,"requestsPerSecond":23.22,"p50MS":81,"p95MS":117,"maxMS":159,"averageKB":45.7,"errors":[],"approximateServerCPUPercent":92,"peakServerRSSMB":722}
+{"name":"paid-takeaway-checkout","concurrency":10,"durationSeconds":1.53,"paidCheckouts":30,"startServerRSSMB":674,"endServerRSSMB":678,"requests":30,"failures":0,"requestsPerSecond":19.62,"p50MS":433,"p95MS":983,"maxMS":1345,"averageKB":45.7,"errors":[],"approximateServerCPUPercent":139.9,"peakServerRSSMB":722}
+{"phase":"complete","file":"performance/preproduction-2026-11-08.json","integrity":{"successfulCheckouts":98,"payments":98,"uniqueOrders":98,"totalCollected":24500,"correctPaidOrders":98},"peakServerRSSMB":722}
+Isolated benchmark database removed.

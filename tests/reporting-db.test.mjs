@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import mongoose from "mongoose";
-import { businessDateQuery, buildSalesReport, paidSalesFilter, resolveReportRange, saleDateFilter } from "../lib/reporting.ts";
+import { businessDateQuery, buildSalesExport, buildSalesReport, paidSalesFilter, resolveReportRange, saleDateFilter } from "../lib/reporting.ts";
 import { buildProfitLoss } from "../lib/profit-loss.ts";
 import { Order } from "../models/Order.ts";
 
@@ -66,6 +66,18 @@ test("paid sales appear independently of kitchen status across sales and profit 
       assert.equal(report.netSales, 675);
       assert.equal(report.expenses, 35);
       assert.equal(report.netProfit, 370);
+    });
+    await t.test("lightweight CSV query preserves report invoices, totals and legacy dates", async () => {
+      const report = await buildSalesReport(String(businessId), query);
+      const exported = await buildSalesExport(String(businessId), query);
+      assert.deepEqual(exported.orders.map(order => String(order._id)), report.orders.map(order => String(order._id)));
+      assert.equal(exported.orders.reduce((sum, order) => sum + order.grandTotal, 0), report.summary.netSales);
+      for (const invoice of exported.orders) {
+        const original = report.orders.find(order => String(order._id) === String(invoice._id));
+        for (const field of ["orderNumber", "saleDate", "orderType", "tableNameSnapshot", "waiterNameSnapshot", "subtotal", "taxAmount", "deliveryChargeAmount", "grandTotal", "paymentStatus"]) assert.deepEqual(invoice[field], original[field], field);
+        assert.deepEqual(invoice.completedAt, original.completedAt);
+        assert.equal(invoice.items, undefined);
+      }
     });
     await t.test("after-midnight sales stay on their selected business date", async () => {
       const report = await buildSalesReport(String(businessId), { range: "CUSTOM", from: "2026-02-01", to: "2026-02-01" });
