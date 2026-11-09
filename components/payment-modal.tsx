@@ -36,7 +36,8 @@ export function PaymentModal({orderId,dueAmount,autoOpen=false,initialMethod="CA
  const change=method==="CASH"&&quote?Math.max(0,amount-quote.dueAmount):0;
  // Cash below the bill is refused by the server, so say how much is missing and hold the button.
  // One-tap notes: the exact bill, then the next round 100 / 500 / 1,000 / 5,000 / 10,000 above it (first four).
- const quickCash=method==="CASH"&&ready&&quote&&quote.dueAmount>0?[...new Set([quote.dueAmount,...[100,500,1000,5000,10000].map(step=>Math.ceil(quote.dueAmount/step)*step)])].sort((a,b)=>a-b).slice(0,4):[];
+ // The 5,000 note is common, so its round-up is always offered even when the first four leave it out.
+ const quickCash=method==="CASH"&&ready&&quote&&quote.dueAmount>0?(()=>{const due=quote.dueAmount,first=[...new Set([due,...[100,500,1000,5000,10000].map(step=>Math.ceil(due/step)*step)])].sort((a,b)=>a-b).slice(0,4),note=Math.ceil(due/5000)*5000;return first.includes(note)?first:[...first,note]})():[];
  const autoFocused=useRef(false);
  useEffect(()=>{if(ready&&method==="CASH"&&!autoFocused.current&&dialog.current?.open){autoFocused.current=true;document.getElementById("payment-amount")?.focus()}},[ready,method]);
  const shownAmount=amountDraft??(method==="CASH"&&amount===0&&quote?.prefillDue===false?"":normalizeAmount(String(Math.round(amount*100)/100)));
