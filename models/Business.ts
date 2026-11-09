@@ -25,7 +25,7 @@ const businessSchema = new Schema({
   // Prints one kitchen ticket per menu category, for kitchens with a separate counter per category.
   kitchenTicketPerCategory:{type:Boolean,default:false},
   // Also prints one ticket with the whole order, for the waiter to keep.
-  kitchenWaiterCopy:{type:Boolean,default:false},
+  kitchenWaiterCopy:{type:Boolean,default:false}, kitchenWaiterCopies:{type:Number,default:1,min:1,max:5},
   autoPrintCustomerOnPayment:{type:Boolean,default:false},
   // Cash drawer on the customer receipt printer (QZ Tray only): opened after cash payments, every payment, or never.
   cashDrawerOpenOn:{type:String,enum:["NEVER","CASH","ALL"],default:"NEVER"}, cashDrawerPin:{type:String,enum:["PIN2","PIN5"],default:"PIN2"},
@@ -50,6 +50,6 @@ const businessSchema = new Schema({
   isActive: { type: Boolean, required: true, default: true },
 }, { timestamps: true });
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
-if(models.Business&&(!models.Business.schema.path("kitchenReceiptLanguage")||!models.Business.schema.path("kitchenTicketPerCategory")||!models.Business.schema.path("kitchenWaiterCopy")||!models.Business.schema.path("paymentQrShowOn")||!models.Business.schema.path("cashDrawerOpenOn")))deleteModel("Business");
+if(models.Business&&(!models.Business.schema.path("kitchenReceiptLanguage")||!models.Business.schema.path("kitchenTicketPerCategory")||!models.Business.schema.path("kitchenWaiterCopy")||!models.Business.schema.path("kitchenWaiterCopies")||!models.Business.schema.path("paymentQrShowOn")||!models.Business.schema.path("cashDrawerOpenOn")))deleteModel("Business");
 if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")||!models.Business.schema.path("smsOrderMessages.served")||!models.Business.schema.path("qrPhoneVerification")))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);

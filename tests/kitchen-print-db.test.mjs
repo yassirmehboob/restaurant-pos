@@ -214,6 +214,17 @@ test("one-printer mode prints the kitchen ticket from the counter", { skip: !pro
       form.delete("kitchenWaiterCopy");
       assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
       assert.equal((await Business.findById(business._id).lean()).kitchenWaiterCopy, true);
+      // Waiter copies: saved through the form, sent as the extra job's copy count, kept when the field is absent.
+      form.set("kitchenWaiterCopies", "3");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await buildPrintJob(String(business._id), created.orderId, "kitchen")).also[0].copies, 3);
+      form.set("kitchenWaiterCopies", "6");
+      assert.ok((await updatePrintingSettings(undefined, form)).errors?.kitchenWaiterCopies, "more than 5 waiter copies is refused");
+      form.delete("kitchenWaiterCopies");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await Business.findById(business._id).lean()).kitchenWaiterCopies, 3);
+      form.set("kitchenWaiterCopies", "1");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
       const slips = job => { const out = [[]]; for (const row of job.parts.flatMap(part => decodeEscPos(part.base64))) { if (row.kind === "cut") out.push([]); else out.at(-1).push(row); } return out.filter(ticket => ticket.length); };
       const withCopy = await buildPrintJob(String(business._id), created.orderId, "kitchen");
       assert.deepEqual([withCopy.role, withCopy.printer.host, slips(withCopy).length], ["kitchen", "192.168.1.60", 3]);

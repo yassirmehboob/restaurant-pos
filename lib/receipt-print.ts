@@ -50,7 +50,7 @@ export async function buildPrintJob(businessId:string,orderId:string,kind:Receip
   // The waiter copy of the whole order prints with the kitchen ticket, on the counter printer, unless counter printing is off.
   if(kind==="kitchen"&&business.kitchenWaiterCopy&&business.customerPrintingEnabled!==false){
     const copy=renderWaiterCopy(settings,order as unknown as ReceiptOrder,extras);
-    job.also=[{kind:"kitchen",role:"customer",printer:target(business as unknown as Record<string,unknown>,"customer"),copies:1,paper:paperWidth(settings),family:familyOf(copy),parts:copy}];
+    job.also=[{kind:"kitchen",role:"customer",printer:target(business as unknown as Record<string,unknown>,"customer"),copies:Math.min(5,Math.max(1,Number(business.kitchenWaiterCopies)||1)),paper:paperWidth(settings),family:familyOf(copy),parts:copy}];
   }
   return job;
 }

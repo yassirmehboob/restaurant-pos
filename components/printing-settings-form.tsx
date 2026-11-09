@@ -20,7 +20,7 @@ export type PrintingValues={
   receiptPaperWidth:"58"|"80";printerMode:"BROWSER"|"QZ";onePrinterMode:boolean;
   receiptHeader:string;receiptFooter:string;showLogoOnCustomerReceipt:boolean;showOrderReadyTime:boolean;showPricesOnKitchenReceipt:boolean;
   customerPrintingEnabled:boolean;kitchenPrintingEnabled:boolean;autoPrintCustomerOnPayment:boolean;autoPrintUnpaidDineIn:boolean;unpaidDineInReceiptCopies:number;
-  customerReceiptCopies:number;kitchenReceiptCopies:number;customerStyle:ReceiptStyle;kitchenStyle:ReceiptStyle;customerFamily:ReceiptFamily;kitchenFamily:ReceiptFamily;kitchenLanguage:KitchenLanguage;kitchenTicketPerCategory:boolean;kitchenWaiterCopy:boolean;cashDrawerOpenOn:CashDrawerOpenOn;cashDrawerPin:CashDrawerPin;customer:PrinterTarget;kitchen:PrinterTarget;
+  customerReceiptCopies:number;kitchenReceiptCopies:number;customerStyle:ReceiptStyle;kitchenStyle:ReceiptStyle;customerFamily:ReceiptFamily;kitchenFamily:ReceiptFamily;kitchenLanguage:KitchenLanguage;kitchenTicketPerCategory:boolean;kitchenWaiterCopy:boolean;kitchenWaiterCopies:number;cashDrawerOpenOn:CashDrawerOpenOn;cashDrawerPin:CashDrawerPin;customer:PrinterTarget;kitchen:PrinterTarget;
 };
 type PreviewBusiness={name:string;address:string;phone:string;taxNumber:string;logoUrl:string;paymentQrUrl:string;paymentQrCaption:string;paymentQrShowOn:string};
 const fontOptions:Option[]=[{value:"STANDARD",label:"Standard (Font A)"},{value:"COMPACT",label:"Compact (Font B)"},{value:"BOLD",label:"Bold"}];
@@ -110,7 +110,8 @@ export function PrintingSettingsForm({values,business}:{values:PrintingValues;bu
             {input("unpaidDineInReceiptCopies","Copies",values.unpaidDineInReceiptCopies,{type:"number",min:1,max:5})}
           </div>
           <div className="printing-fields printing-fields-2">
-            <div className="printing-span-2">{select("kitchenWaiterCopy","Waiter copy",yn(values.kitchenWaiterCopy),[{value:"NO",label:"No"},{value:"YES",label:"Print the whole order for the waiter"}],undefined,"Each time the kitchen ticket prints, this printer also prints a WAITER COPY with every item of the order, for the waiter to keep.")}</div>
+            {select("kitchenWaiterCopy","Waiter copy",yn(values.kitchenWaiterCopy),[{value:"NO",label:"No"},{value:"YES",label:"Print the whole order for the waiter"}],undefined,"Each time the kitchen ticket prints, this printer also prints a WAITER COPY with every item of the order, for the waiter to keep.")}
+            {input("kitchenWaiterCopies","Copies",values.kitchenWaiterCopies,{type:"number",min:1,max:5})}
           </div>
         </fieldset>
         <fieldset className="printing-group">

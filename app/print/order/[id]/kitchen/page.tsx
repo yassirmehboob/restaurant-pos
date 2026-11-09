@@ -33,10 +33,10 @@ export default async function KitchenReceiptPage({params}:{params:Promise<{id:st
   // Same split as the QZ Tray job (lib/receipt-layout.ts): one ticket per category, each on its own page. QZ Tray sends the
   // waiter copy to the counter printer; the browser dialog cannot pick a printer per page, so it is the last page here.
   const items=order.items as Line[],split=Boolean(business.kitchenTicketPerCategory)&&items.length>0;
-  const tickets=orderTickets(split?await withKitchenCategories(user.businessId,items):items,{perCategory:split,waiterCopy:business.kitchenWaiterCopy&&business.customerPrintingEnabled!==false}),counters=tickets.filter(ticket=>!ticket.waiterCopy).length;
+  const tickets=orderTickets(split?await withKitchenCategories(user.businessId,items):items,{perCategory:split,waiterCopy:business.kitchenWaiterCopy&&business.customerPrintingEnabled!==false}),counters=tickets.filter(ticket=>!ticket.waiterCopy).length,waiterCopies=Math.min(5,Math.max(1,Number(business.kitchenWaiterCopies)||1));
   return <main className={`receipt-page kitchen-receipt paper-${business.receiptPaperWidth??"80"} ${styleClass(receiptStyle(business,"kitchen"))}`} style={{"--receipt-family":FAMILY_FONTS[familyFor(business,"kitchen")].css} as React.CSSProperties}>
     <ReceiptToolbar orderId={id}/>
-    {tickets.map((ticket,index)=><article className="receipt kitchen-ticket" key={ticket.waiterCopy?"waiter-copy":ticket.category||index}>
+    {tickets.flatMap(ticket=>ticket.waiterCopy?Array.from({length:waiterCopies},()=>ticket):[ticket]).map((ticket,index)=><article className="receipt kitchen-ticket" key={ticket.waiterCopy?`waiter-copy-${index}`:ticket.category||index}>
       <header>
         <h1>{business.name}</h1><p><b>KITCHEN ORDER</b></p>
         <h2 className="kitchen-band">{order.orderNumber}</h2>
