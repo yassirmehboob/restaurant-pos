@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateSessionTotals } from "../lib/sale-session-totals.ts";
+import { calculateSessionTotals, sessionDiscounts } from "../lib/sale-session-totals.ts";
 import { startSaleSchema } from "../lib/validation/sale-session.ts";
 import { resolveReportRange, saleDateFilter } from "../lib/reporting.ts";
 
@@ -8,7 +8,18 @@ test("closing balances distinguish total receipts from physical cash", () => {
   const totals = calculateSessionTotals(1000,
     [{ amount: 500, method: "CASH" }, { amount: 750, method: "CARD" }],
     [{ amount: 100, method: "CASH" }, { amount: 50, method: "BANK" }]);
-  assert.deepEqual(totals, { sales: 1250, expenses: 150, cashSales: 500, cashExpenses: 100, balance: 2100, expectedCash: 1400, paymentCount: 2, expenseCount: 2, reversals: 0, cashReversals: 0, reversalCount: 0 });
+  assert.deepEqual(totals, { sales: 1250, expenses: 150, cashSales: 500, cashExpenses: 100, balance: 2100, expectedCash: 1400, paymentCount: 2, expenseCount: 2, reversals: 0, cashReversals: 0, reversalCount: 0, discounts: 0, couponDiscounts: 0, couponCount: 0, invoiceDiscounts: [] });
+});
+
+test("shift discounts split coupons from each invoice discount type", () => {
+  const totals = sessionDiscounts([
+    { discountAmount: 150 },
+    { discountAmount: 350.1, invoiceDiscount: { name: "Staff", amount: 200.1 } },
+    { discountAmount: 300, invoiceDiscount: { name: "Special", amount: 300 } },
+    { discountAmount: 100, invoiceDiscount: { name: "Staff", amount: 100 } },
+    { discountAmount: 0 },
+  ]);
+  assert.deepEqual(totals, { discounts: 900.1, couponDiscounts: 300, couponCount: 2, invoiceDiscounts: [{ name: "Staff", amount: 300.1, count: 2 }, { name: "Special", amount: 300, count: 1 }] });
 });
 
 test("empty shifts preserve opening cash and zero-opening shifts are valid", () => {

@@ -258,6 +258,49 @@ test("invoice discounts: owner settings, payment, receipt, SMS alerts and report
       assert.deepEqual([saved.invoiceDiscount.percent, saved.invoiceDiscount.amount, saved.grandTotal, saved.paymentStatus], [10, 200, 2070, "PAID"]);
     });
 
+    await t.test("each shift shows its coupon and invoice discounts, and keeps them when it closes", async () => {
+      const { sessionTotals } = await import("../lib/sale-sessions.ts");
+      const { closeSale } = await import("../app/(dashboard)/sale-sessions/actions.ts");
+      const { Coupon } = await import("../models/Coupon.ts");
+      const { CouponBatch } = await import("../models/CouponBatch.ts");
+      // A paid takeaway with a Rs 250 coupon and the open 10% discount, at the cashier's counter.
+      await signIn(cashier);
+      const batch = await CouponBatch.create({ businessId: business._id, name: "Rs 250 off", discountType: "FIXED", discountValue: 250, usage: "INSTANT", quantity: 1, createdByUserId: owner._id });
+      await Coupon.create({ businessId: business._id, batchId: batch._id, code: "5550001112", status: "ACTIVE" });
+      const choice = { typeId: types[0].id, percent: 10 };
+      const quote = await previewTakeawayPayment({ ...order("TAKEAWAY", 2), couponCode: "5550001112" }, choice);
+      assert.equal(quote.coupon?.discountAmount, 250, quote.couponError);
+      const paidCoupon = await completeTakeawayPayment({ ...order("TAKEAWAY", 2), couponCode: "5550001112" }, { idempotencyKey: randomUUID(), method: "CASH", expectedGrandTotal: quote.grandTotal, tenderedAmount: quote.grandTotal, reference: "", notes: "", discount: { ...choice, remarks: "" } });
+      assert.equal(paidCoupon.ok, true, paidCoupon.message);
+      let coupons = 0, invoice = 0;
+      for (const sale of await SaleSession.find({ businessId: business._id, status: "OPEN" }).lean()) {
+        const totals = await sessionTotals(String(business._id), String(sale._id), sale.openingBalance);
+        const collected = await Order.find({ businessId: business._id, collectedInSessionId: sale._id, status: { $ne: "CANCELLED" } }).lean();
+        const byName = {};
+        for (const row of collected) if (row.invoiceDiscount?.amount > 0) byName[row.invoiceDiscount.name] = (byName[row.invoiceDiscount.name] ?? 0) + row.invoiceDiscount.amount;
+        const coupon = collected.reduce((sum, row) => sum + (row.discountAmount ?? 0) - (row.invoiceDiscount?.amount ?? 0), 0);
+        assert.equal(totals.couponDiscounts, coupon);
+        assert.deepEqual(Object.fromEntries(totals.invoiceDiscounts.map(row => [row.name, row.amount])), byName);
+        assert.equal(totals.discounts, coupon + Object.values(byName).reduce((a, b) => a + b, 0));
+        coupons += totals.couponDiscounts; invoice += totals.discounts - totals.couponDiscounts;
+      }
+      assert.ok(coupons > 0 && invoice > 0, "the tests above gave both a coupon and an invoice discount");
+      // Closing stores the same discount totals on the shift.
+      await signIn(cashier);
+      const open = await SaleSession.findOne({ businessId: business._id, userId: cashier._id, status: "OPEN" }).lean();
+      const before = await sessionTotals(String(business._id), String(open._id), open.openingBalance);
+      // Unpaid invoices would block the close; they are not part of this check, so they move to the owner's shift.
+      const ownerSale = await SaleSession.findOne({ businessId: business._id, userId: owner._id, status: "OPEN" }).lean();
+      await Order.updateMany({ saleSessionId: open._id, paymentStatus: { $ne: "PAID" } }, { $set: { saleSessionId: ownerSale._id } });
+      const form = new FormData(); form.set("confirm", "yes");
+      const closed = await closeSale(String(open._id), undefined, form);
+      assert.equal(closed.ok, true, JSON.stringify(closed));
+      const stored = (await SaleSession.findById(open._id).lean()).closingTotals;
+      assert.deepEqual([stored.discounts, stored.couponDiscounts, stored.couponCount, stored.invoiceDiscounts], [before.discounts, before.couponDiscounts, before.couponCount, before.invoiceDiscounts]);
+      assert.ok(stored.discounts > 0);
+      await SaleSession.create({ businessId: business._id, userId: cashier._id, userNameSnapshot: cashier.fullName, counterName: cashier.username, counterKey: cashier.username, saleDate: "2026-11-02", openingBalance: 0 });
+    });
+
     await t.test("the coupon code box can be turned off, and the server then refuses coupon codes", async () => {
       const { applyOrderCoupon } = await import("../app/(dashboard)/payments/coupon-actions.ts");
       await signIn(owner);

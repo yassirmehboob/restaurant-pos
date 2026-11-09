@@ -18,7 +18,21 @@ function Totals({ opening, totals, uncollected }: { opening: number; totals: Ses
   return <div className="session-totals">
     <div className={`session-main-totals${showUncollected ? " has-uncollected" : ""}`}>{[["Opening balance", opening], ["Collected sales", totals.sales], ...(showUncollected ? [["Uncollected sales", uncollected]] : []), ["Expenses", totals.expenses], ["Total balance", totals.balance]].map(([label, amount]) => <div key={label} className={label === "Uncollected sales" && Number(amount) > 0 ? "is-uncollected" : undefined}><span>{label}</span><strong>{money(Number(amount))}</strong></div>)}</div>
     <div className="session-cash-totals"><span>Cash sales <strong>{money(totals.cashSales)}</strong></span><span>Cash expenses <strong>{money(totals.cashExpenses)}</strong></span><span>Expected drawer cash <strong>{money(totals.expectedCash)}</strong></span></div>
+    <Discounts totals={totals}/>
     <p>{totals.paymentCount} payments · {totals.expenseCount} expenses.{totals.reversalCount > 0 ? ` ${totals.reversalCount} reversed (${money(totals.reversals)}, ${money(totals.cashReversals)} in cash) and already taken off these totals.` : ""} Balance includes all methods; drawer cash excludes card and bank payments.{showUncollected ? " Uncollected sales are not part of the balance." : ""}</p>
+  </div>;
+}
+
+// Shifts closed before discounts were recorded have no discount totals, so nothing is shown for them.
+function Discounts({ totals }: { totals: SessionTotals }) {
+  if (totals.discounts === undefined) return null;
+  const count = (n = 0) => `${n} ${n === 1 ? "order" : "orders"}`;
+  return <div className="session-discounts" aria-label="Discounts given">
+    <span className="session-discounts-total">Discounts given <strong>{money(totals.discounts)}</strong></span>
+    {totals.discounts > 0 && <>
+      {(totals.couponDiscounts ?? 0) > 0 && <span>Coupons <strong>{money(totals.couponDiscounts ?? 0)}</strong><small>{count(totals.couponCount)}</small></span>}
+      {(totals.invoiceDiscounts ?? []).map(row => <span key={row.name}>{row.name} <strong>{money(row.amount)}</strong><small>{count(row.count)}</small></span>)}
+    </>}
   </div>;
 }
 

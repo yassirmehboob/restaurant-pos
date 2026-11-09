@@ -43,10 +43,13 @@ export async function sessionTotals(businessId: string, sessionId: string, openi
   const payments = await Payment.find({ businessId, saleSessionId: sessionId }).session(transaction ?? null).lean();
   const expenses = await Expense.find({ businessId, saleSessionId: sessionId, isActive: true }).session(transaction ?? null).lean();
   const reversed = await Payment.find({ businessId, "reversal.saleSessionId": sessionId }).session(transaction ?? null).lean();
+  // Orders this shift collected (a reversal clears collectedInSessionId, so reversed sales drop out).
+  const discounted = await Order.find({ businessId, collectedInSessionId: sessionId, status: { $ne: "CANCELLED" }, discountAmount: { $gt: 0 } }).select("discountAmount invoiceDiscount.name invoiceDiscount.amount").session(transaction ?? null).lean();
   return calculateSessionTotals(openingBalance,
     payments.map(row => ({ amount: row.amount, method: row.method })),
     expenses.map(row => ({ amount: row.amount, method: row.paymentMethod })),
-    reversed.map(row => ({ amount: row.amount, method: row.method })));
+    reversed.map(row => ({ amount: row.amount, method: row.method })),
+    discounted.map(row => ({ discountAmount: row.discountAmount, invoiceDiscount: row.invoiceDiscount })));
 }
 
 // An order with nothing left to collect (for example a fully discounted one) cannot take a payment, so it never holds a shift open.

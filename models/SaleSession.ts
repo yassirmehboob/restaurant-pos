@@ -4,6 +4,8 @@ const totalsSchema = new Schema({
   sales: Number, expenses: Number, cashSales: Number, cashExpenses: Number,
   balance: Number, expectedCash: Number, paymentCount: Number, expenseCount: Number,
   reversals: Number, cashReversals: Number, reversalCount: Number,
+  discounts: Number, couponDiscounts: Number, couponCount: Number,
+  invoiceDiscounts: { type: [new Schema({ name: String, amount: Number, count: Number }, { _id: false })], default: undefined },
 }, { _id: false });
 
 const schema = new Schema({
@@ -28,5 +30,5 @@ schema.index({ businessId: 1, userId: 1 }, { unique: true, partialFilterExpressi
 schema.index({ businessId: 1, counterKey: 1 }, { unique: true, partialFilterExpression: { status: "OPEN" } });
 schema.index({ businessId: 1, saleDate: -1, openedAt: -1 });
 const cachedTotals = models.SaleSession?.schema.path("closingTotals") as { schema?: Schema } | undefined;
-if (cachedTotals?.schema && !cachedTotals.schema.path("reversals")) deleteModel("SaleSession");
+if (cachedTotals?.schema && (!cachedTotals.schema.path("reversals") || !cachedTotals.schema.path("couponDiscounts"))) deleteModel("SaleSession");
 export const SaleSession = models.SaleSession ?? model("SaleSession", schema);
