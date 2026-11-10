@@ -45,11 +45,22 @@ import "./waiter.css";
 import "./sms-settings.css";
 import "./sms-history.css";
 import { NumberWheelGuard } from "@/components/number-wheel-guard";
+import { appIconBusiness, logoImageId } from "@/lib/app-icon";
 
-export const metadata: Metadata = {
-  title: { default: "Restaurant POS", template: "%s | Restaurant POS" },
-  description: "A secure, touch-friendly restaurant point of sale.",
-};
+// The app icon is the business logo; its image id in the URL makes browsers fetch the new icon when the logo changes.
+export async function generateMetadata(): Promise<Metadata> {
+  const business = await appIconBusiness().catch(() => null);
+  const v = logoImageId(business?.logoUrl) ?? "default";
+  const icon = (size: number) => `/api/app-icon?size=${size}&v=${v}`;
+  return {
+    title: { default: "Restaurant POS", template: "%s | Restaurant POS" },
+    description: "A secure, touch-friendly restaurant point of sale.",
+    icons: {
+      icon: [{ url: icon(32), sizes: "32x32", type: "image/png" }, { url: icon(192), sizes: "192x192", type: "image/png" }],
+      apple: [{ url: icon(180), sizes: "180x180", type: "image/png" }],
+    },
+  };
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

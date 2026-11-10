@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
   experimental: { serverActions: { bodySizeLimit: "6mb", allowedOrigins: ["restaurant.cubedevsys.com"] } },
   images: { unoptimized: true },
   poweredByHeader: false,
+  // Browsers also ask for /favicon.ico directly; answer with the logo icon.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/api/app-icon?size=32" }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },
