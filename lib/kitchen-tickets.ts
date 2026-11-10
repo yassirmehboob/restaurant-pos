@@ -30,9 +30,14 @@ export function kitchenTickets<L extends Line>(items:L[]):KitchenTicket<L>[]{
 
 // Tickets for one kitchen print: the whole order, or one per category; then, when the business asks for it,
 // a copy of the whole order the waiter keeps to check the table's food against.
+// With per-category tickets the kitchen can also get one more ticket with the whole order, for the delivery men who
+// collect every counter's dishes and take the order out.
 export const WAITER_COPY="Waiter copy";
-export type PrintedTicket<L>={category:string;items:L[];waiterCopy?:boolean};
-export function orderTickets<L extends Line>(items:L[],options:{perCategory?:boolean|null;waiterCopy?:boolean|null}):PrintedTicket<L>[]{
-  const kitchen:PrintedTicket<L>[]=options.perCategory&&items.length?kitchenTickets(items):[{category:"",items}];
+export const WHOLE_ORDER="Whole order";
+export type PrintedTicket<L>={category:string;items:L[];waiterCopy?:boolean;wholeOrder?:boolean};
+export function orderTickets<L extends Line>(items:L[],options:{perCategory?:boolean|null;wholeOrder?:boolean|null;waiterCopy?:boolean|null}):PrintedTicket<L>[]{
+  const split=Boolean(options.perCategory)&&items.length>0;
+  const kitchen:PrintedTicket<L>[]=split?kitchenTickets(items):[{category:"",items}];
+  if(split&&options.wholeOrder)kitchen.push({category:WHOLE_ORDER,items,wholeOrder:true});
   return options.waiterCopy?[...kitchen,{category:WAITER_COPY,items,waiterCopy:true}]:kitchen;
 }

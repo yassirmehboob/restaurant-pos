@@ -3,7 +3,7 @@ import { EscPos,columnsFor,RECEIPT_FONTS,RECEIPT_SIZES,type PaperWidth,type Rece
 import { receiptFamily,type ReceiptFamily } from "@/lib/receipt-fonts";
 import { receiptItemRows,receivedRows } from "@/lib/receipt-lines";
 import { kitchenLanguage,localName,nameViewOf,type TranslationMap } from "@/lib/kitchen-language";
-import { orderTickets,WAITER_COPY,type PrintedTicket,type TicketCategory } from "@/lib/kitchen-tickets";
+import { orderTickets,WAITER_COPY,WHOLE_ORDER,type PrintedTicket,type TicketCategory } from "@/lib/kitchen-tickets";
 
 // Pure receipt layout: the printer job and the settings preview both render through here, so they always match.
 export type ReceiptKind="customer"|"kitchen";
@@ -17,6 +17,8 @@ export type ReceiptBusiness={
   customerReceiptFamily?:string|null;kitchenReceiptFamily?:string|null;kitchenReceiptLanguage?:string|null;
   // One kitchen ticket per menu category, for restaurants with separate kitchen counters.
   kitchenTicketPerCategory?:boolean|null;
+  // With per-category tickets, one more kitchen ticket with the whole order, for the kitchen delivery men.
+  kitchenTicketWholeOrder?:boolean|null;
   // One more ticket with the whole order, printed on the counter printer for the waiter to keep.
   kitchenWaiterCopy?:boolean|null;
   paymentQrUrl?:string|null;paymentQrCaption?:string|null;paymentQrShowOn?:string|null;
@@ -112,7 +114,7 @@ export function renderReceipt(kind:ReceiptKind,business:ReceiptBusiness,order:Re
     footer(p);
   }else{
     const split=Boolean(business.kitchenTicketPerCategory)&&order.items.length>0;
-    kitchenSlips(p,business,order,extras,orderTickets(order.items,{perCategory:split}),split);
+    kitchenSlips(p,business,order,extras,orderTickets(order.items,{perCategory:split,wholeOrder:business.kitchenTicketWholeOrder}),split);
   }
   parts.push({type:"command",base64:p.toBase64()});
   return parts;
@@ -130,12 +132,13 @@ function kitchenSlips(p:EscPos,business:ReceiptBusiness,order:ReceiptOrder,extra
   const meta=(label:string,value:string)=>p.row(label,value);
   // Item names can also print in Sindhi or Urdu; a name with no translation yet prints in English.
   const names=nameViewOf(kitchenLanguage(business.kitchenReceiptLanguage)),translations=extras.translations??{};
-  const counters=tickets.filter(ticket=>!ticket.waiterCopy).length;
+  const counters=tickets.filter(ticket=>!ticket.waiterCopy&&!ticket.wholeOrder).length;
   tickets.forEach((ticket,index)=>{
     // Order number and kitchen counter print white on black, so the cook spots them at a glance.
     p.align("center").bold(true).size("tall").text(business.name).size("normal").text("KITCHEN ORDER").bold(false);
     p.band(order.orderNumber);
     if(ticket.waiterCopy)p.feed(1).band(WAITER_COPY.toUpperCase()).align("center").bold(true).text("Full order").bold(false);
+    else if(ticket.wholeOrder)p.feed(1).band(WHOLE_ORDER.toUpperCase()).align("center").bold(true).text("All items - for delivery").bold(false);
     else if(split){p.feed(1).band(ticket.category.toUpperCase());if(counters>1)p.align("center").bold(true).text(`Ticket ${index+1} of ${counters}`).bold(false)}
     p.align("center").barcode(order.orderNumber).align("left").divider();
     // Table and waiter tell the counter where the dish goes, so they print tall.

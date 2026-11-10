@@ -205,6 +205,25 @@ test("one-printer mode prints the kitchen ticket from the counter", { skip: !pro
       assert.ok(printed[2].text.includes("Tikka Deal") && printed[2].text.includes("> Cola - Qty 1") && !printed[2].text.includes("> Chicken Tikka"));
       assert.ok(printed[2].text.includes("Ticket 3 of 3"));
 
+      // "Per category + whole order", saved through the settings form: one more slip on the kitchen printer with every item.
+      jar.clear();
+      await createSession({ userId: String(owner._id), businessId: String(business._id), role: "OWNER", authVersion: 0 });
+      form.set("kitchenTicketPerCategory", "BOTH");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      const saved = await Business.findById(business._id).lean();
+      assert.deepEqual([saved.kitchenTicketPerCategory, saved.kitchenTicketWholeOrder], [true, true]);
+      const both = await buildPrintJob(String(business._id), created.orderId, "kitchen");
+      const bothSlips = []; for (const row of both.parts.flatMap(part => decodeEscPos(part.base64))) { if (row.kind === "cut") bothSlips.push([]); else (bothSlips.at(-1) ?? bothSlips[bothSlips.push([]) - 1]).push(row); }
+      const whole = bothSlips.filter(slip => slip.length);
+      assert.equal(both.printer.host, "192.168.1.60");
+      assert.deepEqual(whole.map(slip => slip.filter(row => row.style?.invert).map(row => row.text.trim())), [[number, "MAINS"], [number, "BBQ"], [number, "DRINKS"], [number, "WHOLE ORDER"]]);
+      const wholeText = whole[3].map(row => row.text ?? "").join("\n");
+      for (const text of ["All items - for delivery", "Chicken Karahi", "Chicken Tikka", "Tikka Deal", "> Chicken Tikka - Qty 1", "> Cola - Qty 1"]) assert.ok(wholeText.includes(text), text);
+      // Back to plain per-category: the whole-order slip is switched off again.
+      form.set("kitchenTicketPerCategory", "YES");
+      assert.equal((await updatePrintingSettings(undefined, form)).ok, true);
+      assert.equal((await Business.findById(business._id).lean()).kitchenTicketWholeOrder, false);
+
       // The waiter copy, saved through the settings form, is a second job: the whole order on the counter printer.
       jar.clear();
       await createSession({ userId: String(owner._id), businessId: String(business._id), role: "OWNER", authVersion: 0 });

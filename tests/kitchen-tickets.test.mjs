@@ -69,3 +69,19 @@ test("the waiter copy is its own slip with the whole order; the kitchen job neve
   for (const value of ["Full order", "Chicken Karahi", "Family Deal", "Zinger - Qty 2", "Cola - Qty 1", "Table 4", "Ahmed", "Less spicy"]) assert.ok(text.includes(value), value);
   assert.ok(!text.includes("Ticket "));
 });
+
+test("per category + whole order adds one last kitchen slip with every item for the delivery men", () => {
+  const items = [
+    { quantity: 1, nameSnapshot: "Chicken Karahi", unitPrice: 1000, categoryName: "Karahi" },
+    { quantity: 1, nameSnapshot: "Family Deal", unitPrice: 2000, dealItemsSnapshot: [{ name: "Zinger", quantity: 2, categoryName: "Fast Food" }, { name: "Cola", quantity: 1, categoryName: "Drinks" }] },
+  ];
+  const printed = tickets(rows({ kitchenTicketPerCategory: true, kitchenTicketWholeOrder: true }, order(items)));
+  assert.deepEqual(printed.map(ticket => ticket.filter(row => row.style?.invert).map(row => row.text.trim())), [["ORD-77", "DRINKS"], ["ORD-77", "FAST FOOD"], ["ORD-77", "KARAHI"], ["ORD-77", "WHOLE ORDER"]]);
+  // Counter numbering ignores the whole-order slip.
+  assert.ok(printed[2].some(row => row.text?.trim() === "Ticket 3 of 3"));
+  const text = printed[3].map(row => row.text ?? "").join("\n");
+  for (const value of ["All items - for delivery", "Chicken Karahi", "Family Deal", "Zinger - Qty 2", "Cola - Qty 1", "Table 4", "Less spicy"]) assert.ok(text.includes(value), value);
+  assert.ok(!text.includes("Ticket "));
+  // Without per-category tickets the whole-order option adds nothing: the single ticket already is the whole order.
+  assert.equal(tickets(rows({ kitchenTicketWholeOrder: true }, order(items))).length, 1);
+});
