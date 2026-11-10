@@ -65,19 +65,60 @@ async function rasterParts(parts:PrintPart[],paper:PaperWidth,family:ReceiptFami
   return data;
 }
 
-export async function sendToPrinter(target:PrinterTarget,parts:PrintPart[],copies=1,style?:{paper:PaperWidth;family:ReceiptFamily}){
-  const qz=await connectQz();
+type QzData=Parameters<Qz["print"]>[1];
+async function printerOf(qz:Qz,target:PrinterTarget){
   if(target.connection==="LAN"&&!target.host)throw new Error("Enter the LAN printer's IP address in Printing settings.");
   const printer=target.connection==="LAN"?{host:target.host,port:target.port||9100}:target.name||await qz.printers.getDefault();
   if(!printer)throw new Error("No printer selected and Windows has no default printer.");
-  const data:Parameters<Qz["print"]>[1]=style&&style.family!=="PRINTER"?await rasterParts(parts,style.paper,style.family):[];
+  return printer;
+}
+async function printerData(parts:PrintPart[],style?:{paper:PaperWidth;family:ReceiptFamily}){
+  const data:QzData=style&&style.family!=="PRINTER"?await rasterParts(parts,style.paper,style.family):[];
   if(!data.length)for(const part of parts){
     if(part.type==="command"){data.push({type:"raw",format:"command",flavor:"base64",data:part.base64});continue}
     const logo=await logoBase64(part.url,part.width).catch(()=>null);
     if(logo)data.push({type:"raw",format:"image",flavor:"base64",data:logo,options:{language:"ESCPOS",dotDensity:"double"}});
   }
+  return data;
+}
+
+export async function sendToPrinter(target:PrinterTarget,parts:PrintPart[],copies=1,style?:{paper:PaperWidth;family:ReceiptFamily}){
+  const qz=await connectQz(),printer=await printerOf(qz,target),data=await printerData(parts,style);
   try{for(let copy=0;copy<Math.max(1,copies);copy++)await qz.print(qz.configs.create(printer),data)}
   catch(error){throw new Error(`Could not print to ${describePrinter(target)}. ${message(error)}`)}
+}
+
+// Everything printed when an order is placed (kitchen ticket, waiter copy, unpaid bill), in that order.
+// Slips for the same printer go out as ONE QZ job: a LAN printer that is still taking in the kitchen ticket
+// drops it when the next job's connection arrives, so sending them back to back lost the kitchen ticket.
+export async function printQzOrder(orderId:string,kinds:ReceiptKind[]):Promise<Record<ReceiptKind,PrintResult|undefined>>{
+  const results:Record<ReceiptKind,PrintResult|undefined>={kitchen:undefined,customer:undefined};
+  const fail=(kind:ReceiptKind,text:string)=>{results[kind]??={ok:false,confirmed:false,message:text}};
+  const groups=new Map<string,{target:PrinterTarget;kinds:Set<ReceiptKind>;slips:{parts:PrintPart[];copies:number;style:{paper:PaperWidth;family:ReceiptFamily}}[]}>();
+  for(const kind of kinds){
+    try{
+      const response=await fetch(`/api/print/order/${encodeURIComponent(orderId)}?kind=${kind}`,{cache:"no-store"});
+      const job=await response.json() as PrintJob&{message?:string};
+      if(!response.ok){fail(kind,job.message??"Could not prepare the receipt.");continue}
+      for(const slip of [job,...job.also??[]]){
+        const target=readStationPrinters()[slip.role]??slip.printer,key=JSON.stringify(target);
+        const group=groups.get(key)??{target,kinds:new Set<ReceiptKind>(),slips:[]};groups.set(key,group);
+        group.kinds.add(kind);group.slips.push({parts:slip.parts,copies:Math.max(1,slip.copies),style:{paper:slip.paper,family:slip.family}});
+      }
+    }catch(error){fail(kind,message(error))}
+  }
+  let qz:Qz|null=null;
+  for(const group of groups.values()){
+    try{
+      qz??=await connectQz();
+      const printer=await printerOf(qz,group.target),data:QzData=[];
+      for(const slip of group.slips){const slipData=await printerData(slip.parts,slip.style);for(let copy=0;copy<slip.copies;copy++)data.push(...slipData)}
+      try{await qz.print(qz.configs.create(printer),data)}
+      catch(error){throw new Error(`Could not print to ${describePrinter(group.target)}. ${message(error)}`)}
+    }catch(error){for(const kind of group.kinds)fail(kind,message(error))}
+  }
+  for(const kind of kinds)results[kind]??={ok:true,confirmed:true,message:"Sent to the printer."};
+  return results;
 }
 
 export async function printTestPage(target:PrinterTarget,paper:PaperWidth,label:string){

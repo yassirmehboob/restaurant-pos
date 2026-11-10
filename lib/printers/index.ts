@@ -1,5 +1,5 @@
 import { BrowserPrinterAdapter } from "./browser";
-import { QzTrayPrinterAdapter,printQzQrSlip } from "./qz-tray";
+import { QzTrayPrinterAdapter,printQzOrder,printQzQrSlip } from "./qz-tray";
 export { openCashDrawer } from "./qz-tray";
 import type { PrinterAdapter } from "./types";
 export function createPrinterAdapter(mode:"BROWSER"|"QZ"):PrinterAdapter{return mode==="QZ"?new QzTrayPrinterAdapter():new BrowserPrinterAdapter()}
@@ -9,6 +9,15 @@ type PlacedOrder={orderId:string;printKitchen?:boolean;printBill?:boolean;printe
 // Returns one message per print that failed, so the caller can tell the cashier.
 export async function printPlacedOrder(order:PlacedOrder){
   const adapter=createPrinterAdapter(order.printerMode),failures:{title:string;text:string}[]=[];
+  // QZ Tray: one job per printer, so the bill cannot cut off the kitchen ticket on a shared counter printer.
+  if(order.printerMode==="QZ"){
+    const kinds=[...order.printKitchen?["kitchen" as const]:[],...order.printBill?["customer" as const]:[]];
+    if(!kinds.length)return failures;
+    const results=await printQzOrder(order.orderId,kinds);
+    if(results.kitchen&&!results.kitchen.ok)failures.push({title:"Kitchen ticket was NOT printed",text:results.kitchen.message});
+    if(results.customer&&!results.customer.ok)failures.push({title:"Unpaid bill was NOT printed",text:results.customer.message});
+    return failures;
+  }
   if(order.printKitchen){const result=await adapter.printKitchenReceipt(order.orderId);if(!result.ok)failures.push({title:"Kitchen ticket was NOT printed",text:result.message})}
   if(order.printBill){const result=await adapter.printCustomerReceipt(order.orderId);if(!result.ok)failures.push({title:"Unpaid bill was NOT printed",text:result.message})}
   return failures;

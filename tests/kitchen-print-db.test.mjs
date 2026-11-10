@@ -67,10 +67,10 @@ test("one-printer mode prints the kitchen ticket from the counter", { skip: !pro
       assert.equal(paid.printKitchen, true);
     });
 
-    await t.test("separate printers or kitchen printing off skip the counter kitchen ticket", async () => {
+    await t.test("separate printers send the kitchen ticket to the kitchen printer; kitchen printing off skips it", async () => {
       await settings({ onePrinterMode: false });
       const separate = await saveOrder(order("DINE_IN"));
-      assert.equal(separate.printKitchen, false);
+      assert.equal(separate.printKitchen, true);
       assert.equal((await buildPrintJob(String(business._id), separate.orderId, "kitchen")).role, "kitchen");
       await settings({ onePrinterMode: true, kitchenPrintingEnabled: false });
       assert.equal((await saveOrder(order("DINE_IN"))).printKitchen, false);

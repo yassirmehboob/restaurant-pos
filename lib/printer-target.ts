@@ -27,9 +27,10 @@ export function describePrinter(target:PrinterTarget){
   return target.connection==="LAN"?`LAN ${target.host||"(no IP)"}:${target.port}`:`USB ${target.name||"Windows default printer"}`;
 }
 
-// One-printer mode: the counter printer also prints the kitchen ticket whenever an order goes to the kitchen.
-export function counterPrintsKitchen(business:{onePrinterMode?:boolean|null;kitchenPrintingEnabled?:boolean|null}|null|undefined){
-  return Boolean(business&&business.onePrinterMode!==false&&business.kitchenPrintingEnabled!==false);
+// The counter PC that places the order sends the kitchen ticket whenever an order goes to the kitchen: to the counter
+// printer in one-printer mode, or to the kitchen printer (and the waiter copy to the counter) with separate printers.
+export function counterPrintsKitchen(business:{kitchenPrintingEnabled?:boolean|null}|null|undefined){
+  return Boolean(business&&business.kitchenPrintingEnabled!==false);
 }
 
 // Optional: the counter also prints the customer bill, unpaid, as soon as a dine-in order is placed.
