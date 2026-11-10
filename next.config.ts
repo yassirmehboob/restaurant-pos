@@ -7,8 +7,10 @@ const nextConfig: NextConfig = {
     "/api/backups/*": ["./lib/backups.mjs"],
   },
   // Lets other PCs on the local network load dev scripts (clicks do nothing without them).
-  allowedDevOrigins: ["172.16.200.87", "172.16.200.120", "172.16.*.*", "192.168.*.*", "10.*.*.*"],
-  experimental: { serverActions: { bodySizeLimit: "6mb" } },
+  // The public Cloudflare Tunnel domain needs the same permission.
+  allowedDevOrigins: ["172.16.200.87", "172.16.200.120", "172.16.*.*", "192.168.*.*", "10.*.*.*", "restaurant.cubedevsys.com"],
+  // Server Actions reject a request whose Origin differs from the Host; listed in case the tunnel rewrites the Host header.
+  experimental: { serverActions: { bodySizeLimit: "6mb", allowedOrigins: ["restaurant.cubedevsys.com"] } },
   images: { unoptimized: true },
   poweredByHeader: false,
   async headers() {
