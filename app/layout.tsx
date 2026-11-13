@@ -35,6 +35,8 @@ import "./product-variants.css";
 import "./weight-picker.css";
 import "./discounts.css";
 import "./category-price-reference.css";
+import "./deal-form.css";
+import "./suggested-deals.css";
 import "./form-performance.css";
 import "./kitchen.css";
 import "./sale-sessions.css";
@@ -44,6 +46,7 @@ import "./pos-review.css";
 import "./waiter.css";
 import "./sms-settings.css";
 import "./sms-history.css";
+import "./category-sort.css";
 import { NumberWheelGuard } from "@/components/number-wheel-guard";
 import { appIconBusiness, logoImageId } from "@/lib/app-icon";
 

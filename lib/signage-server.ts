@@ -11,6 +11,7 @@ import { Category } from "@/models/Category";
 import { Deal } from "@/models/Deal";
 import { Product } from "@/models/Product";
 import { SignageScreen } from "@/models/SignageScreen";
+import { dealComponentName } from "@/lib/weight";
 
 export const VIDEO_BUCKET = "signage";
 export const newDisplayToken = () => randomBytes(32).toString("base64url");
@@ -79,7 +80,7 @@ export async function buildFeed(screen: ScreenDoc, mediaUrl: (kind: "image" | "v
   const image = (url?: string | null) => { const id = /^\/api\/images\/([a-f\d]{24})$/i.exec(url ?? "")?.[1]; return id ? mediaUrl("image", id) : null; };
   const productMap = new Map(products.map(row => [String(row._id), row])), allProducts = new Map((await Product.find({ businessId }).select("name").lean()).map(row => [String(row._id), String(row.name)]));
   const item = (row: (typeof products)[number]): FeedItem => ({ id: String(row._id), name: String(row.name), description: String(row.description ?? ""), image: image(row.imageUrl), price: Number(row.salePrice), prices: (row.variants ?? []).map((variant: { name: string; salePrice: number }) => ({ name: variant.name, price: Number(variant.salePrice) })) });
-  const deal = (row: (typeof deals)[number]): FeedDeal => ({ id: String(row._id), name: String(row.name), description: String(row.description ?? ""), image: image(row.imageUrl), price: Number(row.salePrice), items: row.items.map((line: { productId: unknown; quantity: number }) => ({ name: allProducts.get(String(line.productId)) ?? "Item", quantity: line.quantity })) });
+  const deal = (row: (typeof deals)[number]): FeedDeal => ({ id: String(row._id), name: String(row.name), description: String(row.description ?? ""), image: image(row.imageUrl), price: Number(row.salePrice), items: row.items.map((line: { productId: unknown; quantity: number; weightGrams?: number; variantName?: string }) => ({ name: dealComponentName(allProducts.get(String(line.productId)) ?? "Item", line), quantity: line.quantity })) });
   const videoIds = new Set(videos.map(video => video.id)), imageIds = new Set(pictures.map(picture => picture.id));
   const resolved: FeedSlide[] = [];
   for (const slide of slides) {

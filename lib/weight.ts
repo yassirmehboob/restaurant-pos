@@ -10,6 +10,8 @@ export function formatWeight(grams:number){return grams<1000?`${grams} g`:`${Num
 export function weightPrice(pricePerKg:number,grams:number){return Math.round(pricePerKg*grams/1000)}
 export function weightCost(costPerKg:number,grams:number){return Math.round(costPerKg*grams/10)/100}
 export function weightedName(name:string,grams:number){return `${name} (${formatWeight(grams)})`}
+// A deal component carries its size ("Pizza (Large)") or fixed weight ("Mutton Karahi (500 g)") in its name, as order lines do.
+export function dealComponentName(name:string,item:{weightGrams?:number|null;variantName?:string|null}){return item.weightGrams?weightedName(name,item.weightGrams):item.variantName?`${name} (${item.variantName})`:name}
 export function validWeight(grams:unknown):grams is number{return Number.isInteger(grams)&&(grams as number)>=MIN_WEIGHT_GRAMS&&(grams as number)<=MAX_WEIGHT_GRAMS}
 
 type PricedProduct={name:string;sellBy?:string|null;salePrice:number;costPrice:number};

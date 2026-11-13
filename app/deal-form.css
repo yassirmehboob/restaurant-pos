@@ -1,0 +1,51 @@
+/* Deal form: details on the left, the deal items in their own column at full height (no inner scroll box). */
+.entity-dialog.fullscreen .dialog-body>.master-form-card.deal-form-card{width:min(1320px,100%)}
+.entity-dialog .master-form.deal-form-split{display:grid;grid-template-columns:minmax(300px,5fr) minmax(0,7fr);gap:24px;align-items:stretch}
+.deal-form-details{min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;align-content:start}
+.deal-form-details>.wide,.deal-form-details>.form-actions,.deal-form-details>.success-message,.deal-form-details>.form-alert{grid-column:1/-1}
+.deal-form-items{min-width:0;display:flex}
+.deal-form-items>.deal-builder{flex:1;max-height:none;overflow:visible;display:flex;flex-direction:column}
+.deal-form-items .deal-rows{display:flex;flex-direction:column}
+.deal-form-items .deal-builder .add-row{align-self:flex-start}
+
+/* Rows line up by their labels, so a weight hint under one field does not shift the others. */
+.deal-builder .deal-row,.deal-builder .deal-row.has-option{grid-template-columns:minmax(0,1fr) 196px 112px 46px;align-items:start}
+.deal-builder .deal-row:not(.has-option) .deal-item-select{grid-column:span 2}
+.deal-builder .deal-row .remove-deal-item{align-self:start;margin-top:var(--deal-input-top,22px)}
+.deal-weight,.deal-size{min-width:0}
+.deal-builder .deal-row .deal-size select{width:100%;height:46px;min-height:46px;padding:0 10px;color:#1f2937;background:#fff;border:1px solid #cfd7e3;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.03);outline:none;font-weight:600}
+.deal-builder .deal-row .deal-size select:focus{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.1)}
+.deal-weight-label{display:block;margin-bottom:6px;color:#667085;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.deal-weight-control{display:flex;height:46px;background:#fff;border:1px solid #cfd7e3;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.03);overflow:hidden}
+.deal-weight-control:focus-within{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.1)}
+.deal-weight-control input{flex:1;min-width:0;height:100%;min-height:0;padding:0 10px;color:#1f2937;background:transparent;border:0;border-radius:0;box-shadow:none;outline:none!important;font-size:15px;font-weight:700;text-align:center}
+.deal-weight-units{display:flex;padding:4px;gap:3px;border-left:1px solid #e2e8f0;background:#f8fafc}
+.deal-weight-units button{min-width:38px;padding:0 8px;color:#475467;background:transparent;border:0;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer}
+.deal-weight-units button[aria-pressed="true"]{color:#fff;background:#2563eb}
+.deal-weight .deal-weight-hint,.deal-weight .field-error{display:block;margin-top:4px;font-size:11px}
+.deal-weight .deal-weight-hint{color:#667085}
+
+/* One column: fields, then the deal items, then Save. */
+@media(max-width:900px){.entity-dialog .master-form.deal-form-split{grid-template-columns:1fr;gap:14px}
+  .deal-form-details{display:contents}
+  .deal-form-items{order:1}
+  .deal-form-details>.form-actions{order:2}}
+@media(max-width:560px){.deal-form-details{grid-template-columns:1fr}
+  .deal-form-details>.field{grid-column:1}}
+/* Phone: the item name gets its own line; weight, quantity and delete sit under it. */
+@media(max-width:640px){.deal-builder .deal-row,.deal-builder .deal-row.has-option{grid-template-columns:minmax(0,1fr) 88px 44px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}
+  .deal-builder .deal-row:last-child{border-bottom:0;padding-bottom:0}
+  .deal-builder .deal-row .deal-item-select,.deal-builder .deal-row:not(.has-option) .deal-item-select{grid-column:1/-1}
+  .deal-builder .deal-row .deal-quantity{grid-column:2}
+  .deal-builder .deal-row .remove-deal-item{grid-column:3}
+  .deal-weight-control{height:44px}}
+/* Keep the add button clear of the sticky Save bar when it is scrolled into view. */
+.deal-builder .add-row,.deal-pricing{scroll-margin-bottom:110px}
+.deal-builder-heading strong{white-space:nowrap}
+/* Items total and suggested price under the deal items. */
+.deal-pricing{margin-top:14px;padding:12px 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px}
+.deal-pricing>div{display:flex;flex-direction:column;gap:2px}
+.deal-pricing span{color:#667085;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.deal-pricing strong{color:#1f2937;font-size:20px;font-weight:800}
+.deal-pricing .suggested strong{color:#15803d}
+.deal-pricing small{grid-column:1/-1;color:#7b8798;font-size:12px}

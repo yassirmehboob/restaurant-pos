@@ -1,0 +1,25 @@
+.category-sort-hint{margin:0 0 10px;font-size:13px;color:var(--muted,#64748b)}
+.category-sort-hint .ok{color:#15803d}.category-sort-hint .error{color:#b42318}
+.category-sort-list article{transition:box-shadow .15s,transform .15s}
+.category-sort-list .record-main{display:flex;align-items:center;gap:10px}
+.category-drag-handle{flex:none;width:32px;height:40px;display:grid;place-items:center;padding:0;color:#94a3b8;background:transparent;border:0;border-radius:8px;cursor:grab;touch-action:none}
+.category-drag-handle:hover:not(:disabled),.category-drag-handle:focus-visible{color:#334155;background:#f1f5f9}
+.category-drag-handle:disabled{cursor:progress;opacity:.5}
+span.category-drag-handle{cursor:default}
+.category-sort-list.is-sorting,.category-sort-list.is-sorting *{cursor:grabbing;user-select:none}
+.category-sort-list article.is-dragging{position:relative;z-index:1;border-color:#93c5fd;box-shadow:0 10px 24px rgba(15,23,42,.14);transform:scale(1.01)}
+/* theme-v2 lets dialogs grow past the screen on desktop; keep this one inside it so the list scrolls. */
+.entity-dialog:has(.category-manager){max-height:calc(100dvh - 32px)}
+.entity-dialog:has(.category-manager) .dialog-surface{max-height:calc(100dvh - 32px)}
+.entity-dialog:has(.category-manager) .dialog-body{min-height:0;overflow:auto;overscroll-behavior:contain}
+@media(min-width:801px){.dialog-body .category-manager{align-items:start}.dialog-body .category-manager>.master-form-card{position:sticky;top:0;z-index:2}}
+.category-sort-list small{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.category-sort-status{display:inline-flex;align-items:center;gap:3px;padding:1px 8px;font-size:12px;font-weight:600;border-radius:999px}
+.category-sort-status.saving{color:#475569;background:#f1f5f9}
+.category-sort-status.ok{color:#15803d;background:#dcfce7}
+.category-sort-status.error{color:#b42318;background:#fee4e2}
+.category-sort-list article.is-ok{border-color:#86efac}
+.category-sort-list article.is-error{border-color:#fda29b}
+.entity-dialog:has(.category-manager){width:min(1100px,calc(100vw - 40px))}
+@media(max-width:800px){.entity-dialog:has(.category-manager){width:calc(100vw - 18px)}}
+@media(min-width:801px){.dialog-body .category-manager{grid-template-columns:minmax(280px,340px) minmax(0,1fr)}}
