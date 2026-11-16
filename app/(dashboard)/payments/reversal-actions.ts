@@ -55,7 +55,7 @@ export async function reverseOrderPayment(orderId: string, reason: string) {
       return { orderNumber: String(order.orderNumber), saleDate, counterName: original ? String(original.counterName) : "", amount: payments.reduce((sum, payment) => sum + payment.amount, 0), methods: [...new Set(payments.map(payment => String(payment.method)))], paymentIds: payments.map(payment => String(payment._id)) };
     }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
     await writeAuditLog({ businessId: user.businessId, userId: user.id, userName: user.fullName, action: "REVERSE_PAYMENT", entityType: "Order", entityId: orderId, description: `Reversed Rs ${result.amount.toLocaleString("en-PK")} payment on ${result.orderNumber}: ${clean}`, metadata: { reason: clean, amount: result.amount, methods: result.methods, paymentIds: result.paymentIds, saleDate: result.saleDate, counterName: result.counterName } });
-    for (const path of ["/orders", `/orders/${orderId}`, "/kitchen", "/sale-sessions", "/sales", "/reports", "/reports/profit-loss", "/reports/discounts", "/reports/reversals", "/dashboard", "/coupons"]) revalidatePath(path);
+    for (const path of ["/orders", `/orders/${orderId}`, "/kitchen", "/sale-sessions", "/sales", "/reports", "/reports/profit-loss","/reports/tax", "/reports/discounts", "/reports/reversals", "/dashboard", "/coupons"]) revalidatePath(path);
     return { ok: true as const, orderNumber: result.orderNumber, amount: result.amount };
   } catch (error) { return { ok: false as const, message: saleSessionError(error) }; }
 }

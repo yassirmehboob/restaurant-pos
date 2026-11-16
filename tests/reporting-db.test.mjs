@@ -4,6 +4,7 @@ import test from "node:test";
 import mongoose from "mongoose";
 import { businessDateQuery, buildSalesExport, buildSalesReport, paidSalesFilter, resolveReportRange, saleDateFilter } from "../lib/reporting.ts";
 import { buildProfitLoss } from "../lib/profit-loss.ts";
+import { buildTaxReport } from "../lib/tax-report.ts";
 import { Order } from "../models/Order.ts";
 
 test("Today follows the open sale date and explicit historical ranges remain unchanged", () => {
@@ -88,6 +89,23 @@ test("paid sales appear independently of kitchen status across sales and profit 
       const report = await buildSalesReport(String(otherBusiness), query);
       assert.equal(report.summary.orders, 1);
       assert.equal(report.summary.netSales, 600);
+    });
+    await t.test("tax collection matches sales, excludes unpaid and cancelled invoices, and respects business dates", async () => {
+      await db.collection("orders").updateMany({}, {$set:{taxAmount:10}});
+      await db.collection("orders").updateOne({_id:sent._id}, {$set:{taxAmount:0}});
+      await db.collection("payments").insertMany([
+        {businessId,orderId:preparing._id,method:"CASH",amount:1,paidAt:date},
+        {businessId,orderId:preparing._id,method:"BANK",amount:1,paidAt:date,reversal:{reason:"Test",reversedAt:date}},
+        {businessId:otherBusiness,orderId:preparing._id,method:"OTHER",amount:1,paidAt:date},
+      ]);
+      const report = await buildTaxReport(String(businessId), query);
+      const sales = await buildSalesReport(String(businessId), query);
+      assert.deepEqual(report.totals, {orders:4,taxedOrders:4,tax:40,sales:575});
+      assert.equal(report.totals.tax, sales.summary.tax);
+      assert.deepEqual(new Set(report.orders.map(order=>String(order._id))), new Set(sales.orders.filter(order=>order.taxAmount>0).map(order=>String(order._id))));
+      assert.deepEqual(new Set(report.orders.find(order=>String(order._id)===String(preparing._id)).paymentMethods), new Set(["CARD","CASH"]));
+      assert.equal((await buildTaxReport(String(otherBusiness), query)).totals.tax, 10);
+      assert.deepEqual((await buildTaxReport(String(businessId), {range:"CUSTOM",from:"2026-02-01",to:"2026-02-01"})).totals, {orders:0,taxedOrders:0,tax:0,sales:0});
     });
   } finally {
     assert.match(mongoose.connection.name, /^restaurant_pos_reporting_test_[a-f0-9]+$/);
