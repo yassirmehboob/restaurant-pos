@@ -143,8 +143,8 @@ async function context(input:OrderInput){const user=await requireUser();const pa
 
 // What the counter prints for an order that has just gone to the kitchen (orderType null: nothing, e.g. an edit).
 async function placedOrderPrints(user:{businessId:string;role:string;permissions?:string[]}&Parameters<typeof can>[0],orderType:string|null){
- const business=orderType?await Business.findOne({_id:user.businessId,isActive:true}).select("printerMode onePrinterMode kitchenPrintingEnabled customerPrintingEnabled autoPrintUnpaidDineIn").lean():null,allowed=can(user,"printing");
- return{printKitchen:Boolean(allowed&&counterPrintsKitchen(business)),printBill:Boolean(allowed&&orderType==="DINE_IN"&&autoPrintsUnpaidBill(business)),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
+ const business=await Business.findOne({_id:user.businessId,isActive:true}).select("printerMode onePrinterMode kitchenPrintingEnabled customerPrintingEnabled autoPrintUnpaidDineIn promptCustomerInvoiceOnUpdate").lean(),allowed=can(user,"printing");
+ return{promptCustomerInvoice:Boolean(!orderType&&allowed&&business?.customerPrintingEnabled!==false&&business?.promptCustomerInvoiceOnUpdate===true),printKitchen:Boolean(orderType&&allowed&&counterPrintsKitchen(business)),printBill:Boolean(allowed&&orderType==="DINE_IN"&&autoPrintsUnpaidBill(business)),printerMode:(business?.printerMode??"BROWSER") as "BROWSER"|"QZ"};
 }
 
 // Prices a saved order with its invoice discount, on the pre-tax amount left after any coupon. Staff without payment

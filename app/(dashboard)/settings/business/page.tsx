@@ -1,3 +1,5 @@
+import { CartSettings } from "@/components/cart-settings";
+import { cartIncreaseMode } from "@/lib/pos-cart";
 import { WaiterSettings } from "@/components/waiter-settings";
 import { QrOrderingSettings } from "@/components/qr-ordering-settings";
 import { PaymentSettings } from "@/components/payment-settings";
@@ -18,6 +20,7 @@ export default async function BusinessSettingsPage(){
  return <main className="master-page business-profile-page">
   <MasterHeader eyebrow="Business settings" title="Business Profile" description="Manage your restaurant details and team preferences."/>
   <BusinessProfileForm logoUrl={business.logoUrl} initial={{name:business.name,legalName:business.legalName??"",phone:business.phone??"",email:business.email??"",address:business.address??"",city:business.city??"",country:business.country??"Pakistan",taxNumber:business.taxNumber??"",currency:business.currency,timezone:business.timezone}}/>
+  <CartSettings mode={cartIncreaseMode(business.cartIncreaseMode)}/>
   <PaymentQrSettings initial={{url:business.paymentQrUrl??"",caption:business.paymentQrCaption??"",showOn:paymentQrShowOn(business.paymentQrShowOn)}}/>
   {user.role==="OWNER"&&<><WaiterSettings show={business.waiterShowBillSummary===true}/><QrOrderingSettings initial={{enabled:business.qrOrderingEnabled===true,showSummary:business.qrShowBillSummary!==false,verifyPhone:business.qrPhoneVerification===true,baseUrl:business.qrMenuBaseUrl??""}} smsReady={business.smsEnabled===true&&!!process.env.SMS_API}/><PaymentSettings prefill={business.paymentPrefillDueAmount!==false}/><BusinessTaxSettings rate={business.saleTaxRate??0} overrides={{CASH:business.paymentTaxRates?.CASH??null,CARD:business.paymentTaxRates?.CARD??null,BANK:business.paymentTaxRates?.BANK??null,OTHER:business.paymentTaxRates?.OTHER??null}}/></>}
  </main>;

@@ -33,6 +33,8 @@ const businessSchema = new Schema({
   cashDrawerOpenOn:{type:String,enum:["NEVER","CASH","ALL"],default:"NEVER"}, cashDrawerPin:{type:String,enum:["PIN2","PIN5"],default:"PIN2"},
   waiterShowBillSummary:{type:Boolean,default:false},
   paymentPrefillDueAmount:{type:Boolean,default:true},
+  cartIncreaseMode:{type:String,enum:["SAME_LINE","NEW_LINE"],default:"SAME_LINE"},
+  promptCustomerInvoiceOnUpdate:{type:Boolean,default:false},
   smsEnabled:{type:Boolean,default:false},smsPaymentReceiptEnabled:{type:Boolean,default:false},smsIncludeOptOut:{type:Boolean,default:true},smsTokenEncrypted:{type:String,select:false},smsPaymentTemplate:String,smsEvidenceReference:{type:String,default:"customer-acknowledgement"},
   smsDeliveryMessages:{placed:{type:deliveryMessageSchema,default:()=>({})},outForDelivery:{type:deliveryMessageSchema,default:()=>({})},delivered:{type:deliveryMessageSchema,default:()=>({})}},
   smsOrderMessages:{placed:{type:orderMessageSchema,default:()=>({})},preparing:{type:orderMessageSchema,default:()=>({})},ready:{type:orderMessageSchema,default:()=>({})},served:{type:orderMessageSchema,default:()=>({})},completed:{type:orderMessageSchema,default:()=>({})}},
@@ -54,4 +56,6 @@ const businessSchema = new Schema({
 export type BusinessDocument = InferSchemaType<typeof businessSchema>;
 if(models.Business&&(!models.Business.schema.path("kitchenReceiptLanguage")||!models.Business.schema.path("kitchenTicketPerCategory")||!models.Business.schema.path("kitchenTicketWholeOrder")||!models.Business.schema.path("kitchenWaiterCopy")||!models.Business.schema.path("kitchenWaiterCopies")||!models.Business.schema.path("paymentQrShowOn")||!models.Business.schema.path("cashDrawerOpenOn")))deleteModel("Business");
 if(models.Business&&(!models.Business.schema.path("smsDeliveryMessages.placed")||!models.Business.schema.path("smsOrderMessages.ready")||!models.Business.schema.path("smsIncludeOptOut")||!models.Business.schema.path("smsTokenEncrypted")||!models.Business.schema.path("waiterShowBillSummary")||!models.Business.schema.path("saleTaxRate")||!models.Business.schema.path("showOrderReadyTime")||!models.Business.schema.path("paymentPrefillDueAmount")||!models.Business.schema.path("kitchenPrinterConnection")||!models.Business.schema.path("discountTypes")||!models.Business.schema.path("couponOnPayment")||!models.Business.schema.path("unpaidDineInReceiptCopies")||!models.Business.schema.path("smsOrderMessages.served")||!models.Business.schema.path("qrPhoneVerification")))deleteModel("Business");
+if(models.Business&&!models.Business.schema.path("cartIncreaseMode"))deleteModel("Business");
+if(models.Business&&!models.Business.schema.path("promptCustomerInvoiceOnUpdate"))deleteModel("Business");
 export const Business = models.Business ?? model("Business", businessSchema);
